@@ -26,11 +26,15 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
     }
 });
 
-// --- Database Initialisation (FIXED) ---
+// --- Database Initialisation (DROPS and recreates tables) ---
 function initDatabase() {
-    // 1. Create tables (run these first, before any queries)
+    // 1. Drop all existing tables to start fresh (safe for first deployment)
     db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
+        DROP TABLE IF EXISTS users;
+        DROP TABLE IF EXISTS reports;
+        DROP TABLE IF EXISTS notifications;
+
+        CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             password TEXT,
@@ -39,7 +43,7 @@ function initDatabase() {
             full_name TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS reports (
+        CREATE TABLE reports (
             id TEXT PRIMARY KEY,
             template_key TEXT,
             template_name TEXT,
@@ -63,7 +67,7 @@ function initDatabase() {
             site_name TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS notifications (
+        CREATE TABLE notifications (
             id TEXT PRIMARY KEY,
             recipient_username TEXT,
             message TEXT,
@@ -81,7 +85,7 @@ function initDatabase() {
         }
         console.log('✅ Tables created/verified.');
 
-        // 2. Now seed default users (only if users table is empty)
+        // 2. Seed default users (only if users table is empty)
         db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
             if (err) {
                 console.error('Error checking users:', err);
