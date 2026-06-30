@@ -159,7 +159,7 @@ function buildSiteFilter(user) {
     return { sql: `WHERE site_name IN (${placeholders})`, params: assigned };
 }
 
-// Helper: Parse JSON fields from a row
+// Helper: Parse JSON fields from a report row
 function parseReportRow(row) {
     return {
         ...row,
@@ -307,9 +307,7 @@ app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Access denied to this site' });
         }
 
-        // Find linked checklists (where meta->>'linkedRfi' matches the RFI's rfiNo or id)
-        // We need to fetch all reports, then filter on the server side or use JSONB query.
-        // Since we have a small dataset, we can fetch all and filter in memory.
+        // Find linked checklists and NCRs
         const allReports = await getReportsForUser(req.user);
         const parent = parseReportRow(parentRow);
         const linkedKey = parent.meta?.rfiNo || parent.id;
