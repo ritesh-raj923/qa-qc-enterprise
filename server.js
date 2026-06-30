@@ -159,6 +159,25 @@ function buildSiteFilter(user) {
     return { sql: `WHERE site_name IN (${placeholders})`, params: assigned };
 }
 
+// Helper: Parse JSON fields from a row
+function parseReportRow(row) {
+    return {
+        ...row,
+        meta: JSON.parse(row.meta || '{}'),
+        sections: JSON.parse(row.sections || '[]'),
+        attachments: JSON.parse(row.attachments || '[]'),
+        audit: JSON.parse(row.audit || '[]')
+    };
+}
+
+// Helper: Get all reports for a user (with parsed fields)
+async function getReportsForUser(user) {
+    const filter = buildSiteFilter(user);
+    let query = `SELECT * FROM reports ${filter.sql} ORDER BY saved_at DESC`;
+    const result = await pool.query(query, filter.params);
+    return result.rows.map(parseReportRow);
+}
+
 // =============================================
 // 3. AUTH APIs
 // =============================================
@@ -250,23 +269,17 @@ app.delete('/api/users/:username', authenticateToken, verifyAdmin, async (req, r
 // 4. REPORTS API
 // =============================================
 
+// GET /api/reports - Fetch all reports (simple)
 app.get('/api/reports', authenticateToken, async (req, res) => {
     try {
-        const filter = buildSiteFilter(req.user);
-        let query = `SELECT * FROM reports ${filter.sql} ORDER BY saved_at DESC`;
-        const result = await pool.query(query, filter.params);
-        const reports = result.rows.map(r => ({
-            ...r,
-            meta: JSON.parse(r.meta || '{}'),
-            sections: JSON.parse(r.sections || '[]'),
-            audit: JSON.parse(r.audit || '[]')
-        }));
+        const reports = await getReportsForUser(req.user);
         res.json(reports);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+// GET /api/reports/:id - Fetch a single report
 app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -276,17 +289,52 @@ app.get('/api/reports/:id', authenticateToken, async (req, res) => {
         if (!userHasSiteAccess(req.user, row.site_name)) {
             return res.status(403).json({ error: 'Access denied to this site' });
         }
+        res.json(parseReportRow(row));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/reports/:id/children - Fetch a report with its linked checklists and NCRs
+app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Get the parent report
+        const parentResult = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
+        if (parentResult.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
+        const parentRow = parentResult.rows[0];
+        if (!userHasSiteAccess(req.user, parentRow.site_name)) {
+            return res.status(403).json({ error: 'Access denied to this site' });
+        }
+
+        // Find linked checklists (where meta->>'linkedRfi' matches the RFI's rfiNo or id)
+        // We need to fetch all reports, then filter on the server side or use JSONB query.
+        // Since we have a small dataset, we can fetch all and filter in memory.
+        const allReports = await getReportsForUser(req.user);
+        const parent = parseReportRow(parentRow);
+        const linkedKey = parent.meta?.rfiNo || parent.id;
+
+        const checklists = allReports.filter(r =>
+            r.templateKey !== 'rfi' &&
+            (r.meta?.linkedRfi === linkedKey || r.raisedFromRfi === linkedKey)
+        );
+
+        const ncrList = allReports.filter(r =>
+            r.templateKey === 'ncr' &&
+            (r.raisedFromRfi === linkedKey || r.meta?.raisedFromRfi === linkedKey)
+        );
+
         res.json({
-            ...row,
-            meta: JSON.parse(row.meta || '{}'),
-            sections: JSON.parse(row.sections || '[]'),
-            audit: JSON.parse(row.audit || '[]')
+            report: parent,
+            checklists,
+            ncrList
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+// POST /api/reports - Create a new report
 app.post('/api/reports', authenticateToken, async (req, res) => {
     try {
         const {
@@ -330,6 +378,7 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
     }
 });
 
+// PUT /api/reports/:id - Update a report
 app.put('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -375,6 +424,7 @@ app.put('/api/reports/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// DELETE /api/reports/:id - Admin only
 app.delete('/api/reports/:id', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const { id } = req.params;
@@ -438,20 +488,12 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // =============================================
-// 6. COMBINED DATA ENDPOINT
+// 6. COMBINED DATA ENDPOINT (for frontend)
 // =============================================
 
 app.get('/api/data', authenticateToken, async (req, res) => {
     try {
-        const filter = buildSiteFilter(req.user);
-        const query = `SELECT * FROM reports ${filter.sql} ORDER BY saved_at DESC`;
-        const result = await pool.query(query, filter.params);
-        const reports = result.rows.map(r => ({
-            ...r,
-            meta: JSON.parse(r.meta || '{}'),
-            sections: JSON.parse(r.sections || '[]'),
-            audit: JSON.parse(r.audit || '[]')
-        }));
+        const reports = await getReportsForUser(req.user);
         const notifResult = await pool.query(
             'SELECT * FROM notifications WHERE recipient_username = $1 ORDER BY created_at DESC',
             [req.user.username]
