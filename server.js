@@ -181,8 +181,16 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
         const valid = bcrypt.compareSync(password, user.password);
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+        
+        // Include full_name in the token
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role, assigned_sites: user.assigned_sites },
+            { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role, 
+                assigned_sites: user.assigned_sites,
+                full_name: user.full_name || user.username
+            },
             JWT_SECRET,
             { expiresIn: '8h' }
         );
@@ -450,14 +458,40 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // =============================================
-// 6. HEALTH CHECK
+// 6. COMBINED DATA ENDPOINT (NEW)
+// =============================================
+
+// GET /api/data – returns reports + notifications for the current user
+app.get('/api/data', authenticateToken, async (req, res) => {
+    try {
+        const filter = buildSiteFilter(req.user);
+        const query = `SELECT * FROM reports ${filter.sql} ORDER BY saved_at DESC`;
+        const result = await pool.query(query, filter.params);
+        const reports = result.rows.map(r => ({
+            ...r,
+            meta: JSON.parse(r.meta || '{}'),
+            sections: JSON.parse(r.sections || '[]'),
+            audit: JSON.parse(r.audit || '[]')
+        }));
+        const notifResult = await pool.query(
+            'SELECT * FROM notifications WHERE recipient_username = $1 ORDER BY created_at DESC',
+            [req.user.username]
+        );
+        res.json({ reports, notifications: notifResult.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// =============================================
+// 7. HEALTH CHECK
 // =============================================
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'QA/QC Enterprise Server is running!' });
 });
 
 // =============================================
-// 7. START SERVER
+// 8. START SERVER
 // =============================================
 app.listen(PORT, async () => {
     await initDatabase();
