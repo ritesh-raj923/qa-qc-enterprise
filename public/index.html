@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
-/* ALL CSS REMAINS EXACTLY THE SAME – UNCHANGED */
+/* ===== ALL CSS REMAINS EXACTLY THE SAME – UNCHANGED ===== */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -553,6 +553,8 @@ header .sub { font-size: 13px; color: #555; }
         <div class="field"><label>&nbsp;</label><button class="btn btn-primary" type="button" onclick="printFilteredHistory()">🖨️ Print</button></div>
       </div>
       <div class="data-actions">
+        <!-- 🔄 Refresh Button Added Here -->
+        <button class="btn btn-primary" onclick="refreshHistory()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -666,13 +668,10 @@ header .sub { font-size: 13px; color: #555; }
 
 <script>
 // ============================================
-// API BASE – Now uses full HTTPS origin
+// API BASE & AUTH HELPERS
 // ============================================
 const API_BASE = window.location.origin; // Uses https://your-app.onrender.com
 
-// ============================================
-// API REQUEST WITH FALLBACK FOR BLOCKED REQUESTS
-// ============================================
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
@@ -692,7 +691,6 @@ async function apiRequest(url, options = {}) {
     // If the request was blocked by browser/extension
     if (e.message === 'Failed to fetch' || e.name === 'TypeError') {
       console.warn('Request may have been blocked. Using cached data if available.');
-      // For /api/data, return cached data
       if (url === '/api/data') {
         const cachedData = {
           reports: JSON.parse(localStorage.getItem('qaqc_suite_data_v2') || '[]'),
@@ -706,7 +704,7 @@ async function apiRequest(url, options = {}) {
 }
 
 // ============================================
-// DATA LAYER (API + localStorage cache)
+// DATA LAYER
 // ============================================
 const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
@@ -734,7 +732,7 @@ function isRfi() { return activeTemplateKey === 'rfi'; }
 function isImir() { return activeTemplateKey === 'imir'; }
 
 // ============================================
-// FIELD MAPPING HELPER (camelCase → snake_case)
+// FIELD MAPPING HELPERS
 // ============================================
 function getUserDefaultSite() {
   if (currentUser && currentUser.assigned_sites && currentUser.assigned_sites.length > 0) {
@@ -924,7 +922,7 @@ const templates = {
 };
 
 // ============================================
-// EXACT EXCEL REPLICA RENDERING (unchanged)
+// EXACT EXCEL REPLICA RENDERING (unchanged – abbreviated for brevity)
 // ============================================
 function ev(v) { return esc(v || ''); }
 function secVal(report, idx, fallbackKey) {
@@ -1169,7 +1167,7 @@ function getProjectDisplay() {
 }
 
 // ============================================
-// NOTIFICATIONS (now using API)
+// NOTIFICATIONS (API)
 // ============================================
 async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
   try {
@@ -1184,7 +1182,6 @@ async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, 
         sender_name: senderName || currentUser?.display || 'System'
       })
     });
-    // Also update local cache for immediate UI
     const notif = {
       id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       recipient_username: recipientUsername,
@@ -1226,7 +1223,6 @@ async function markNotificationRead(notifId) {
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
     updateNotificationUI();
   } catch(e) {
-    // fallback: mark locally
     const notif = notifications.find(n => n.id === notifId);
     if (notif) { notif.read = 1; }
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
@@ -1294,7 +1290,6 @@ async function checkForNewNotifications() {
     const data = await apiRequest('/api/notifications');
     notifications = data;
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    // Show toast for any unread that are new
     const unread = notifications.filter(n => !n.read);
     if (unread.length) {
       const latest = unread[0];
@@ -1309,7 +1304,6 @@ async function checkForNewNotifications() {
     }
     updateNotificationUI();
   } catch(e) {
-    // fallback to local
     try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) {}
     updateNotificationUI();
   }
@@ -1324,7 +1318,7 @@ function startNotificationPolling() {
 }
 
 // ============================================
-// STORAGE & SYNC (now API + localStorage cache)
+// STORAGE & SYNC (with field mapping)
 // ============================================
 function loadDb() {
   try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
@@ -1332,7 +1326,6 @@ function loadDb() {
 }
 
 function persistDb() {
-  // Just update localStorage cache, server is updated via separate API calls
   localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
   localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
   updateStats();
@@ -1343,7 +1336,30 @@ function persistDb() {
 async function loadFromServer() {
   try {
     const data = await apiRequest('/api/data');
-    savedReports = data.reports || [];
+    // 🔥 Transform snake_case to camelCase
+    savedReports = (data.reports || []).map(r => ({
+      id: r.id,
+      templateKey: r.template_key,
+      templateName: r.template_name,
+      formatNo: r.format_no,
+      meta: r.meta || {},
+      sections: r.sections || [],
+      score: r.score || 0,
+      defectsCount: r.defects_count || 0,
+      titleLoc: r.title_loc || '',
+      preparedBy: r.prepared_by || '',
+      status: r.status || 'Draft',
+      comment: r.comment || '',
+      attachments: r.attachments || [],
+      createdBy: r.created_by || '',
+      createdByDisplay: r.created_by_display || '',
+      decisionBy: r.decision_by || '',
+      decisionByDisplay: r.decision_by_display || '',
+      savedAt: r.saved_at || '',
+      audit: r.audit || [],
+      raisedFromRfi: r.raised_from_rfi || '',
+      siteName: r.site_name || ''
+    }));
     notifications = data.notifications || [];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
@@ -1353,7 +1369,6 @@ async function loadFromServer() {
     toast('✅ Synced with server');
   } catch(e) {
     console.warn('Server offline or blocked, using local data', e);
-    // Fallback to localStorage
     loadDb();
     renderHistory();
     updateStats();
@@ -1363,7 +1378,7 @@ async function loadFromServer() {
 }
 
 // ============================================
-// CONFIG / MASTERS (still localStorage only)
+// CONFIG / MASTERS
 // ============================================
 function loadConfig() {
   try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
@@ -1403,7 +1418,7 @@ function resetMasters() {
 }
 
 // ============================================
-// AUTH (now API with fallback)
+// AUTH (API)
 // ============================================
 async function login() {
   const username = document.getElementById('loginUser').value.trim();
@@ -1437,7 +1452,6 @@ async function login() {
     const unread = notifications.filter(n => n.recipient_username === user.username && !n.read).length;
     if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
   } catch(e) {
-    // If blocked, try to use cached session
     toast('⚠️ Login failed, trying cached session...');
     const cachedUser = JSON.parse(localStorage.getItem('user') || 'null');
     if (cachedUser) {
@@ -1475,7 +1489,7 @@ function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || 
 function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
 
 // ============================================
-// STRICT VISIBILITY (unchanged)
+// VISIBILITY LOGIC (updated)
 // ============================================
 function canUserSeeRecord(record, user) {
   if (!user) return false;
@@ -1518,6 +1532,9 @@ function canUserSeeRecord(record, user) {
   return false;
 }
 
+// ============================================
+// FILTERING (updated – only apply when filter has value)
+// ============================================
 function visibleReports() {
   let rows = savedReports.slice();
   if (globalFilterState.project) {
@@ -1549,14 +1566,6 @@ function visibleReports() {
   return rows;
 }
 
-function updateAdminToolsVisibility() {
-  const box = document.getElementById('adminToolsBox');
-  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
-}
-
-// ============================================
-// FILTER SYNC (unchanged)
-// ============================================
 function getSavedRecordFilterState() {
   return {
     project: document.getElementById('fltProject')?.value || '',
@@ -1576,6 +1585,39 @@ function applyFiltersAndRefresh() {
   if (document.getElementById('view-dashboard').classList.contains('active')) {
     if (currentKpiFilter) filterKPI(currentKpiFilter);
   }
+}
+
+function updateAdminToolsVisibility() {
+  const box = document.getElementById('adminToolsBox');
+  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
+}
+
+// ============================================
+// REFRESH HISTORY (new function)
+// ============================================
+function refreshHistory() {
+  globalFilterState = { 
+    project: '', type: '', contractor: '', discipline: '', 
+    status: '', fromDate: '', toDate: '', owner: '' 
+  };
+  // Also clear the filter inputs in the UI
+  const fields = ['fltProject', 'fltType', 'fltContractor', 'fltDiscipline', 'fltStatus', 'fltDateFrom', 'fltDateTo', 'fltOwner'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (el.tagName === 'SELECT') el.value = '';
+      else el.value = '';
+    }
+  });
+  // Reload and re-render
+  loadFromServer().then(() => {
+    renderHistory();
+    toast('✅ Records refreshed');
+  }).catch(() => {
+    loadDb();
+    renderHistory();
+    toast('⚠️ Using cached data');
+  });
 }
 
 // ============================================
@@ -1948,7 +1990,7 @@ function updateProgress() {
 }
 
 // ============================================
-// SAVE & WORKFLOW (now with API and field mapping)
+// SAVE & WORKFLOW (with auto‑refresh after save)
 // ============================================
 function validateForm(meta) {
   const req = [];
@@ -1998,7 +2040,6 @@ function generateNcrNumber() {
   return 'NCR-' + num;
 }
 
-// ----- API-based save/update with proper field mapping -----
 async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
@@ -2052,24 +2093,16 @@ async function saveReport(ev) {
     return;
   }
 
-  // Convert to API payload
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
 
-  // Save to server
   try {
     const isNew = !savedReports.find(r => r.id === id);
     if (isNew) {
-      await apiRequest('/api/reports', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
       savedReports.unshift(row);
     } else {
-      await apiRequest(`/api/reports/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
+      await apiRequest(`/api/reports/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = savedReports.findIndex(r => r.id === id);
       if (idx >= 0) savedReports[idx] = row;
     }
@@ -2083,12 +2116,22 @@ async function saveReport(ev) {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
+
+    // 🔁 Auto-refresh after save – reload from server and re-render
+    setTimeout(() => {
+      loadFromServer().then(() => {
+        renderHistory();
+      }).catch(() => {
+        loadDb();
+        renderHistory();
+      });
+    }, 300);
+
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
   }
 }
 
-// ----- Delete with API -----
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
@@ -2099,22 +2142,29 @@ async function deleteReport(id) {
     savedReports = savedReports.filter(x => x.id !== id);
     persistDb();
     toast('🗑️ Deleted');
+    // Auto-refresh after delete
+    setTimeout(() => {
+      loadFromServer().then(() => renderHistory()).catch(() => { loadDb(); renderHistory(); });
+    }, 300);
     if (activeReportId === id) backFromForm();
   } catch(e) {
     toast('❌ Delete failed: ' + e.message);
   }
 }
 
-// ---- Workflow actions with field mapping ----
+// ============================================
+// WORKFLOW ACTIONS (unchanged, but use updateReportOnServer)
+// ============================================
 async function updateReportOnServer(row) {
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
   try {
-    await apiRequest(`/api/reports/${row.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload)
-    });
+    await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
     persistDb();
+    // auto-refresh after workflow update
+    setTimeout(() => {
+      loadFromServer().then(() => renderHistory()).catch(() => { loadDb(); renderHistory(); });
+    }, 300);
   } catch(e) {
     toast('❌ Server update failed: ' + e.message);
   }
@@ -2203,7 +2253,7 @@ function setChecklistButtonsState(rec) {
 }
 
 // ============================================
-// WORKFLOW ACTIONS (with API updates)
+// WORKFLOW ACTIONS (all call updateReportOnServer with auto-refresh)
 // ============================================
 async function approveForQA() {
   const rec = currentRecord();
@@ -2279,10 +2329,7 @@ async function raiseNCRFromRFI() {
   try {
     const siteName = getUserDefaultSite();
     const payload = toApiPayload(newNCR, siteName);
-    await apiRequest('/api/reports', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
+    await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
     savedReports.unshift(newNCR);
     persistDb();
     toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
@@ -2300,7 +2347,6 @@ async function raiseNCRFromRFI() {
 async function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
-  
   if (isNcr()) {
     if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
     rec.status = 'Open';
@@ -2322,18 +2368,15 @@ async function submitRecord() {
     }
     return;
   }
-
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
   rec.status = 'Submitted';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
   rec.savedAt = new Date().toISOString();
-
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
   const execUser = users.find(u => u.role === 'exec_engineer');
   const qaHeadUser = users.find(u => u.role === 'qa_head');
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-
   await updateReportOnServer(rec);
   if (routing === 'Direct to QA Head') {
     if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
@@ -2350,7 +2393,6 @@ async function submitRecord() {
 async function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-
   if (isNcr()) {
     if (rec.status !== 'Open' && rec.status !== 'Rejected') { toast('⚠️ Cannot submit this NCR'); return; }
     rec.status = 'Under Review';
@@ -2367,7 +2409,6 @@ async function markUnderReview() {
     if (execUser) await sendNotification(execUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
     return;
   }
-
   rec.status = 'Under Review';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Marked Under Review', rec.comment));
@@ -2384,7 +2425,6 @@ async function markUnderReview() {
 async function approveRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-
   if (isNcr()) {
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
     rec.status = 'Closed';
@@ -2408,7 +2448,6 @@ async function approveRecord() {
     }
     return;
   }
-
   rec.status = 'Approved';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.decisionBy = currentUser.username;
@@ -2447,7 +2486,6 @@ async function approveWithCommentRecord() {
 async function rejectRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-
   if (isNcr()) {
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
     const c = document.getElementById('wfComment').value.trim();
@@ -2473,7 +2511,6 @@ async function rejectRecord() {
     }
     return;
   }
-
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
   rec.status = 'Rejected';
@@ -2988,11 +3025,9 @@ async function init() {
   loadConfig(); loadMasters(); loadDb();
   applyConfig(); populateConfigForm(); populateMastersForm();
 
-  // Check for existing token
   const token = localStorage.getItem('token');
   if (token) {
     try {
-      // Try to load user from localStorage
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       if (user) {
         currentUser = user;
@@ -3033,7 +3068,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// User mapping for notification routing (same as seeded in backend)
+// User mapping for notification routing
 const users = [
   { u: 'admin', role: 'admin', name: 'System Admin' },
   { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A' },
