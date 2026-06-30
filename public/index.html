@@ -429,7 +429,7 @@ header .sub { font-size: 13px; color: #555; }
 <div class="sidebar">
   <div class="brand">
     <h2 id="brandTitle">QA/QC Suite</h2>
-    <small id="brandSub">Multi‑Site</small>
+    <small id="brandSub">Site Formats</small>
   </div>
   <div class="menu-item auth-only active" data-target="dashboard" onclick="switchView('dashboard')">📊 Dashboard</div>
   <div class="menu-item auth-only" data-target="history" onclick="switchView('history')">📋 Saved Records</div>
@@ -465,28 +465,30 @@ header .sub { font-size: 13px; color: #555; }
     <div class="login-shell">
       <div class="login-wrap">
         <h2>🔐 Secure Sign In</h2>
-        <p>Multi‑Site QA/QC – you see only your site's data.</p>
+        <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
         <div class="field">
           <label>Username</label>
-          <input id="loginUser" placeholder="Enter username" value="contractor1_siteA">
+          <input id="loginUser" placeholder="Enter username" value="Contractor 1">
         </div>
         <div class="field">
           <label>Password</label>
-          <input id="loginPass" type="password" placeholder="Enter password" value="ContA123">
+          <input id="loginPass" type="password" placeholder="Enter password" value="Contractor_1@811">
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-primary" type="button" onclick="login()">Login</button>
         </div>
         <div class="note" style="margin-top:12px; line-height:1.8;">
-          <b>Demo Users & Sites:</b><br>
-          👷 Contractor 1 (Site‑A): contractor1_siteA / ContA123<br>
-          👷 Contractor 2 (Site‑A): contractor2_siteA / ContA456<br>
-          👷 Contractor 1 (Site‑B): contractor1_siteB / ContB123<br>
-          🔧 Exec Eng (Site‑A): exec_siteA / ExecA123<br>
-          👔 QA Head (Site‑A): qa_siteA / QaA123<br>
-          📊 Manager (Global): manager / Mgr123<br>
-          🔧 Admin (Global): admin / Admin123<br>
-          👀 Consultant (Global): consultant / View123
+          <b>Demo Users:</b><br>
+          👷 Contractor 1: Contractor 1 / Contractor_1@811<br>
+          👷 Contractor 2: Contractor 2 / Contractor_2@812<br>
+          👷 Contractor 3: Contractor 3 / Contractor_3@813<br>
+          👷 Contractor 4: Contractor 4 / Contractor_4@814<br>
+          👷 Contractor 5: Contractor 5 / Contractor_5@815<br>
+          🔧 Execution Engineer: exec_eng / Exec@123<br>
+          👔 QA Head: qahead / Head123<br>
+          📊 Manager: manager / Mgr123<br>
+          🔧 Admin: admin / Admin123<br>
+          👀 Consultant: consultant / View123
         </div>
       </div>
     </div>
@@ -523,7 +525,7 @@ header .sub { font-size: 13px; color: #555; }
       </div>
       <div class="kpi-table-wrap">
         <table class="kpi-table">
-          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Site</th><th>Status</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr></thead>
+          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Location</th><th>Status</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr></thead>
           <tbody id="kpiResultBody"><tr><td colspan="7" class="kpi-empty">No records found.</td></tr></tbody>
         </table>
       </div>
@@ -557,7 +559,7 @@ header .sub { font-size: 13px; color: #555; }
         <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Server</span>
+        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Local storage</span>
       </div>
       <table>
         <thead><tr><th>Saved Date</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
@@ -621,7 +623,6 @@ header .sub { font-size: 13px; color: #555; }
         <button id="btnReject" class="btn btn-danger hidden" onclick="rejectRecord()" type="button" style="margin-left:8px;">❌ Reject</button>
         <button id="btnClose" class="btn btn-primary hidden" onclick="closeRecord()" type="button" style="margin-left:8px;">🔒 Close</button>
         <button id="btnRaiseNCR" class="btn btn-secondary hidden" onclick="raiseNCRFromRFI()" type="button" style="margin-left:8px;">📋 Raise NCR</button>
-        <button id="btnSubmitNCR" class="btn btn-warn hidden" onclick="submitNCR()" type="button" style="margin-left:8px;">📤 Submit NCR</button>
       </div>
       <div class="progressbox">
         <div class="small">Completion Progress</div>
@@ -668,25 +669,19 @@ header .sub { font-size: 13px; color: #555; }
 
 <script>
 // ============================================
-// CONFIGURATION – Backend API
+// DATA LAYER
 // ============================================
-// Use relative path for Render, or localhost for development
-const API_BASE = window.location.origin + '/api';
+const STORAGE_KEY = 'qaqc_suite_data_v2';
+const CONFIG_KEY = 'qaqc_suite_config_v2';
+const MASTER_KEY = 'qaqc_suite_masters_v2';
+const SESSION_KEY = 'qaqc_suite_session_v2';
+const NOTIFICATION_KEY = 'qaqc_suite_notifications_v2';
+const API_URL = '/api/data';
 
-// ============================================
-// GLOBAL STATE
-// ============================================
-let token = null;
-let currentUser = null;
 let savedReports = [];
-let notifications = [];
-let notificationPollInterval = null;
-
-// ============================================
-// ORIGINAL APP STATE
-// ============================================
 let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats' };
 let masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
+let currentUser = null;
 let activeTemplateKey = null;
 let activeReportId = null;
 let previousView = 'dashboard';
@@ -695,510 +690,32 @@ let pendingLinkedRfiNo = null;
 let pendingParentMeta = null;
 let currentKpiFilter = 'total';
 let currentKpiRows = [];
+
+// ===== GLOBAL FILTER STATE (linked to Dashboard) =====
 let globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
 
-// ============================================
-// TEMPLATES (same as original)
-// ============================================
-// ... (templates definition omitted for brevity – same as before)
+// Notifications
+let notifications = [];
+let notificationPollInterval = null;
 
 // ============================================
-// API HELPER FUNCTIONS
+// USERS (5 Contractors + Execution Engineer + QA Head + others)
 // ============================================
-function getHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-}
-
-async function apiRequest(endpoint, method = 'GET', body = null) {
-  const options = {
-    method,
-    headers: getHeaders(),
-  };
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-  const response = await fetch(`${API_BASE}${endpoint}`, options);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Request failed with status ${response.status}`);
-  }
-  return response.json();
-}
+const users = [
+  { u: 'Contractor 1', p: 'Contractor_1@811', role: 'engineer', name: 'Contractor 1' },
+  { u: 'Contractor 2', p: 'Contractor_2@812', role: 'engineer', name: 'Contractor 2' },
+  { u: 'Contractor 3', p: 'Contractor_3@813', role: 'engineer', name: 'Contractor 3' },
+  { u: 'Contractor 4', p: 'Contractor_4@814', role: 'engineer', name: 'Contractor 4' },
+  { u: 'Contractor 5', p: 'Contractor_5@815', role: 'engineer', name: 'Contractor 5' },
+  { u: 'exec_eng', p: 'Exec@123', role: 'exec_engineer', name: 'Execution Engineer' },
+  { u: 'qahead', p: 'Head123', role: 'qa_head', name: 'QA Head' },
+  { u: 'manager', p: 'Mgr123', role: 'manager', name: 'Project Manager' },
+  { u: 'admin', p: 'Admin123', role: 'admin', name: 'Admin' },
+  { u: 'consultant', p: 'View123', role: 'consultant', name: 'Consultant' }
+];
 
 // ============================================
-// LOAD DATA FROM BACKEND
-// ============================================
-async function loadReports() {
-  try {
-    const data = await apiRequest('/reports');
-    savedReports = data.map(r => ({
-      ...r,
-      meta: r.meta || {},
-      sections: r.sections || [],
-      audit: r.audit || []
-    }));
-  } catch (e) {
-    console.warn('Failed to load reports:', e);
-    toast('Error loading data: ' + e.message, true);
-  }
-}
-
-async function loadNotifications() {
-  try {
-    const data = await apiRequest('/notifications');
-    notifications = data;
-    updateNotificationUI();
-  } catch (e) {
-    console.warn('Failed to load notifications:', e);
-  }
-}
-
-// ============================================
-// SAVE/UPDATE/DELETE REPORTS
-// ============================================
-async function saveReportToServer(record) {
-  const existing = savedReports.find(r => r.id === record.id);
-  if (existing) {
-    await apiRequest(`/reports/${record.id}`, 'PUT', record);
-  } else {
-    await apiRequest('/reports', 'POST', record);
-  }
-  await loadReports();
-}
-
-async function deleteReportFromServer(id) {
-  await apiRequest(`/reports/${id}`, 'DELETE');
-  await loadReports();
-}
-
-// ============================================
-// NOTIFICATIONS (server-side)
-// ============================================
-async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
-  try {
-    await apiRequest('/notifications', 'POST', {
-      recipient_username: recipientUsername,
-      message,
-      type,
-      rfi_id: rfiId,
-      rfi_no: rfiNo || 'Unknown',
-      sender_name: senderName || currentUser?.full_name || currentUser?.username || 'System'
-    });
-    setTimeout(loadNotifications, 1000);
-  } catch (e) {
-    console.warn('Failed to send notification:', e);
-  }
-}
-
-async function markNotificationRead(notifId) {
-  try {
-    await apiRequest(`/notifications/${notifId}/read`, 'PUT');
-    const notif = notifications.find(n => n.id === notifId);
-    if (notif) notif.read = 1;
-    updateNotificationUI();
-    renderNotificationList();
-  } catch (e) {
-    console.warn('Failed to mark read:', e);
-  }
-}
-
-// ============================================
-// AUTH FUNCTIONS (server-side login)
-// ============================================
-async function login() {
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value.trim();
-  if (!username || !password) {
-    toast('Please enter username and password', true);
-    return;
-  }
-  try {
-    const response = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      toast(data.error || 'Login failed', true);
-      return;
-    }
-    token = data.token;
-    currentUser = data.user;
-    localStorage.setItem('qaqc_token', token);
-    localStorage.setItem('qaqc_user', JSON.stringify(currentUser));
-    document.getElementById('view-login').classList.remove('active');
-    document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
-    document.getElementById('viewBadge').innerText = currentUser.role + (currentUser.assigned_sites && currentUser.assigned_sites.length ? ' (' + currentUser.assigned_sites.join(', ') + ')' : ' (Global)');
-    toast('✅ Welcome ' + (currentUser.full_name || currentUser.username));
-    applyConfig();
-    renderCards();
-    await loadReports();
-    await loadNotifications();
-    updateStats();
-    renderHistory();
-    switchView('dashboard');
-    startNotificationPolling();
-  } catch (e) {
-    toast('Network error: ' + e.message, true);
-  }
-}
-
-function logout() {
-  token = null;
-  currentUser = null;
-  localStorage.removeItem('qaqc_token');
-  localStorage.removeItem('qaqc_user');
-  document.querySelectorAll('.auth-only').forEach(el => el.classList.add('hidden'));
-  document.getElementById('viewBadge').innerText = 'Not Logged In';
-  if (notificationPollInterval) clearInterval(notificationPollInterval);
-  switchView('login');
-  toast('Logged out');
-}
-
-function checkAuth() {
-  const t = localStorage.getItem('qaqc_token');
-  const u = localStorage.getItem('qaqc_user');
-  if (t && u) {
-    token = t;
-    currentUser = JSON.parse(u);
-    document.getElementById('view-login').classList.remove('active');
-    document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
-    document.getElementById('viewBadge').innerText = currentUser.role + (currentUser.assigned_sites && currentUser.assigned_sites.length ? ' (' + currentUser.assigned_sites.join(', ') + ')' : ' (Global)');
-    applyConfig();
-    renderCards();
-    loadReports().then(() => {
-      loadNotifications().then(() => {
-        updateStats();
-        renderHistory();
-        switchView('dashboard');
-        startNotificationPolling();
-      });
-    });
-  } else {
-    document.getElementById('view-login').classList.add('active');
-  }
-}
-
-// ============================================
-// SITE-BASED VISIBILITY
-// ============================================
-function userCanAccessSite(record) {
-  if (!currentUser) return false;
-  if (record.createdBy === currentUser.username) return true;
-  const userSites = currentUser.assigned_sites || [];
-  if (userSites.includes('*')) return true;
-  const recordSite = record.site_name || record.meta?.project || '';
-  return userSites.includes(recordSite);
-}
-
-function visibleReports() {
-  let rows = savedReports.slice();
-  // apply filters
-  if (globalFilterState.project) {
-    rows = rows.filter(r => String(r.meta?.project || r.titleLoc || '').toLowerCase().includes(globalFilterState.project.toLowerCase()));
-  }
-  if (globalFilterState.type) {
-    rows = rows.filter(r => r.templateKey === globalFilterState.type);
-  }
-  if (globalFilterState.contractor) {
-    rows = rows.filter(r => String(r.meta?.contractor || '').toLowerCase().includes(globalFilterState.contractor.toLowerCase()));
-  }
-  if (globalFilterState.discipline) {
-    rows = rows.filter(r => String(r.meta?.discipline || '').toLowerCase().includes(globalFilterState.discipline.toLowerCase()));
-  }
-  if (globalFilterState.status) {
-    rows = rows.filter(r => (r.status || 'Draft') === globalFilterState.status);
-  }
-  if (globalFilterState.fromDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') >= globalFilterState.fromDate);
-  }
-  if (globalFilterState.toDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') <= globalFilterState.toDate);
-  }
-  if (globalFilterState.owner) {
-    rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
-  }
-  // site filtering
-  rows = rows.filter(r => userCanAccessSite(r));
-  return rows;
-}
-
-// ============================================
-// NOTIFICATION UI (bell, dropdown, polling)
-// ============================================
-function updateNotificationUI() {
-  if (!currentUser) { document.getElementById('notifContainer').style.display = 'none'; return; }
-  document.getElementById('notifContainer').style.display = 'block';
-  const unread = notifications.filter(n => n.read === 0).length;
-  const badge = document.getElementById('notifBadge');
-  if (unread > 0) { badge.textContent = unread > 99 ? '99+' : unread; badge.classList.remove('hidden'); }
-  else { badge.classList.add('hidden'); }
-}
-
-function renderNotificationList() {
-  const list = document.getElementById('notifList');
-  if (!notifications.length) { list.innerHTML = '<div class="notif-empty">✨ No notifications</div>'; return; }
-  list.innerHTML = notifications.map(n => `
-    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.rfi_id}')">
-      <div class="notif-icon">${getNotifIcon(n.type)}</div>
-      <div class="notif-body">
-        <div>${esc(n.message)}</div>
-        <span class="notif-time">${new Date(n.created_at).toLocaleString()}</span>
-      </div>
-      ${!n.read ? `<span class="notif-mark-read" onclick="event.stopPropagation();markNotificationRead('${n.id}')">✔</span>` : ''}
-    </div>
-  `).join('');
-}
-
-function toggleNotifications() {
-  const dropdown = document.getElementById('notifDropdown');
-  dropdown.classList.toggle('open');
-  if (dropdown.classList.contains('open')) renderNotificationList();
-}
-
-function getNotifIcon(type) {
-  const map = { 'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍', 'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒', 'approved_for_qa': '📋', 'submitted_ncr': '📤' };
-  return map[type] || '📢';
-}
-
-function handleNotificationClick(notifId, rfiId) {
-  markNotificationRead(notifId);
-  document.getElementById('notifDropdown').classList.remove('open');
-  if (rfiId) openRecord(rfiId);
-}
-
-function startNotificationPolling() {
-  if (notificationPollInterval) clearInterval(notificationPollInterval);
-  if (!currentUser) return;
-  setTimeout(() => loadNotifications(), 500);
-  notificationPollInterval = setInterval(loadNotifications, 15000);
-}
-
-// ============================================
-// ORIGINAL UTILITY FUNCTIONS
-// ============================================
-function toast(msg, isError = false) {
-  const t = document.getElementById('toast');
-  t.innerText = msg;
-  t.style.background = isError ? '#d64545' : '#123a66';
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3000);
-}
-
-function esc(v) {
-  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function fmtDate(v) {
-  if (!v) return '';
-  const d = new Date(v);
-  return String(d) === 'Invalid Date' ? String(v) : d.toLocaleDateString('en-GB');
-}
-
-function fmtTimeAgo(dateStr) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if (diff < 60) return diff + 's ago';
-  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-  return Math.floor(diff/86400) + 'd ago';
-}
-
-function todayText() {
-  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function getRfiRecords() { return savedReports.filter(r => r.templateKey === 'rfi'); }
-function getNcrRecords() { return savedReports.filter(r => r.templateKey === 'ncr'); }
-function getRfiOptions() {
-  const vals = getRfiRecords().map(r => r.meta?.rfiNo || r.id).filter(Boolean);
-  return [...new Set(vals)];
-}
-
-function getLinkedChecklistsForRfi(rfiNo) {
-  return savedReports.filter(r => r.templateKey !== 'rfi' && (r.meta?.linkedRfi || '') === rfiNo);
-}
-
-function getLinkedNCRsForRfi(rfiNoOrId) {
-  return savedReports.filter(r => r.templateKey === 'ncr' && (r.raisedFromRfi === rfiNoOrId || r.meta?.raisedFromRfi === rfiNoOrId));
-}
-
-function canAddChecklistToRfi(rec) {
-  if (!rec) return false;
-  return !['Approved', 'Approved with Comment', 'Rejected', 'Closed'].includes(rec.status || 'Draft');
-}
-
-function badgeForStatus(s) {
-  const map = {
-    'Approved': 'ok', 'Approved with Comment': 'mid', 'Rejected': 'bad',
-    'Submitted': 'mid', 'Under Review': 'mid', 'Closed': 'ok', 'Draft': 'info',
-    'Approved by Execution': 'mid'
-  };
-  const cls = map[s] || 'info';
-  return `<span class="badge ${cls}">${esc(s || 'Draft')}</span>`;
-}
-
-function statusClass(v) {
-  if (v === 'Yes') return 'select-yes';
-  if (v === 'No') return 'select-no';
-  if (v === 'NA') return 'select-na';
-  return '';
-}
-
-function buildFormatNo(raw) {
-  const m = String(raw || '').match(/(\d{2})\s*$/);
-  const suffix = m ? m[1] : '01';
-  return (appConfig.formatPrefix || 'QA / QC').trim() + ' / SITE / ' + suffix;
-}
-
-function getProjectDisplay() {
-  const p = (appConfig.projectName || '').trim();
-  const l = (appConfig.location || '').trim();
-  if (p && l) return p + ' - ' + l;
-  return p || l || 'Project Name - Location';
-}
-
-// ============================================
-// VIEW SWITCHING
-// ============================================
-function switchView(view) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const pane = document.getElementById('view-' + view);
-  if (pane) pane.classList.add('active');
-  document.querySelectorAll('.menu-item[data-target]').forEach(el => {
-    el.classList.toggle('active', el.dataset.target === view);
-  });
-  if (view !== 'form' && view !== 'login') previousView = view;
-  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); }
-  if (view === 'history') { renderHistory(); }
-  if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
-  if (view === 'masters') { populateMastersForm(); }
-}
-
-function backFromForm() {
-  if (activeTemplateKey !== 'rfi' && pendingReturnRfiId) {
-    openTemplate('rfi', pendingReturnRfiId);
-    return;
-  }
-  switchView(previousView || 'dashboard');
-}
-
-// ============================================
-// CONFIG, MASTERS, ADMIN
-// ============================================
-function applyConfig() {
-  document.getElementById('brandTitle').innerText = appConfig.companyName || 'QA/QC Suite';
-  document.getElementById('brandSub').innerText = appConfig.businessPackage || 'Multi‑Site';
-  document.getElementById('sheetOrg').innerText = appConfig.companyName || 'QA/QC Suite';
-  document.getElementById('appTitle').innerText = appConfig.companyName || 'QA/QC Suite';
-  document.getElementById('appSub').innerText = getProjectDisplay();
-}
-
-function populateConfigForm() {
-  document.getElementById('cfgCompanyName').value = appConfig.companyName || '';
-  document.getElementById('cfgProjectName').value = appConfig.projectName || '';
-  document.getElementById('cfgLocation').value = appConfig.location || '';
-  document.getElementById('cfgFormatPrefix').value = appConfig.formatPrefix || '';
-  document.getElementById('cfgBusinessPackage').value = appConfig.businessPackage || '';
-}
-
-function saveConfig(e) {
-  e.preventDefault();
-  appConfig = {
-    companyName: document.getElementById('cfgCompanyName').value.trim() || 'QA/QC Suite',
-    projectName: document.getElementById('cfgProjectName').value.trim() || 'Project Name',
-    location: document.getElementById('cfgLocation').value.trim() || 'Location',
-    formatPrefix: document.getElementById('cfgFormatPrefix').value.trim() || 'QA / QC',
-    businessPackage: document.getElementById('cfgBusinessPackage').value.trim() || 'Site Formats'
-  };
-  localStorage.setItem('qaqc_config', JSON.stringify(appConfig));
-  applyConfig();
-  toast('✅ Configuration saved');
-}
-
-function resetConfig() {
-  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats' };
-  localStorage.setItem('qaqc_config', JSON.stringify(appConfig));
-  populateConfigForm();
-  applyConfig();
-  toast('↩️ Reset');
-}
-
-function populateMastersForm() {
-  document.getElementById('mstDisciplines').value = (masters.disciplines || []).join(', ');
-}
-
-function saveMasters(e) {
-  e.preventDefault();
-  const val = document.getElementById('mstDisciplines').value || '';
-  masters.disciplines = val.split(',').map(s => s.trim()).filter(Boolean);
-  localStorage.setItem('qaqc_masters', JSON.stringify(masters));
-  toast('✅ Master data saved');
-}
-
-function resetMasters() {
-  masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
-  localStorage.setItem('qaqc_masters', JSON.stringify(masters));
-  populateMastersForm();
-  toast('↩️ Reset');
-}
-
-function updateAdminToolsVisibility() {
-  const box = document.getElementById('adminToolsBox');
-  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
-}
-
-// ============================================
-// RENDER CARDS (Execution Engineer cannot create RFI)
-// ============================================
-function renderCards() {
-  const host = document.getElementById('templateCards');
-  host.innerHTML = '';
-  const flt = document.getElementById('fltType');
-  if (flt) {
-    flt.innerHTML = '<option value="">All</option>' +
-      Object.entries(templates).map(([k, t]) => `<option value="${esc(k)}">${esc(t.menuTitle)}</option>`).join('');
-  }
-  const isExec = currentUser && currentUser.role === 'exec_engineer';
-  Object.entries(templates).forEach(([k, t]) => {
-    if (isExec && k === 'rfi') return;
-    const c = document.createElement('div');
-    c.className = 'card';
-    c.innerHTML = `
-      <h3>📄 ${esc(t.menuTitle)}</h3>
-      <p>${esc(t.summary)}</p>
-      <div class="foot">
-        <span>${esc(t.formatNo)}</span>
-        <span>${t.menuTitle === 'RFI' ? '10 lines' : t.menuTitle === 'NCR' ? '20 lines' : t.menuTitle === 'IMIR' ? '15 lines' : '19 lines'}</span>
-      </div>`;
-    c.onclick = () => openTemplate(k);
-    host.appendChild(c);
-  });
-}
-
-// ============================================
-// FORM RENDERING (complete)
-// ============================================
-function makeInput(id, value, type = 'text', options = []) {
-  if (type === 'select') {
-    const vals = options.length ? options : (id === 'meta_discipline' ? masters.disciplines : []);
-    return `<select class="value-input" id="${id}">${vals.map(v => `<option value="${esc(v)}" ${String(value) === String(v) ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
-  }
-  if (type === 'radio') {
-    const show = currentUser && (currentUser.role === 'engineer' || currentUser.role === 'admin');
-    if (!show) return '<span class="small">(Routing not applicable)</span>';
-    return `<div class="radio-line">${options.map(o => `<label><input type="radio" name="meta_routing" value="${esc(o)}" ${String(value) === String(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>`;
-  }
-  return `<input type="${type}" class="value-input" id="${id}" value="${esc(value || '')}">`;
-}
-
-// ============================================
-// FIX: Templates Definition (full)
+// TEMPLATES (with all original definitions)
 // ============================================
 const templates = {
   rfi: {
@@ -1219,6 +736,7 @@ const templates = {
       [{ l: 'Inspection Type :', k: 'inspectionType', t: 'select', options: ['Material Inspection', 'Work Inspection'] }, { l: 'Raised By :', k: 'raisedBy' }],
       [{ l: 'Inspection Date', k: 'date', t: 'date' }, { l: 'Inspection Location/Area', k: 'location' }],
       [{ l: 'Inspection to be done', k: 'inspectionScope' }],
+      // ✅ ROUTING OPTIONS – already present
       [{ l: 'Routing :', k: 'routing', t: 'radio', options: ['Direct to QA Head', 'Execution Engineer → QA Head', 'Both'] }]
     ],
     sections: [
@@ -1235,7 +753,7 @@ const templates = {
     menuTitle: 'Brick Masonry',
     title: 'CHECK LIST FOR BRICK MASONRY WORK',
     dept: 'QA / QC RECORDS FOR SITE',
-    summary: 'Brick masonry checklist.',
+    summary: 'Brick masonry checklist with manual fields and linked RFI support.',
     metaRows: [
       [{ l: 'Linked RFI No :', k: 'linkedRfi', t: 'select', options: [] }],
       [{ l: 'Project :-', k: 'project', d: 'Project Name' }, { l: 'Name of Building / Structure :', k: 'building' }],
@@ -1259,7 +777,7 @@ const templates = {
     menuTitle: 'Plaster Work',
     title: 'CHECK LIST FOR PLASTER WORK',
     dept: 'QA / QC RECORDS FOR SITE',
-    summary: 'Plaster work checklist.',
+    summary: 'Plaster work checklist with manual fields and linked RFI support.',
     metaRows: [
       [{ l: 'Linked RFI No :', k: 'linkedRfi', t: 'select', options: [] }],
       [{ l: 'Project :-', k: 'project', d: 'Project Name' }, { l: 'Name of Building / Structure :', k: 'building' }],
@@ -1283,7 +801,7 @@ const templates = {
     menuTitle: 'Concrete Pour Record',
     title: 'CONCRETE POUR RECORD',
     dept: 'QA / QC RECORDS FOR SITE',
-    summary: 'Concrete pour record.',
+    summary: 'Concrete pour record sheet with manual fields and linked RFI support.',
     metaRows: [
       [{ l: 'Linked RFI No :', k: 'linkedRfi', t: 'select', options: [] }],
       [{ l: 'Structure', k: 'structure' }, { l: 'Date of Pouring', k: 'date', t: 'date' }],
@@ -1298,12 +816,13 @@ const templates = {
       { type: 'signatures', title: 'Signatures', roles: ['Contractor Representative', 'Client Representative'] }
     ]
   },
+  // ===== NCR =====
   ncr: {
     formatNo: 'ADANI/Q/F-09 Rev 0',
     menuTitle: 'NCR',
     title: 'NON CONFORMANCE REPORT',
     dept: '(Issued by QA/FQA to respective agency)',
-    summary: 'Non‑Conformance Report – Contractor can edit and submit.',
+    summary: 'Non‑Conformance Report (NCR) issued by QA/FQA to respective agency.',
     metaRows: [
       [{ l: 'NCR No.:', k: 'ncrNo' }, { l: 'Category:', k: 'category' }],
       [{ l: 'Project Name:', k: 'project', d: 'Project Name' }, { l: 'Entity Type:', k: 'entityType' }],
@@ -1332,12 +851,13 @@ const templates = {
       { type: 'signatures', title: 'Disposal Approved by', roles: ['Name', 'Signature', 'Date'] }
     ]
   },
+  // ===== IMIR =====
   imir: {
     formatNo: 'QA/QC/IMIR-01',
     menuTitle: 'IMIR',
     title: 'MATERIAL APPROVAL',
     dept: '',
-    summary: 'Material Approval Submittal.',
+    summary: 'Material Approval Submittal (IMIR) for client approval.',
     metaRows: [
       [{ l: 'Client:', k: 'client', d: 'M/s Adani Entreprises Ltd' }, { l: 'Package/System:', k: 'package' }],
       [{ l: 'Location:', k: 'location' }, { l: 'Date :', k: 'date', t: 'date' }],
@@ -1524,7 +1044,757 @@ function collectIMIRSectionsExact() {
 }
 
 // ============================================
-// DATA COLLECTION (FIXED: ensures site_name is set)
+// UTILITY FUNCTIONS
+// ============================================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+function esc(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function fmtDate(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  return String(d) === 'Invalid Date' ? String(v) : d.toLocaleDateString('en-GB');
+}
+
+function fmtTimeAgo(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function todayText() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function getRfiRecords() { return savedReports.filter(r => r.templateKey === 'rfi'); }
+function getNcrRecords() { return savedReports.filter(r => r.templateKey === 'ncr'); }
+function getRfiOptions() {
+  const vals = getRfiRecords().map(r => r.meta?.rfiNo || r.id).filter(Boolean);
+  return [...new Set(vals)];
+}
+
+function getLinkedChecklistsForRfi(rfiNo) {
+  return savedReports.filter(r => r.templateKey !== 'rfi' && (r.meta?.linkedRfi || '') === rfiNo);
+}
+
+function getLinkedNCRsForRfi(rfiNoOrId) {
+  return savedReports.filter(r => r.templateKey === 'ncr' && (r.raisedFromRfi === rfiNoOrId || r.meta?.raisedFromRfi === rfiNoOrId));
+}
+
+function canAddChecklistToRfi(rec) {
+  if (!rec) return false;
+  return !['Approved', 'Approved with Comment', 'Rejected', 'Closed'].includes(rec.status || 'Draft');
+}
+
+function badgeForStatus(s) {
+  const map = {
+    'Approved': 'ok', 'Approved with Comment': 'mid', 'Rejected': 'bad',
+    'Submitted': 'mid', 'Under Review': 'mid', 'Closed': 'ok', 'Draft': 'info',
+    'Approved by Execution': 'mid'
+  };
+  const cls = map[s] || 'info';
+  return `<span class="badge ${cls}">${esc(s || 'Draft')}</span>`;
+}
+
+function statusClass(v) {
+  if (v === 'Yes') return 'select-yes';
+  if (v === 'No') return 'select-no';
+  if (v === 'NA') return 'select-na';
+  return '';
+}
+
+function buildFormatNo(raw) {
+  const m = String(raw || '').match(/(\d{2})\s*$/);
+  const suffix = m ? m[1] : '01';
+  return (appConfig.formatPrefix || 'QA / QC').trim() + ' / SITE / ' + suffix;
+}
+
+function getProjectDisplay() {
+  const p = (appConfig.projectName || '').trim();
+  const l = (appConfig.location || '').trim();
+  if (p && l) return p + ' - ' + l;
+  return p || l || 'Project Name - Location';
+}
+
+// ============================================
+// NOTIFICATION FUNCTIONS (with Desktop pop-ups)
+// ============================================
+function loadNotifications() {
+  try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
+}
+
+function saveNotifications() {
+  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+  updateNotificationUI();
+}
+
+function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
+  const notif = {
+    id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    recipientUsername: recipientUsername,
+    message: message,
+    type: type,
+    rfiId: rfiId,
+    rfiNo: rfiNo || 'Unknown',
+    senderName: senderName || currentUser?.display || 'System',
+    read: false,
+    createdAt: new Date().toISOString()
+  };
+  notifications.unshift(notif);
+  if (notifications.length > 200) notifications = notifications.slice(0, 200);
+  saveNotifications();
+
+  // If recipient is current user, show notification immediately
+  if (currentUser && currentUser.username === recipientUsername) {
+    const iconMap = {
+      'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
+      'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
+      'approved_for_qa': '📋'
+    };
+    const icon = iconMap[type] || '📢';
+    toast(icon + ' ' + message);
+    // Desktop notification
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(icon + ' ' + message, { body: 'Click to open', icon: '🔔' });
+      } catch(e) {}
+    }
+  }
+  if (currentUser && currentUser.username === recipientUsername) { updateNotificationUI(); }
+}
+
+function getNotificationsForUser(username) { return notifications.filter(n => n.recipientUsername === username); }
+function getUnreadCount(username) { return notifications.filter(n => n.recipientUsername === username && !n.read).length; }
+
+function markNotificationRead(notifId) {
+  const notif = notifications.find(n => n.id === notifId);
+  if (notif) { notif.read = true; saveNotifications(); updateNotificationUI(); }
+}
+
+function markAllNotificationsRead() {
+  const userNotifs = notifications.filter(n => n.recipientUsername === currentUser?.username);
+  userNotifs.forEach(n => n.read = true);
+  saveNotifications();
+  updateNotificationUI();
+  toast('✅ All notifications marked as read');
+}
+
+function toggleNotifications() {
+  const dropdown = document.getElementById('notifDropdown');
+  dropdown.classList.toggle('open');
+  if (dropdown.classList.contains('open')) renderNotificationList();
+}
+
+function updateNotificationUI() {
+  if (!currentUser) { document.getElementById('notifContainer').style.display = 'none'; return; }
+  document.getElementById('notifContainer').style.display = 'block';
+  const count = getUnreadCount(currentUser.username);
+  const badge = document.getElementById('notifBadge');
+  if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+}
+
+function renderNotificationList() {
+  const list = document.getElementById('notifList');
+  const userNotifs = getNotificationsForUser(currentUser.username);
+  if (userNotifs.length === 0) { list.innerHTML = '<div class="notif-empty">✨ No notifications yet</div>'; return; }
+  list.innerHTML = userNotifs.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.rfiId}')">
+      <div class="notif-icon">${getNotifIcon(n.type)}</div>
+      <div class="notif-body">
+        <div>${esc(n.message)}</div>
+        <span class="notif-time">${fmtTimeAgo(n.createdAt)}</span>
+      </div>
+      ${!n.read ? `<span class="notif-mark-read" onclick="event.stopPropagation();markNotificationRead('${n.id}')">✔</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function getNotifIcon(type) {
+  const map = {
+    'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
+    'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
+    'approved_for_qa': '📋'
+  };
+  return map[type] || '📢';
+}
+
+function handleNotificationClick(notifId, rfiId) {
+  markNotificationRead(notifId);
+  document.getElementById('notifDropdown').classList.remove('open');
+  if (rfiId) openRecord(rfiId);
+}
+
+// ===== Notification polling for all logged-in users =====
+function startNotificationPolling() {
+  if (notificationPollInterval) clearInterval(notificationPollInterval);
+  if (!currentUser) return;
+
+  // Request notification permission
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Initial check after 1 second
+  setTimeout(checkForNewNotifications, 1000);
+  // Then every 10 seconds
+  notificationPollInterval = setInterval(checkForNewNotifications, 10000);
+}
+
+function checkForNewNotifications() {
+  if (!currentUser) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]');
+    const userNotifs = stored.filter(n => n.recipientUsername === currentUser.username && !n.read);
+    if (userNotifs.length > 0) {
+      const latest = userNotifs[0];
+      const notifAge = Date.now() - new Date(latest.createdAt).getTime();
+      if (notifAge < 30000) {
+        const iconMap = {
+          'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
+          'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
+          'approved_for_qa': '📋'
+        };
+        const icon = iconMap[latest.type] || '📢';
+        toast(icon + ' ' + latest.message);
+        if (Notification.permission === 'granted') {
+          try {
+            new Notification(icon + ' ' + latest.message, { body: 'Click to open', icon: '🔔' });
+          } catch(e) {}
+        }
+      }
+      updateNotificationUI();
+    }
+  } catch(e) {}
+}
+
+// ============================================
+// STORAGE & SYNC
+// ============================================
+function loadDb() {
+  try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
+  loadNotifications();
+}
+
+function persistDb() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+  try {
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reports: savedReports, notifications: notifications })
+    }).catch(() => {});
+  } catch(e) {}
+  updateStats(); renderHistory(); updateNotificationUI();
+}
+
+async function loadFromServer() {
+  try {
+    const response = await fetch(API_URL);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.reports) { savedReports = data.reports; localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports)); }
+      if (data.notifications) { notifications = data.notifications; localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications)); }
+      renderHistory(); updateStats(); updateNotificationUI();
+      toast('✅ Synced with server');
+    }
+  } catch(e) { console.log('Server offline, using local data'); }
+}
+
+function loadConfig() {
+  try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
+}
+
+function saveConfig(ev) {
+  ev.preventDefault();
+  appConfig = {
+    companyName: document.getElementById('cfgCompanyName').value.trim() || 'QA/QC Suite',
+    projectName: document.getElementById('cfgProjectName').value.trim() || 'Project Name',
+    location: document.getElementById('cfgLocation').value.trim() || 'Location',
+    formatPrefix: document.getElementById('cfgFormatPrefix').value.trim() || 'QA / QC',
+    businessPackage: document.getElementById('cfgBusinessPackage').value.trim() || 'Site Formats'
+  };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  applyConfig(); toast('✅ Configuration saved');
+}
+
+function resetConfig() {
+  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats' };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  populateConfigForm(); applyConfig(); toast('↩️ Configuration reset');
+}
+
+function loadMasters() {
+  try { masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'], ...JSON.parse(localStorage.getItem(MASTER_KEY) || '{}') }; } catch(e) {}
+}
+
+function saveMasters(ev) {
+  ev.preventDefault();
+  const val = document.getElementById('mstDisciplines').value || '';
+  masters.disciplines = val.split(',').map(s => s.trim()).filter(Boolean);
+  localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
+  toast('✅ Master data saved');
+}
+
+function resetMasters() {
+  masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
+  localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
+  populateMastersForm(); toast('↩️ Master data reset');
+}
+
+function loadSession() { try { currentUser = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { currentUser = null; } }
+function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); }
+
+// ============================================
+// AUTH
+// ============================================
+function login() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value || '';
+  const found = users.find(x => x.u === u && x.p === p);
+  if (!found) { toast('❌ Wrong username/password'); return; }
+  currentUser = { username: found.u, role: found.role, display: found.name };
+  saveSession();
+  document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
+  renderCards(); renderHistory(); updateStats(); updateAdminToolsVisibility(); updateNotificationUI();
+  // Start notification polling
+  startNotificationPolling();
+  // Apply any saved filters
+  applyFiltersAndRefresh();
+  switchView('dashboard');
+  toast('✅ Welcome ' + found.name);
+  const unread = getUnreadCount(currentUser.username);
+  if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
+}
+
+function logout() {
+  if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
+  currentUser = null;
+  saveSession();
+  document.querySelectorAll('.auth-only').forEach(el => el.classList.add('hidden'));
+  document.getElementById('notifContainer').style.display = 'none';
+  // Clear filter state
+  globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
+  switchView('login');
+  toast('👋 Logged out');
+}
+
+function canApprove() { return currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'admin'); }
+function isExecEngineer() { return currentUser && currentUser.role === 'exec_engineer'; }
+function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'consultant' || currentUser.role === 'exec_engineer'); }
+function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
+
+// ============================================
+// STRICT VISIBILITY BASED ON ROUTING (with NCR parent RFI ownership)
+// ============================================
+function canUserSeeRecord(record, user) {
+  if (!user) return false;
+  if (!record) return false;
+
+  // Always allow owner
+  if (record.createdBy === user.username) return true;
+
+  // Admin sees all
+  if (user.role === 'admin') return true;
+
+  // For non-RFI records (checklists, NCRs, IMIRs), we need to check linked RFI
+  if (record.templateKey !== 'rfi') {
+    // First, try to find a linked RFI from various fields
+    let linkedRfiId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
+    if (linkedRfiId) {
+      // Search for the parent RFI
+      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
+      if (parentRfi) {
+        // If current user is the owner of the parent RFI, they can see this record
+        if (parentRfi.createdBy === user.username) return true;
+        // Otherwise, check if they have permission to see the parent RFI based on routing
+        return canUserSeeRecord(parentRfi, user);
+      }
+    }
+    // If no linked RFI, allow if user is manager, consultant, QA Head, or Execution Engineer (for standalone records)
+    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
+  }
+
+  // Now handle RFI records
+  const routing = record.meta?.routing || 'Execution Engineer → QA Head';
+  const status = record.status || 'Draft';
+
+  if (routing === 'Direct to QA Head') {
+    // Only QA Head (and Admin + owner already handled)
+    return user.role === 'qa_head';
+  } else if (routing === 'Execution Engineer → QA Head') {
+    // Execution Engineer can see always
+    if (user.role === 'exec_engineer') return true;
+    // QA Head can see only after Execution Engineer has approved (status = Approved by Execution)
+    if (user.role === 'qa_head' && status === 'Approved by Execution') return true;
+    return false;
+  } else if (routing === 'Both') {
+    // Both QA Head and Execution Engineer can see
+    return user.role === 'qa_head' || user.role === 'exec_engineer';
+  }
+  return false;
+}
+
+function visibleReports() {
+  let rows = savedReports.slice();
+  // Apply global filter state
+  if (globalFilterState.project) {
+    rows = rows.filter(r => String(r.meta?.project || r.titleLoc || '').toLowerCase().includes(globalFilterState.project.toLowerCase()));
+  }
+  if (globalFilterState.type) {
+    rows = rows.filter(r => r.templateKey === globalFilterState.type);
+  }
+  if (globalFilterState.contractor) {
+    rows = rows.filter(r => String(r.meta?.contractor || '').toLowerCase().includes(globalFilterState.contractor.toLowerCase()));
+  }
+  if (globalFilterState.discipline) {
+    rows = rows.filter(r => String(r.meta?.discipline || '').toLowerCase().includes(globalFilterState.discipline.toLowerCase()));
+  }
+  if (globalFilterState.status) {
+    rows = rows.filter(r => (r.status || 'Draft') === globalFilterState.status);
+  }
+  if (globalFilterState.fromDate) {
+    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') >= globalFilterState.fromDate);
+  }
+  if (globalFilterState.toDate) {
+    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') <= globalFilterState.toDate);
+  }
+  if (globalFilterState.owner) {
+    rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
+  }
+
+  // Apply strict visibility
+  if (!currentUser) return [];
+  rows = rows.filter(r => canUserSeeRecord(r, currentUser));
+  return rows;
+}
+
+function updateAdminToolsVisibility() {
+  const box = document.getElementById('adminToolsBox');
+  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
+}
+
+// ============================================
+// FILTER SYNC: Saved Records ↔ Dashboard
+// ============================================
+function getSavedRecordFilterState() {
+  return {
+    project: document.getElementById('fltProject')?.value || '',
+    type: document.getElementById('fltType')?.value || '',
+    contractor: document.getElementById('fltContractor')?.value || '',
+    discipline: document.getElementById('fltDiscipline')?.value || '',
+    status: document.getElementById('fltStatus')?.value || '',
+    fromDate: document.getElementById('fltDateFrom')?.value || '',
+    toDate: document.getElementById('fltDateTo')?.value || '',
+    owner: document.getElementById('fltOwner')?.value || ''
+  };
+}
+
+function applyFiltersAndRefresh() {
+  globalFilterState = getSavedRecordFilterState();
+  updateStats();
+  renderHistory();
+  if (document.getElementById('view-dashboard').classList.contains('active')) {
+    if (currentKpiFilter) filterKPI(currentKpiFilter);
+  }
+}
+
+// ============================================
+// CONFIG APPLICATION
+// ============================================
+function applyConfig() {
+  document.getElementById('brandTitle').innerText = appConfig.companyName || 'QA/QC Suite';
+  document.getElementById('brandSub').innerText = appConfig.businessPackage || 'Site Formats';
+  document.getElementById('sheetOrg').innerText = appConfig.companyName || 'QA/QC Suite';
+  const cleanName = (appConfig.companyName || 'QA/QC Suite').replace(/\s*Inspection Suite$/i, '').replace(/\s*Suite$/i, '').trim() || 'QA/QC';
+  document.getElementById('appTitle').innerText = cleanName + ' Inspection Suite';
+  document.getElementById('appSub').innerText = getProjectDisplay();
+}
+
+function populateConfigForm() {
+  document.getElementById('cfgCompanyName').value = appConfig.companyName || '';
+  document.getElementById('cfgProjectName').value = appConfig.projectName || '';
+  document.getElementById('cfgLocation').value = appConfig.location || '';
+  document.getElementById('cfgFormatPrefix').value = appConfig.formatPrefix || '';
+  document.getElementById('cfgBusinessPackage').value = appConfig.businessPackage || '';
+}
+
+function populateMastersForm() {
+  document.getElementById('mstDisciplines').value = (masters.disciplines || []).join(', ');
+}
+
+// ============================================
+// VIEWS
+// ============================================
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const pane = document.getElementById('view-' + view);
+  if (pane) pane.classList.add('active');
+  document.querySelectorAll('.menu-item').forEach(v => v.classList.remove('active'));
+  const menu = document.querySelector('.menu-item[data-target="' + view + '"]');
+  if (menu) menu.classList.add('active');
+  if (view !== 'form' && view !== 'login') previousView = view;
+  const badge = document.getElementById('viewBadge');
+  if (badge) {
+    if (currentUser) {
+      const roleMap = {
+        engineer: '👷 Contractor',
+        exec_engineer: '🔧 Execution Engineer',
+        qa_head: '👔 QA Head',
+        manager: '📊 Manager',
+        admin: '🔧 Admin',
+        consultant: '👀 Consultant'
+      };
+      badge.innerText = roleMap[currentUser.role] || 'System Active';
+    } else { badge.innerText = '🔒 Not Logged In'; }
+  }
+  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); }
+  if (view === 'history') { renderHistory(); }
+  if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
+  if (view === 'masters') { populateMastersForm(); }
+  if (view === 'login') {
+    document.getElementById('appTitle').innerText = 'QA/QC Inspection Suite';
+    document.getElementById('appSub').innerText = 'Secure Access';
+  }
+  updateNotificationUI();
+}
+
+function backFromForm() {
+  if (activeTemplateKey !== 'rfi' && pendingReturnRfiId) {
+    openTemplate('rfi', pendingReturnRfiId);
+    return;
+  }
+  switchView(previousView || 'dashboard');
+}
+
+// ============================================
+// CARDS (Execution Engineer cannot create RFI)
+// ============================================
+function renderCards() {
+  const host = document.getElementById('templateCards');
+  host.innerHTML = '';
+  const flt = document.getElementById('fltType');
+  if (flt) {
+    flt.innerHTML = '<option value="">All</option>' +
+      Object.entries(templates).map(([k, t]) => `<option value="${esc(k)}">${esc(t.menuTitle)}</option>`).join('');
+  }
+  const isExec = isExecEngineer();
+  Object.entries(templates).forEach(([k, t]) => {
+    // Execution Engineer cannot create RFI
+    if (isExec && k === 'rfi') return;
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = `
+      <h3>📄 ${esc(t.menuTitle)}</h3>
+      <p>${esc(t.summary)}</p>
+      <div class="foot">
+        <span>${esc(t.formatNo)}</span>
+        <span>${t.menuTitle === 'RFI' ? '10 lines' : t.menuTitle === 'NCR' ? '20 lines' : t.menuTitle === 'IMIR' ? '15 lines' : '19 lines'}</span>
+      </div>`;
+    c.onclick = () => openTemplate(k);
+    host.appendChild(c);
+  });
+}
+
+// ============================================
+// FORM RENDERING
+// ============================================
+function makeInput(id, value, type = 'text', options = []) {
+  if (type === 'select') {
+    const vals = options.length ? options : (id === 'meta_discipline' ? masters.disciplines : []);
+    return `<select class="value-input" id="${id}">${vals.map(v => `<option value="${esc(v)}" ${String(value) === String(v) ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+  }
+  if (type === 'radio') {
+    // Radio buttons – only show if user is contractor or admin (as per matrix)
+    const show = currentUser && (currentUser.role === 'engineer' || currentUser.role === 'admin');
+    if (!show) return '<span class="small">(Routing not applicable)</span>';
+    return `<div class="radio-line">${options.map(o => `<label><input type="radio" name="meta_routing" value="${esc(o)}" ${String(value) === String(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>`;
+  }
+  return `<input type="${type}" class="value-input" id="${id}" value="${esc(value || '')}">`;
+}
+
+function renderMetaRows(metaRows, metaData = {}) {
+  let html = '<table class="sheet-table">';
+  metaRows.forEach(row => {
+    html += '<tr>';
+    row.forEach(cell => {
+      let val = metaData[cell.k] !== undefined ? metaData[cell.k] : (cell.d || '');
+      let type = cell.t || 'text';
+      let opts = cell.options || [];
+      if (cell.k === 'discipline') {
+        type = 'select'; opts = masters.disciplines.length ? masters.disciplines : ['Civil', 'Mechanical', 'Electrical'];
+        if (!val) val = opts[0] || '';
+      }
+      if (cell.k === 'linkedRfi') {
+        type = 'select'; opts = getRfiOptions();
+        if (!val && opts.length) val = opts[0] || '';
+      }
+      html += `<td class="label-cell">${esc(cell.l)}</td><td>${makeInput('meta_' + cell.k, val, type, opts)}</td>`;
+    });
+    if (row.length === 1) html += '<td colspan="2"></td>';
+    html += '</tr>';
+  });
+  return html + '</table>';
+}
+
+function renderSimpleCheck(sec, secData = {}) {
+  let html = `<table class="sheet-table"><tr><th colspan="5">${esc(sec.title)}</th></tr><tr><th>Check Item</th><th>Contractor</th><th>Company</th><th>Remarks</th><th>Status</th></tr>`;
+  sec.items.forEach((it, i) => {
+    const row = secData.items?.[i] || {};
+    html += `<tr>
+      <td>${esc(it)}</td>
+      <td><input class="table-input" value="${esc(row.contractor || '')}"></td>
+      <td><input class="table-input" value="${esc(row.company || '')}"></td>
+      <td><input class="table-input" value="${esc(row.remarks || '')}"></td>
+      <td><select class="status-select ${statusClass(row.status)}" onchange="stylizeStatus(this);updateProgress()">
+        <option value=""></option>
+        <option value="Yes" ${row.status === 'Yes' ? 'selected' : ''}>Yes</option>
+        <option value="No" ${row.status === 'No' ? 'selected' : ''}>No</option>
+        <option value="NA" ${row.status === 'NA' ? 'selected' : ''}>NA</option>
+      </select></td>
+    </tr>`;
+  });
+  return html + '</table>';
+}
+
+function renderChecklist(sec, secData = {}) {
+  let html = `<table class="sheet-table"><tr>${sec.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
+  let itemIndex = 0, sr = 1;
+  sec.groups.forEach(g => {
+    html += `<tr class="check-section-row"><td colspan="4">${esc(g.name)}</td></tr>`;
+    g.items.forEach(item => {
+      const row = secData.items?.[itemIndex] || {};
+      html += `<tr>
+        <td style="width:8%;text-align:center;">${sr++}</td>
+        <td>${esc(item)}</td>
+        <td style="width:18%;"><select class="status-select ${statusClass(row.status)}" onchange="stylizeStatus(this);updateProgress()">
+          <option value=""></option>
+          <option value="Yes" ${row.status === 'Yes' ? 'selected' : ''}>Yes</option>
+          <option value="No" ${row.status === 'No' ? 'selected' : ''}>No</option>
+          <option value="NA" ${row.status === 'NA' ? 'selected' : ''}>NA</option>
+        </select></td>
+        <td style="width:24%;"><textarea class="table-textarea">${esc(row.remarks || '')}</textarea></td>
+      </tr>`;
+      itemIndex++;
+    });
+  });
+  return html + '</table>';
+}
+
+function renderTable(sec, secData = {}) {
+  let html = `<table class="sheet-table"><tr><th colspan="${sec.columns.length}">${esc(sec.title)}</th></tr><tr>${sec.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
+  const rows = secData.rows || [];
+  for (let r = 0; r < sec.rows; r++) {
+    const row = rows[r] || [];
+    html += '<tr>' + sec.columns.map((c, ci) => `<td><input class="table-input" value="${esc(row[ci] ?? (ci === 0 ? r + 1 : ''))}"></td>`).join('') + '</tr>';
+  }
+  return html + '</table>';
+}
+
+function renderAccepted(sec, secData = {}) {
+  let html = `<table class="sheet-table"><tr><th colspan="4">${esc(sec.title)}</th></tr><tr><th>Role</th><th>Name</th><th>Signature</th><th>Date</th></tr>`;
+  sec.rows.forEach((role, i) => {
+    const row = secData.rows?.[i] || {};
+    html += `<tr>
+      <td>${esc(role)}</td>
+      <td><input class="table-input" value="${esc(row.name || '')}"></td>
+      <td><input class="table-input" value="${esc(row.sign || '')}"></td>
+      <td><input type="date" class="table-input" value="${esc(row.date || '')}"></td>
+    </tr>`;
+  });
+  return html + '</table>';
+}
+
+function renderStatus(sec, secData = {}, si) {
+  const val = secData.value || '';
+  return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><div class="radio-line">${sec.options.map(o => `<label><input type="radio" name="status_${si}" value="${esc(o)}" ${val === o ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div></td></tr></table>`;
+}
+
+function renderTextarea(sec, secData = {}) {
+  return `<table class="sheet-table"><tr><th>${esc(sec.title)} ${sec.note ? `<span class="small">${esc(sec.note)}</span>` : ''}</th></tr><tr><td><textarea class="plain-textarea">${esc(secData.value || '')}</textarea></td></tr></table>`;
+}
+
+function renderDate(sec, secData = {}, key) {
+  const val = secData[key] || '';
+  return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><input type="date" class="value-input" id="meta_${key}" value="${esc(val)}"></td></tr></table>`;
+}
+
+function renderSignatures(sec, secData = {}) {
+  let html = `<table class="sheet-table"><tr>${sec.roles.map(r => `<th>${esc(r)}</th>`).join('')}</tr><tr>`;
+  sec.roles.forEach((r, ri) => {
+    const e = secData.entries?.[ri] || {};
+    html += `<td><div style="display:grid;gap:8px;"><div><b>Name :</b> <input class="sig-input" value="${esc(e.name || '')}"></div><div><b>Signature :</b> <input class="sig-input" value="${esc(e.sign || '')}"></div><div><b>Date :</b> <input type="date" class="sig-input" value="${esc(e.date || '')}"></div></div></td>`;
+  });
+  return html + '</tr></table>';
+}
+
+function renderText(sec, secData = {}) {
+  const val = secData[sec.k] || '';
+  return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><input class="value-input" id="meta_${sec.k}" value="${esc(val)}"></td></tr></table>`;
+}
+
+function stylizeStatus(sel) {
+  sel.classList.remove('select-yes', 'select-no', 'select-na');
+  if (sel.value === 'Yes') sel.classList.add('select-yes');
+  else if (sel.value === 'No') sel.classList.add('select-no');
+  else if (sel.value === 'NA') sel.classList.add('select-na');
+}
+
+function renderSheet(t, report) {
+  const body = document.getElementById('sheetBody');
+  const meta = report?.meta || {};
+  const sectionsData = report?.sections || [];
+  if (activeTemplateKey === 'ncr') {
+    body.innerHTML = renderNCRExact(report);
+    updateProgress();
+    return;
+  }
+  if (activeTemplateKey === 'imir') {
+    body.innerHTML = renderIMIRExact(report);
+    updateProgress();
+    return;
+  }
+  let html = renderMetaRows(t.metaRows, meta);
+  let si = 0;
+  t.sections.forEach((sec) => {
+    const secData = sectionsData[si] || {};
+    if (sec.type === 'simple_check') html += renderSimpleCheck(sec, secData);
+    else if (sec.type === 'checklist') html += renderChecklist(sec, secData);
+    else if (sec.type === 'table') html += renderTable(sec, secData);
+    else if (sec.type === 'accepted') html += renderAccepted(sec, secData);
+    else if (sec.type === 'status') html += renderStatus(sec, secData, si);
+    else if (sec.type === 'textarea') html += renderTextarea(sec, secData);
+    else if (sec.type === 'signatures') html += renderSignatures(sec, secData);
+    else if (sec.type === 'date') html += renderDate(sec, secData, sec.k);
+    else if (sec.type === 'text') html += renderText(sec, secData);
+    si++;
+  });
+  body.innerHTML = html;
+  body.querySelectorAll('.status-select').forEach(stylizeStatus);
+  // Ensure radio button for routing is pre-selected if exists
+  const routingVal = meta.routing || 'Execution Engineer → QA Head';
+  const radioGroup = document.querySelector('input[name="meta_routing"]');
+  if (radioGroup) {
+    const radios = document.querySelectorAll('input[name="meta_routing"]');
+    radios.forEach(r => r.checked = (r.value === routingVal));
+  }
+  updateProgress();
+}
+
+// ============================================
+// DATA COLLECTION
 // ============================================
 function collectMeta(t) {
   const meta = {};
@@ -1541,13 +1811,8 @@ function collectMeta(t) {
     const key = el.id.replace(/^meta_/, '');
     meta[key] = el.value || '';
   });
+  // Ensure routing is set
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
-  
-  // 🔥 FIX: Ensure site_name is always set
-  if (!meta.site_name) {
-    meta.site_name = meta.project || (currentUser?.assigned_sites && currentUser.assigned_sites[0]) || 'Unknown';
-  }
-  
   return meta;
 }
 
@@ -1561,7 +1826,58 @@ function collectSections(t) {
   sectionTables.forEach((tbl, idx) => {
     const sec = t.sections[idx];
     if (!sec) return;
-    // ... (same as original)
+    if (sec.type === 'simple_check') {
+      const rows = Array.from(tbl.querySelectorAll('tr')).slice(2);
+      sections.push({ type: 'simple_check', items: rows.map(r => ({
+        contractor: r.cells[1]?.querySelector('input')?.value || '',
+        company: r.cells[2]?.querySelector('input')?.value || '',
+        remarks: r.cells[3]?.querySelector('input')?.value || '',
+        status: r.cells[4]?.querySelector('select')?.value || ''
+      })) });
+    }
+    if (sec.type === 'checklist') {
+      const items = [];
+      Array.from(tbl.querySelectorAll('tr')).slice(1).forEach(r => {
+        if (r.classList.contains('check-section-row')) return;
+        items.push({ status: r.cells[2]?.querySelector('select')?.value || '', remarks: r.cells[3]?.querySelector('textarea')?.value || '' });
+      });
+      sections.push({ type: 'checklist', items });
+    }
+    if (sec.type === 'table') {
+      const rows = Array.from(tbl.querySelectorAll('tr')).slice(2).map(r => Array.from(r.querySelectorAll('input')).map(i => i.value));
+      sections.push({ type: 'table', rows });
+    }
+    if (sec.type === 'accepted') {
+      sections.push({ type: 'accepted', rows: Array.from(tbl.querySelectorAll('tr')).slice(2).map(r => ({
+        name: r.cells[1]?.querySelector('input')?.value || '',
+        sign: r.cells[2]?.querySelector('input')?.value || '',
+        date: r.cells[3]?.querySelector('input')?.value || ''
+      })) });
+    }
+    if (sec.type === 'status') {
+      const checked = tbl.querySelector('input[type="radio"]:checked');
+      sections.push({ type: 'status', value: checked ? checked.value : '' });
+    }
+    if (sec.type === 'textarea') {
+      sections.push({ type: 'textarea', value: tbl.querySelector('textarea')?.value || '' });
+    }
+    if (sec.type === 'signatures') {
+      const cells = tbl.querySelectorAll('tr')[1]?.cells || [];
+      sections.push({ type: 'signatures', entries: Array.from(cells).map((cell, ci) => ({
+        role: sec.roles[ci] || '',
+        name: cell.querySelectorAll('input')[0]?.value || '',
+        sign: cell.querySelectorAll('input')[1]?.value || '',
+        date: cell.querySelectorAll('input')[2]?.value || ''
+      })) });
+    }
+    if (sec.type === 'date') {
+      const el = tbl.querySelector('input');
+      sections.push({ type: 'date', [sec.k]: el ? el.value : '' });
+    }
+    if (sec.type === 'text') {
+      const el = tbl.querySelector('input');
+      sections.push({ type: 'text', [sec.k]: el ? el.value : '' });
+    }
   });
   return sections;
 }
@@ -1587,7 +1903,7 @@ function updateProgress() {
 }
 
 // ============================================
-// SAVE & WORKFLOW (FIXED: site_name added)
+// SAVE & WORKFLOW
 // ============================================
 function validateForm(meta) {
   const req = [];
@@ -1612,11 +1928,12 @@ function validateForm(meta) {
     if (!meta.contractor) req.push('Contractor');
     if (!meta.date) req.push('Date');
   }
-  if (req.length) {
-    toast('❌ Required: ' + req.join(', '), true);
-    return false;
-  }
+  if (req.length) { toast('❌ Required: ' + req.join(', ')); return false; }
   return true;
+}
+
+function getAuditNow(action, comment) {
+  return { action, by: currentUser?.display || 'Unknown', role: currentUser?.role || '', at: new Date().toISOString(), comment: comment || '' };
 }
 
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
@@ -1635,10 +1952,6 @@ function saveReport(ev) {
   const attachmentInput = document.getElementById('wfAttachment');
   const attachmentNames = attachmentInput ? Array.from(attachmentInput.files || []).map(f => f.name) : (existing?.attachments || []);
   const raisedFromRfi = meta.raisedFromRfi || '';
-  
-  // 🔥 FIX: Ensure site_name is always set before sending to server
-  const siteName = meta.site_name || meta.project || (currentUser?.assigned_sites && currentUser.assigned_sites[0]) || 'Unknown';
-  
   const row = {
     id, templateKey: activeTemplateKey, templateName: t.title,
     formatNo: t.formatNo || buildFormatNo('01'), meta, sections,
@@ -1647,15 +1960,13 @@ function saveReport(ev) {
     comment: document.getElementById('wfComment')?.value.trim() || existing?.comment || '',
     attachments: attachmentNames,
     createdBy: existing?.createdBy || currentUser?.username || '',
-    createdByDisplay: existing?.createdByDisplay || currentUser?.full_name || currentUser?.username || '',
+    createdByDisplay: existing?.createdByDisplay || currentUser?.display || '',
     decisionBy: existing?.decisionBy || '',
     decisionByDisplay: existing?.decisionByDisplay || '',
     savedAt: new Date().toISOString(),
-    audit: (existing?.audit || []).concat([{ action: existing ? 'Updated' : 'Created', by: currentUser?.full_name || currentUser?.username || 'Unknown', at: new Date().toISOString(), comment: document.getElementById('wfComment')?.value.trim() || '' }]),
-    raisedFromRfi: raisedFromRfi,
-    site_name: siteName  // 🔥 This is the key fix
+    audit: (existing?.audit || []).concat([getAuditNow(existing ? 'Updated' : 'Created', document.getElementById('wfComment')?.value.trim() || '')]),
+    raisedFromRfi: raisedFromRfi
   };
-  
   let yes = 0, no = 0;
   sections.forEach(sec => {
     if (sec.type === 'checklist' || sec.type === 'simple_check') {
@@ -1666,75 +1977,210 @@ function saveReport(ev) {
   row.defectsCount = no;
 
   if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && !row.meta.linkedRfi) {
-    toast('⚠️ Please select Linked RFI No before saving checklist', true);
+    toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
 
-  // 🔥 Check if site_name is set before sending
-  if (!row.site_name || row.site_name === '') {
-    toast('❌ Site name is missing. Please fill the Project field.', true);
-    return;
+  const idx = savedReports.findIndex(r => r.id === id);
+  if (idx >= 0) savedReports[idx] = row;
+  else savedReports.unshift(row);
+  activeReportId = id;
+  persistDb();
+  if (activeTemplateKey === 'rfi') {
+    pendingReturnRfiId = id;
+    pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
+    pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
+  }
+  updateWorkflowButtons(row);
+  setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
+  toast('✅ Saved successfully');
+}
+
+function updateWorkflowButtons(rec) {
+  const isRfi = activeTemplateKey === 'rfi';
+  const isNcr = activeTemplateKey === 'ncr';
+  const isImir = activeTemplateKey === 'imir';
+  const panel = document.getElementById('workflowPanel');
+  const relatedPanel = document.getElementById('relatedChecklistPanel');
+  if (panel) panel.style.display = (isRfi || isNcr || isImir) ? 'block' : 'none';
+  if (relatedPanel) relatedPanel.style.display = isRfi ? 'block' : 'none';
+  if (!isRfi && !isNcr && !isImir) return;
+
+  const status = rec?.status || 'Draft';
+  const meta = rec?.meta || {};
+  const routing = meta.routing || 'Execution Engineer → QA Head';
+  const isDirect = routing === 'Direct to QA Head';
+  const isBoth = routing === 'Both';
+
+  document.getElementById('wfStatus').value = status;
+  document.getElementById('wfOwner').value = rec?.createdByDisplay || currentUser?.display || '';
+  document.getElementById('wfDecisionBy').value = rec?.decisionByDisplay || '';
+
+  const isExec = isExecEngineer();
+  const isAdmin = currentUser?.role === 'admin';
+  const isQA = canApprove();
+
+  // Submit: only contractor or admin (not exec_engineer)
+  const showSubmit = currentUser && (currentUser.role === 'engineer' || isAdmin) && (!rec || ['Draft', 'Rejected'].includes(status));
+  const showReview = isQA && status === 'Submitted';
+  // Approve for QA: only Exec, and only if not Direct (i.e., Execution → QA Head or Both)
+  const showApproveQA = isExec && status === 'Submitted' && !isDirect;
+  // Approve: 
+  // - If Direct: only QA can approve from Submitted
+  // - If Execution → QA: QA can approve from Approved by Execution
+  // - If Both: QA can approve from Submitted (direct) OR from Approved by Execution (if Exec acted first)
+  const showApprove = (isQA && (
+    (isDirect && status === 'Submitted') ||
+    (isBoth && (status === 'Submitted' || status === 'Approved by Execution')) ||
+    (!isDirect && !isBoth && status === 'Approved by Execution')
+  )) || (isExec && !isDirect && status === 'Submitted' && !isBoth);
+  // Reject: similar to approve, but both QA and Exec can reject in Both mode
+  const showReject = (isQA && (
+    (isDirect && status === 'Submitted') ||
+    (isBoth && (status === 'Submitted' || status === 'Approved by Execution')) ||
+    (!isDirect && !isBoth && status === 'Approved by Execution')
+  )) || (isExec && (status === 'Submitted' || (isBoth && status === 'Approved by Execution')));
+  // Close: QA or Exec can close NCR
+  const showClose = (isQA || isExec) && isNcr && ['Submitted', 'Under Review', 'Approved', 'Approved with Comment'].includes(status);
+
+  const btnRaiseNCR = document.getElementById('btnRaiseNCR');
+  if (btnRaiseNCR) {
+    btnRaiseNCR.classList.toggle('hidden', !(isRfi && (isQA || isAdmin || isExec)));
   }
 
-  saveReportToServer(row).then(() => {
-    loadReports().then(() => {
-      activeReportId = id;
-      if (activeTemplateKey === 'rfi') {
-        pendingReturnRfiId = id;
-        pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
-        pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
-      }
-      updateWorkflowButtons(row);
-      setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
-      toast('✅ Saved successfully');
-      renderHistory(); updateStats();
-    });
-  }).catch(err => {
-    console.error('Save error:', err);
-    toast('❌ Save failed: ' + err.message, true);
+  document.getElementById('btnSubmit').classList.toggle('hidden', !showSubmit);
+  document.getElementById('btnReview').classList.toggle('hidden', !showReview);
+  document.getElementById('btnApproveQA').classList.toggle('hidden', !showApproveQA);
+  document.getElementById('btnApprove').classList.toggle('hidden', !showApprove);
+  document.getElementById('btnApproveComment').classList.toggle('hidden', !(showApprove && isRfi));
+  document.getElementById('btnReject').classList.toggle('hidden', !showReject);
+  document.getElementById('btnClose').classList.toggle('hidden', !showClose);
+}
+
+function setChecklistButtonsState(rec) {
+  const isRfi = activeTemplateKey === 'rfi';
+  const disabled = !isRfi || !canAddChecklistToRfi(rec);
+  ['btnAddBrickChecklist', 'btnAddPlasterChecklist', 'btnAddConcreteChecklist'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = disabled;
   });
 }
 
 // ============================================
-// REST OF THE FUNCTIONS (unchanged – same as before)
+// APPROVE FOR QA – Execution Engineer
 // ============================================
-// ... (all other functions: renderMetaRows, renderSimpleCheck, 
-// renderChecklist, renderTable, renderAccepted, renderStatus,
-// renderTextarea, renderDate, renderSignatures, renderText,
-// stylizeStatus, renderSheet, openTemplate, openRecord, 
-// deleteReport, updateWorkflowButtons, setChecklistButtonsState,
-// approveForQA, raiseNCRFromRFI, submitRecord, markUnderReview,
-// approveRecord, approveWithCommentRecord, rejectRecord, closeRecord,
-// submitNCR, launchChecklistFromRfi, openLinkedChecklistFromRfi,
-// applyPendingChecklistPrefill, updateStats, renderHistory,
-// filterKPI, renderKPIResults, print functions, export/import, etc.)
+function approveForQA() {
+  const rec = currentRecord();
+  if (!rec) { toast('⚠️ Open record first'); return; }
+  if (!isExecEngineer()) { toast('⛔ Only Execution Engineer can perform this action'); return; }
+  if (rec.status !== 'Submitted') { toast('⚠️ Only Submitted RFIs can be approved for QA'); return; }
+  rec.status = 'Approved by Execution';
+  rec.comment = document.getElementById('wfComment').value.trim() || 'Approved for QA by Execution Engineer';
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.audit.push(getAuditNow('Approved for QA', rec.comment));
+  rec.savedAt = new Date().toISOString();
+  persistDb();
+  updateWorkflowButtons(rec);
+  toast('📋 RFI approved for QA review');
 
-// ============================================
-// INITIALIZATION
-// ============================================
-function init() {
-  document.getElementById('todayDate').innerText = todayText();
-  try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem('qaqc_config') || '{}') }; } catch(e) {}
-  try { masters = { ...masters, ...JSON.parse(localStorage.getItem('qaqc_masters') || '{}') }; } catch(e) {}
-  applyConfig();
-  populateConfigForm();
-  populateMastersForm();
-  checkAuth();
+  // Notify QA Head
+  const qaHeadUser = users.find(u => u.role === 'qa_head');
+  if (qaHeadUser) {
+    const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
+    sendNotification(qaHeadUser.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', init);
-document.addEventListener('change', e => {
-  if (e.target.matches('.status-select')) { stylizeStatus(e.target); updateProgress(); }
-});
-document.addEventListener('input', e => {
-  if (e.target.matches('.table-textarea,.plain-textarea,.value-input,.table-input,.sig-input')) updateProgress();
-});
-document.addEventListener('click', function(e) {
-  const container = document.getElementById('notifContainer');
-  if (container && !container.contains(e.target)) {
-    document.getElementById('notifDropdown').classList.remove('open');
+// ============================================
+// RAISE NCR FROM RFI (now allowed for Exec, QA, Admin)
+// ============================================
+function raiseNCRFromRFI() {
+  const rfi = currentRecord();
+  if (!rfi) { toast('⚠️ No RFI found.'); return; }
+  if (!currentUser || (currentUser.role !== 'qa_head' && currentUser.role !== 'admin' && currentUser.role !== 'exec_engineer')) {
+    toast('⛔ Only QA Head, Execution Engineer or Admin can raise NCR.');
+    return;
   }
-});
-</script>
-</body>
-</html>
+  const rfiMeta = rfi.meta || {};
+  const ncrMeta = {
+    ncrNo: '',
+    category: '',
+    project: rfiMeta.project || '',
+    entityType: '',
+    package: rfiMeta.package || '',
+    agency: rfiMeta.contractor || '',
+    wbsCode: '',
+    location: rfiMeta.location || '',
+    poSoName: '',
+    discipline: rfiMeta.discipline || '',
+    poSoNo: '',
+    ncrDate: new Date().toISOString().split('T')[0],
+    poSoDate: '',
+    materialService: '',
+    raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
+  };
+  const ncrId = 'rep_' + Date.now();
+  const newNCR = {
+    id: ncrId,
+    templateKey: 'ncr',
+    templateName: 'NON CONFORMANCE REPORT',
+    formatNo: 'ADANI/Q/F-09 Rev 0',
+    meta: ncrMeta,
+    sections: [],
+    score: 0,
+    defectsCount: 0,
+    titleLoc: rfiMeta.project || '',
+    preparedBy: currentUser.display || '',
+    status: 'Draft',
+    comment: '',
+    attachments: [],
+    createdBy: currentUser.username,
+    createdByDisplay: currentUser.display,
+    decisionBy: '',
+    decisionByDisplay: '',
+    savedAt: new Date().toISOString(),
+    audit: [getAuditNow('Created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''), '')],
+    raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
+  };
+  savedReports.unshift(newNCR);
+  persistDb();
+  toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
+
+  // Notify the original Contractor
+  const contractorUser = users.find(u => u.username === rfi.createdBy);
+  if (contractorUser) {
+    const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
+    sendNotification(contractorUser.u, `📋 NCR #${ncrId} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
+  }
+  openTemplate('ncr', ncrId);
+}
+
+// ============================================
+// WORKFLOW ACTIONS (with proper notifications)
+// ============================================
+function submitRecord() {
+  const rec = currentRecord();
+  if (!rec) { toast('⚠️ Save first'); return; }
+  if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
+  rec.status = 'Submitted';
+  rec.comment = document.getElementById('wfComment').value.trim();
+  rec.audit.push(getAuditNow('Submitted', rec.comment));
+  rec.savedAt = new Date().toISOString();
+
+  // ✅ ROUTING LOGIC – send notifications accordingly
+  const routing = rec.meta.routing || 'Execution Engineer → QA Head';
+  const execUser = users.find(u => u.role === 'exec_engineer');
+  const qaHeadUser = users.find(u => u.role === 'qa_head');
+  const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
+
+  if (routing === 'Direct to QA Head') {
+    if (qaHeadUser) {
+      sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
+  } else if (routing === 'Execution Engineer → QA Head') {
+    if (execUser) {
+      sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
+  } else if (routing === 'Both') {
+    if (exec
