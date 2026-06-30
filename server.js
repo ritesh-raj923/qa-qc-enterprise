@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,11 +17,11 @@ app.use(express.static('public'));
 // --- PostgreSQL Database Connection ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // Required for Neon.tech
+    ssl: { rejectUnauthorized: false }
 });
 
 // =============================================
-// 1. DATABASE INITIALIZATION (Tables + Seed)
+// 1. DATABASE INITIALIZATION
 // =============================================
 async function initDatabase() {
     try {
@@ -80,7 +79,7 @@ async function initDatabase() {
             )
         `);
 
-        // Seed default users (if none exist)
+        // Seed default users
         const result = await pool.query("SELECT COUNT(*) as count FROM users");
         if (parseInt(result.rows[0].count) === 0) {
             console.log('🌱 Seeding default users...');
@@ -116,7 +115,6 @@ async function initDatabase() {
 // 2. HELPER FUNCTIONS
 // =============================================
 
-// Middleware: Verify JWT Token
 function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token provided' });
@@ -130,7 +128,6 @@ function authenticateToken(req, res, next) {
     }
 }
 
-// Middleware: Verify Admin role
 function verifyAdmin(req, res, next) {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Admin access required' });
@@ -138,13 +135,11 @@ function verifyAdmin(req, res, next) {
     next();
 }
 
-// Helper: Get user by username
 async function getUserByUsername(username) {
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
     return result.rows[0] || null;
 }
 
-// Helper: Check site access
 function userHasSiteAccess(user, siteName) {
     const sites = user.assigned_sites || '[]';
     let assigned = [];
@@ -153,7 +148,6 @@ function userHasSiteAccess(user, siteName) {
     return assigned.includes(siteName);
 }
 
-// Helper: Build SQL filter for site
 function buildSiteFilter(user) {
     const sites = user.assigned_sites || '[]';
     let assigned = [];
@@ -204,7 +198,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// GET /api/users (Admin only)
 app.get('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const result = await pool.query("SELECT id, username, role, assigned_sites, full_name FROM users");
@@ -218,7 +211,6 @@ app.get('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
     }
 });
 
-// POST /api/users (Admin only)
 app.post('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const { username, password, role, assigned_sites, full_name } = req.body;
@@ -240,7 +232,6 @@ app.post('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
     }
 });
 
-// DELETE /api/users/:username (Admin only)
 app.delete('/api/users/:username', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const { username } = req.params;
@@ -259,7 +250,6 @@ app.delete('/api/users/:username', authenticateToken, verifyAdmin, async (req, r
 // 4. REPORTS API
 // =============================================
 
-// GET /api/reports
 app.get('/api/reports', authenticateToken, async (req, res) => {
     try {
         const filter = buildSiteFilter(req.user);
@@ -277,7 +267,6 @@ app.get('/api/reports', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/reports/:id
 app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -298,7 +287,6 @@ app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/reports
 app.post('/api/reports', authenticateToken, async (req, res) => {
     try {
         const {
@@ -342,7 +330,6 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/reports/:id
 app.put('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -388,7 +375,6 @@ app.put('/api/reports/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/reports/:id (Admin only)
 app.delete('/api/reports/:id', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const { id } = req.params;
@@ -452,7 +438,7 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // =============================================
-// 6. COMBINED DATA ENDPOINT (for frontend)
+// 6. COMBINED DATA ENDPOINT
 // =============================================
 
 app.get('/api/data', authenticateToken, async (req, res) => {
