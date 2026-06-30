@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
-/* All CSS remains exactly the same as your original – unchanged */
+/* ALL CSS REMAINS EXACTLY THE SAME – UNCHANGED */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -666,10 +666,13 @@ header .sub { font-size: 13px; color: #555; }
 
 <script>
 // ============================================
-// API BASE & AUTH HELPERS
+// API BASE – Now uses full HTTPS origin
 // ============================================
-const API_BASE = ''; // empty = same origin
+const API_BASE = window.location.origin; // Uses https://your-app.onrender.com
 
+// ============================================
+// API REQUEST WITH FALLBACK FOR BLOCKED REQUESTS
+// ============================================
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
@@ -678,16 +681,32 @@ async function apiRequest(url, options = {}) {
     ...options.headers,
     'Authorization': `Bearer ${token}`
   };
-  const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'API error');
+  try {
+    const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'API error');
+    }
+    return res.json();
+  } catch (e) {
+    // If the request was blocked by browser/extension
+    if (e.message === 'Failed to fetch' || e.name === 'TypeError') {
+      console.warn('Request may have been blocked. Using cached data if available.');
+      // For /api/data, return cached data
+      if (url === '/api/data') {
+        const cachedData = {
+          reports: JSON.parse(localStorage.getItem('qaqc_suite_data_v2') || '[]'),
+          notifications: JSON.parse(localStorage.getItem('qaqc_suite_notifications_v2') || '[]')
+        };
+        return cachedData;
+      }
+    }
+    throw e;
   }
-  return res.json();
 }
 
 // ============================================
-// DATA LAYER (now uses API + localStorage cache)
+// DATA LAYER (API + localStorage cache)
 // ============================================
 const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
@@ -715,13 +734,13 @@ function isRfi() { return activeTemplateKey === 'rfi'; }
 function isImir() { return activeTemplateKey === 'imir'; }
 
 // ============================================
-// NEW HELPER: getUserDefaultSite & toApiPayload
+// FIELD MAPPING HELPER (camelCase → snake_case)
 // ============================================
 function getUserDefaultSite() {
   if (currentUser && currentUser.assigned_sites && currentUser.assigned_sites.length > 0) {
     return currentUser.assigned_sites[0];
   }
-  return 'Default'; // fallback
+  return 'Default';
 }
 
 function toApiPayload(row, siteName) {
@@ -1313,6 +1332,7 @@ function loadDb() {
 }
 
 function persistDb() {
+  // Just update localStorage cache, server is updated via separate API calls
   localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
   localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
   updateStats();
@@ -1332,11 +1352,13 @@ async function loadFromServer() {
     updateNotificationUI();
     toast('✅ Synced with server');
   } catch(e) {
-    console.warn('Server offline, using local data', e);
+    console.warn('Server offline or blocked, using local data', e);
+    // Fallback to localStorage
     loadDb();
     renderHistory();
     updateStats();
     updateNotificationUI();
+    toast('⚠️ Using cached data (server unavailable)');
   }
 }
 
@@ -1381,7 +1403,7 @@ function resetMasters() {
 }
 
 // ============================================
-// AUTH (now API)
+// AUTH (now API with fallback)
 // ============================================
 async function login() {
   const username = document.getElementById('loginUser').value.trim();
@@ -1415,7 +1437,23 @@ async function login() {
     const unread = notifications.filter(n => n.recipient_username === user.username && !n.read).length;
     if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
   } catch(e) {
-    toast('❌ Network error: ' + e.message);
+    // If blocked, try to use cached session
+    toast('⚠️ Login failed, trying cached session...');
+    const cachedUser = JSON.parse(localStorage.getItem('user') || 'null');
+    if (cachedUser) {
+      currentUser = cachedUser;
+      toast('⚠️ Using cached session (server unavailable)');
+      document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
+      loadDb();
+      renderCards();
+      updateStats();
+      updateNotificationUI();
+      startNotificationPolling();
+      switchView('dashboard');
+      toast('⚠️ Using offline mode - data may be outdated');
+    } else {
+      toast('❌ Network error: ' + e.message);
+    }
   }
 }
 
@@ -1960,7 +1998,7 @@ function generateNcrNumber() {
   return 'NCR-' + num;
 }
 
-// ----- NEW: API-based save/update with proper field mapping -----
+// ----- API-based save/update with proper field mapping -----
 async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
@@ -2050,7 +2088,7 @@ async function saveReport(ev) {
   }
 }
 
-// ----- New delete with API -----
+// ----- Delete with API -----
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
@@ -2067,7 +2105,7 @@ async function deleteReport(id) {
   }
 }
 
-// ---- Workflow actions (all now call API after local update, using toApiPayload) ----
+// ---- Workflow actions with field mapping ----
 async function updateReportOnServer(row) {
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
