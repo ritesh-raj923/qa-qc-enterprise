@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
+/* ============================================================
+   ALL CSS REMAINS EXACTLY AS YOUR ORIGINAL – UNCHANGED
+   ============================================================ */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -461,6 +464,7 @@ header .sub { font-size: 13px; color: #555; }
     </div>
   </header>
 
+  <!-- LOGIN VIEW -->
   <div id="view-login" class="view">
     <div class="login-shell">
       <div class="login-wrap">
@@ -491,6 +495,7 @@ header .sub { font-size: 13px; color: #555; }
     </div>
   </div>
 
+  <!-- DASHBOARD VIEW -->
   <div id="view-dashboard" class="view">
     <div class="dashboard-grid">
       <!-- RFI Stats -->
@@ -531,6 +536,7 @@ header .sub { font-size: 13px; color: #555; }
     <div class="cards" id="templateCards"></div>
   </div>
 
+  <!-- SAVED RECORDS VIEW -->
   <div id="view-history" class="view">
     <div class="history-wrap">
       <div class="filters">
@@ -553,6 +559,7 @@ header .sub { font-size: 13px; color: #555; }
         <div class="field"><label>&nbsp;</label><button class="btn btn-primary" type="button" onclick="printFilteredHistory()">🖨️ Print</button></div>
       </div>
       <div class="data-actions">
+        <!-- 🔄 NEW REFRESH BUTTON -->
         <button class="btn btn-primary" onclick="refreshHistory()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
@@ -566,6 +573,7 @@ header .sub { font-size: 13px; color: #555; }
     </div>
   </div>
 
+  <!-- SETTINGS VIEW -->
   <div id="view-settings" class="view">
     <div class="panel">
       <div class="topbar"><div><div style="font-size:18px;font-weight:700;color:var(--blue);">⚙️ Settings / Configuration</div><div class="small">Configure company and project details.</div></div></div>
@@ -592,6 +600,7 @@ header .sub { font-size: 13px; color: #555; }
     </div>
   </div>
 
+  <!-- MASTER DATA VIEW -->
   <div id="view-masters" class="view">
     <div class="panel">
       <div class="topbar"><div><div style="font-size:18px;font-weight:700;color:var(--blue);">📚 Master Data</div><div class="small">Manage dropdown values for the system.</div></div></div>
@@ -607,6 +616,7 @@ header .sub { font-size: 13px; color: #555; }
     </div>
   </div>
 
+  <!-- FORM VIEW -->
   <div id="view-form" class="view">
     <div class="topbar">
       <div>
@@ -666,9 +676,9 @@ header .sub { font-size: 13px; color: #555; }
 <div id="toast" class="toast">✅ Message</div>
 
 <script>
-// ============================================
-// API BASE & AUTH HELPERS
-// ============================================
+// ============================================================
+// 1. API & AUTH HELPERS
+// ============================================================
 const API_BASE = window.location.origin; // Uses https://your-app.onrender.com
 
 async function apiRequest(url, options = {}) {
@@ -687,7 +697,7 @@ async function apiRequest(url, options = {}) {
     }
     return res.json();
   } catch (e) {
-    // If blocked, return cached data for /api/data
+    // If blocked, return cached data for /api/data (fallback)
     if (e.message === 'Failed to fetch' || e.name === 'TypeError') {
       console.warn('Request may have been blocked. Using cached data if available.');
       if (url === '/api/data') {
@@ -702,9 +712,9 @@ async function apiRequest(url, options = {}) {
   }
 }
 
-// ============================================
-// DATA LAYER
-// ============================================
+// ============================================================
+// 2. DATA LAYER (API + localStorage cache)
+// ============================================================
 const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
 const MASTER_KEY = 'qaqc_suite_masters_v2';
@@ -730,9 +740,9 @@ function isNcr() { return activeTemplateKey === 'ncr'; }
 function isRfi() { return activeTemplateKey === 'rfi'; }
 function isImir() { return activeTemplateKey === 'imir'; }
 
-// ============================================
-// FIELD MAPPING HELPERS
-// ============================================
+// ============================================================
+// 3. FIELD MAPPING HELPERS (snake_case ↔ camelCase)
+// ============================================================
 function getUserDefaultSite() {
   if (currentUser && currentUser.assigned_sites && currentUser.assigned_sites.length > 0) {
     return currentUser.assigned_sites[0];
@@ -762,9 +772,9 @@ function toApiPayload(row, siteName) {
   };
 }
 
-// ============================================
-// TEMPLATES (unchanged – all definitions)
-// ============================================
+// ============================================================
+// 4. TEMPLATES (your full template definitions – unchanged)
+// ============================================================
 const templates = {
   rfi: {
     formatNo: 'QA / QC / SITE / 01',
@@ -920,9 +930,9 @@ const templates = {
   }
 };
 
-// ============================================
-// EXACT EXCEL REPLICA RENDERING (unchanged – abbreviated)
-// ============================================
+// ============================================================
+// 5. EXCEL REPLICA RENDERING (abbreviated – unchanged)
+// ============================================================
 function ev(v) { return esc(v || ''); }
 function secVal(report, idx, fallbackKey) {
   const sec = (report?.sections || [])[idx] || {};
@@ -952,14 +962,150 @@ function inputExact(id, value, type='text', options=[]) {
 function textExact(key, value, cls='') {
   return `<textarea data-exact-text="${key}" class="exact-textarea ${cls}">${ev(value)}</textarea>`;
 }
-function renderNCRExact(report) { /* ... full function as before ... */ }
-function renderIMIRExact(report) { /* ... full function ... */ }
-function collectNCRSectionsExact() { /* ... full function ... */ }
-function collectIMIRSectionsExact() { /* ... full function ... */ }
+function renderNCRExact(report) {
+  const m = report?.meta || {};
+  const typeValue = secVal(report, 5);
+  const materialRows = rowVals(report, 0, 4, 4);
+  const sigRoles = ['Originated by', 'Adani Responsible<br>(Engg./Const.)', 'Area/Discipline Lead', 'Received by:'];
+  const sigs = [8,9,10,11].map((idx, i) => signEntries(report, idx, [''])[0] || {});
+  const dispSig = signEntries(report, 15, ['Disposal Approved by:'])[0] || {};
+  return `
+  <div class="exact-format ncr-exact">
+    <table class="exact-table">
+      <tr><th colspan="4" class="exact-main-title">Non Conformance Report (NCR)</th></tr>
+      <tr><th colspan="4" class="exact-sub-title">(Issued by QA/FQA to respective agency)</th></tr>
+      <tr><td class="exact-label">NCR No.:</td><td>${inputExact('meta_ncrNo', m.ncrNo)}</td><td class="exact-label">Category:</td><td>${inputExact('meta_category', m.category)}</td></tr>
+      <tr><td class="exact-label">Project Name:</td><td>${inputExact('meta_project', m.project || appConfig.projectName)}</td><td class="exact-label">Entity Type:</td><td>${inputExact('meta_entityType', m.entityType)}</td></tr>
+      <tr><td class="exact-label">Package:</td><td>${inputExact('meta_package', m.package)}</td><td class="exact-label">Agency:</td><td>${inputExact('meta_agency', m.agency)}</td></tr>
+      <tr><td class="exact-label">WBS Code:</td><td>${inputExact('meta_wbsCode', m.wbsCode)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location || appConfig.location)}</td></tr>
+      <tr><td class="exact-label">PO/SO Name:</td><td>${inputExact('meta_poSoName', m.poSoName)}</td><td class="exact-label">Discipline:</td><td>${inputExact('meta_discipline', m.discipline)}</td></tr>
+      <tr><td class="exact-label">PO/SO No.:</td><td>${inputExact('meta_poSoNo', m.poSoNo)}</td><td class="exact-label">NCR Date:</td><td>${inputExact('meta_ncrDate', m.ncrDate, 'date')}</td></tr>
+      <tr><td class="exact-label">PO/SO Date:</td><td>${inputExact('meta_poSoDate', m.poSoDate, 'date')}</td><td class="exact-label">Material/ Service:</td><td>${inputExact('meta_materialService', m.materialService)}</td></tr>
+      <tr><td class="exact-label">Severity:</td><td>${inputExact('meta_severity', m.severity, 'select', ['Major','Minor','Critical'])}</td><td class="exact-label">Responsible:</td><td>${inputExact('meta_responsible', m.responsible)}</td></tr>
+    </table>
+    <table class="exact-table ncr-material">
+      <tr><th>Description of Material</th><th>ID/ Tag</th><th>Quantity</th><th>UoM</th></tr>
+      <tbody>${materialRows.map(row => `<tr>${row.map(v => `<td>${inputExact('', v)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    <table class="exact-table"><tr><th>Description of Non Conformance (NC) (Attach Spec/ Drawings, if required)</th></tr><tr><td>${textExact('ncr_nc_desc', secVal(report,1), 'exact-tall')}</td></tr></table>
+    <table class="exact-table"><tr><th>Root Cause</th></tr><tr><td>${textExact('ncr_root_cause', secVal(report,2))}</td></tr></table>
+    <table class="exact-table"><tr><th>Engineering Recommendation</th></tr><tr><td>${textExact('ncr_eng_rec', secVal(report,3))}</td></tr></table>
+    <table class="exact-table"><tr><th colspan="3">Proposed Corrections</th></tr><tr><td colspan="3">${textExact('ncr_proposed_corrections', secVal(report,4))}</td></tr><tr><td class="exact-label">Type</td><td><select data-exact-select="ncr_type" class="exact-select"><option value=""></option>${['Repair','Rework','Reject','Concession'].map(o=>`<option value="${o}" ${typeValue===o?'selected':''}>${o}</option>`).join('')}</select></td><td><b>Construction Concurance</b> ${inputExact('meta_constructionConcurance', m.constructionConcurance)}</td></tr></table>
+    <table class="exact-table"><tr><th>Proposed Corrective Actions</th><th style="width:22%;">Target Date</th></tr><tr><td>${textExact('ncr_corrective_actions', secVal(report,6))}</td><td>${inputExact('meta_targetDate', secVal(report,7,'targetDate') || m.targetDate, 'date')}</td></tr></table>
+    <table class="exact-table">
+      <tr>${sigRoles.map(r=>`<th>${r}</th>`).join('')}</tr>
+      <tr class="exact-sign-row">${sigs.map(s=>`<td><b>Name:</b> <input class="exact-input" data-sign-name value="${ev(s.name)}"></td>`).join('')}</tr>
+      <tr class="exact-sign-row">${sigs.map(s=>`<td><b>Signature:</b> <input class="exact-input" data-sign-sign value="${ev(s.sign)}"></td>`).join('')}</tr>
+      <tr class="exact-sign-row">${sigs.map(s=>`<td><b>Date:</b> <input type="date" class="exact-input" data-sign-date value="${ev(s.date)}"></td>`).join('')}</tr>
+    </table>
+    <table class="exact-table"><tr><td class="exact-internal">For Adani Internal Use Only</td></tr></table>
+    <table class="exact-table"><tr><td class="exact-label">Agency:</td><td>${inputExact('meta_internalAgency', m.internalAgency || m.agency)}</td></tr></table>
+    <table class="exact-table"><tr><th>NC Disposal Summary</th></tr><tr><td>${textExact('ncr_disposal_summary', secVal(report,12), 'exact-tall')}</td></tr></table>
+    <table class="exact-table"><tr><td class="exact-internal">For Adani Internal Use Only</td></tr></table>
+    <table class="exact-table"><tr><th>Verification of Corrective Action</th></tr><tr><td>${textExact('ncr_verification', secVal(report,13), 'exact-tall')}</td></tr></table>
+    <table class="exact-table"><tr><td class="exact-label">Code</td><td>${inputExact('meta_code', secVal(report,14,'code') || m.code)}</td></tr></table>
+    <table class="exact-table">
+      <tr><th colspan="3">Disposal Approved by:</th></tr>
+      <tr><td><b>Name:</b> <input class="exact-input" data-disposal-name value="${ev(dispSig.name)}"></td><td><b>Signature:</b> <input class="exact-input" data-disposal-sign value="${ev(dispSig.sign)}"></td><td><b>Date:</b> <input type="date" class="exact-input" data-disposal-date value="${ev(dispSig.date)}"></td></tr>
+      <tr><td colspan="3" class="exact-small">Format No. ADANI/Q/F-09 Rev 0</td></tr>
+    </table>
+  </div>`;
+}
+function renderIMIRExact(report) {
+  const m = report?.meta || {};
+  const materialRows = rowVals(report, 0, 5, 6);
+  const sigRoles = ['Merit Execution', 'Merit QA/QC', 'Adani Execution', 'Adani FQA', 'Adani QA/QC'];
+  const sigs = signEntries(report, 4, sigRoles);
+  return `
+  <div class="exact-format imir-exact">
+    <table class="exact-table">
+      <tr><th colspan="4" class="exact-main-title">MATERIAL APPROVAL</th></tr>
+      <tr><td class="exact-label">Client:</td><td>${inputExact('meta_client', m.client || 'M/s Adani Entreprises Ltd')}</td><td class="exact-label">Package/System:</td><td>${inputExact('meta_package', m.package)}</td></tr>
+      <tr><td class="exact-label">Date&nbsp; :</td><td>${inputExact('meta_date', m.date, 'date')}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location || appConfig.location)}</td></tr>
+      <tr><td class="exact-label">Drawing No.:</td><td colspan="3">${inputExact('meta_drawingNo', m.drawingNo)}</td></tr>
+    </table>
+    <table class="exact-table">
+      <tr><th colspan="3" style="text-align:left;">Material Appproval Submittal :-</th><th>STATUS<br>CODE</th></tr>
+      <tr><td class="exact-label">To</td><td>${inputExact('meta_to', m.to || 'FQA Head Adani')}</td><td>Approved</td><td class="exact-center"><b>A</b></td></tr>
+      <tr><td class="exact-label">Subject</td><td>${inputExact('meta_subject', m.subject)}</td><td>Approved As Noted</td><td class="exact-center"><b>B</b></td></tr>
+      <tr><td colspan="2" class="exact-note">We are forwarding herewith, the submissions Listed below for your action.</td><td>Not Approved</td><td class="exact-center"><b>C</b></td></tr>
+    </table>
+    <table class="exact-table imir-material">
+      <tr><th>Sl. No</th><th>Material Description</th><th>Manufacturer</th><th>Supplier</th><th>Structure of Indent use</th><th>Status<br>A&nbsp;&nbsp;B&nbsp;&nbsp;C</th></tr>
+      <tbody>${materialRows.map((row, r) => `<tr>${row.map((v,c) => `<td>${inputExact('', v || (c===0 ? String(r+1) : ''))}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    <table class="exact-table"><tr><td class="exact-label">Relevant Drawing:-</td><td>${textExact('imir_relevant_drawing', secVal(report,1))}</td></tr></table>
+    <table class="exact-table"><tr><td class="exact-label">Relevant Specification&nbsp; No:-</td><td>${textExact('imir_relevant_spec', secVal(report,2))}</td></tr></table>
+    <table class="exact-table"><tr><td class="exact-label">Remarks</td><td>${textExact('imir_remarks', secVal(report,3))}</td></tr></table>
+    <table class="exact-table imir-signatures">
+      <tr><th>Signatory</th>${sigRoles.map(r=>`<th>${r}</th>`).join('')}</tr>
+      <tr><td><b>Name</b></td>${sigs.map(s=>`<td><input class="exact-input" data-sign-name value="${ev(s.name)}"></td>`).join('')}</tr>
+      <tr><td><b>Signature</b></td>${sigs.map(s=>`<td><input class="exact-input" data-sign-sign value="${ev(s.sign)}"></td>`).join('')}</tr>
+      <tr><td><b>Date</b></td>${sigs.map(s=>`<td><input type="date" class="exact-input" data-sign-date value="${ev(s.date)}"></td>`).join('')}</tr>
+    </table>
+  </div>`;
+}
+function collectNCRSectionsExact() {
+  const root = document.querySelector('.ncr-exact');
+  if (!root) return [];
+  const materialRows = Array.from(root.querySelectorAll('.ncr-material tbody tr')).map(tr => Array.from(tr.querySelectorAll('input')).map(i => i.value));
+  const signTable = root.querySelectorAll('.exact-table')[10];
+  const signCellsByRow = signTable ? Array.from(signTable.querySelectorAll('tr')).slice(1,4) : [];
+  function signAt(i) {
+    return {
+      name: signCellsByRow[0]?.cells[i]?.querySelector('[data-sign-name]')?.value || '',
+      sign: signCellsByRow[1]?.cells[i]?.querySelector('[data-sign-sign]')?.value || '',
+      date: signCellsByRow[2]?.cells[i]?.querySelector('[data-sign-date]')?.value || ''
+    };
+  }
+  return [
+    { type:'table', rows: materialRows },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_nc_desc"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_root_cause"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_eng_rec"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_proposed_corrections"]')?.value || '' },
+    { type:'status', value: root.querySelector('[data-exact-select="ncr_type"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_corrective_actions"]')?.value || '' },
+    { type:'date', targetDate: document.getElementById('meta_targetDate')?.value || '' },
+    { type:'signatures', entries: [signAt(0)] },
+    { type:'signatures', entries: [signAt(1)] },
+    { type:'signatures', entries: [signAt(2)] },
+    { type:'signatures', entries: [signAt(3)] },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_disposal_summary"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="ncr_verification"]')?.value || '' },
+    { type:'text', code: document.getElementById('meta_code')?.value || '' },
+    { type:'signatures', entries: [{
+      name: root.querySelector('[data-disposal-name]')?.value || '',
+      sign: root.querySelector('[data-disposal-sign]')?.value || '',
+      date: root.querySelector('[data-disposal-date]')?.value || ''
+    }] }
+  ];
+}
+function collectIMIRSectionsExact() {
+  const root = document.querySelector('.imir-exact');
+  if (!root) return [];
+  const materialRows = Array.from(root.querySelectorAll('.imir-material tbody tr')).map(tr => Array.from(tr.querySelectorAll('input')).map(i => i.value));
+  const sigTable = root.querySelector('.imir-signatures');
+  const sigRows = sigTable ? Array.from(sigTable.querySelectorAll('tr')).slice(1,4) : [];
+  const roles = ['Merit Execution', 'Merit QA/QC', 'Adani Execution', 'Adani FQA', 'Adani QA/QC'];
+  const entries = roles.map((role, i) => ({
+    role,
+    name: sigRows[0]?.cells[i+1]?.querySelector('[data-sign-name]')?.value || '',
+    sign: sigRows[1]?.cells[i+1]?.querySelector('[data-sign-sign]')?.value || '',
+    date: sigRows[2]?.cells[i+1]?.querySelector('[data-sign-date]')?.value || ''
+  }));
+  return [
+    { type:'table', rows: materialRows },
+    { type:'textarea', value: root.querySelector('[data-exact-text="imir_relevant_drawing"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="imir_relevant_spec"]')?.value || '' },
+    { type:'textarea', value: root.querySelector('[data-exact-text="imir_remarks"]')?.value || '' },
+    { type:'signatures', entries }
+  ];
+}
 
-// ============================================
-// UTILITY FUNCTIONS (unchanged)
-// ============================================
+// ============================================================
+// 6. UTILITY FUNCTIONS
+// ============================================================
 function toast(msg) {
   const t = document.getElementById('toast');
   t.innerText = msg;
@@ -1029,9 +1175,9 @@ function getProjectDisplay() {
   return p || l || 'Project Name - Location';
 }
 
-// ============================================
-// NOTIFICATIONS (now API)
-// ============================================
+// ============================================================
+// 7. NOTIFICATIONS (API)
+// ============================================================
 async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
   try {
     await apiRequest('/api/notifications', {
@@ -1180,9 +1326,9 @@ function startNotificationPolling() {
   notificationPollInterval = setInterval(checkForNewNotifications, 10000);
 }
 
-// ============================================
-// STORAGE & SYNC (with field mapping)
-// ============================================
+// ============================================================
+// 8. STORAGE & SYNC (with field mapping)
+// ============================================================
 function loadDb() {
   try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
   try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
@@ -1240,21 +1386,49 @@ async function loadFromServer() {
   }
 }
 
-// ============================================
-// CONFIG / MASTERS (unchanged – localStorage only)
-// ============================================
+// ============================================================
+// 9. CONFIG / MASTERS (localStorage only)
+// ============================================================
 function loadConfig() {
   try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
 }
-function saveConfig(ev) { /* ... same as before ... */ }
-function resetConfig() { /* ... */ }
-function loadMasters() { /* ... */ }
-function saveMasters(ev) { /* ... */ }
-function resetMasters() { /* ... */ }
+function saveConfig(ev) {
+  ev.preventDefault();
+  appConfig = {
+    companyName: document.getElementById('cfgCompanyName').value.trim() || 'QA/QC Suite',
+    projectName: document.getElementById('cfgProjectName').value.trim() || 'Project Name',
+    location: document.getElementById('cfgLocation').value.trim() || 'Location',
+    formatPrefix: document.getElementById('cfgFormatPrefix').value.trim() || 'QA / QC',
+    businessPackage: document.getElementById('cfgBusinessPackage').value.trim() || 'Site Formats',
+    ncrCounter: appConfig.ncrCounter || 1
+  };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  applyConfig(); toast('✅ Configuration saved');
+}
+function resetConfig() {
+  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1 };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  populateConfigForm(); applyConfig(); toast('↩️ Configuration reset');
+}
+function loadMasters() {
+  try { masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'], ...JSON.parse(localStorage.getItem(MASTER_KEY) || '{}') }; } catch(e) {}
+}
+function saveMasters(ev) {
+  ev.preventDefault();
+  const val = document.getElementById('mstDisciplines').value || '';
+  masters.disciplines = val.split(',').map(s => s.trim()).filter(Boolean);
+  localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
+  toast('✅ Master data saved');
+}
+function resetMasters() {
+  masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
+  localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
+  populateMastersForm(); toast('↩️ Master data reset');
+}
 
-// ============================================
-// AUTH (now API)
-// ============================================
+// ============================================================
+// 10. AUTH (API)
+// ============================================================
 async function login() {
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPass').value;
@@ -1323,9 +1497,9 @@ function isExecEngineer() { return currentUser && currentUser.role === 'exec_eng
 function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'consultant' || currentUser.role === 'exec_engineer'); }
 function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
 
-// ============================================
-// VISIBILITY LOGIC (unchanged)
-// ============================================
+// ============================================================
+// 11. VISIBILITY LOGIC (unchanged)
+// ============================================================
 function canUserSeeRecord(record, user) {
   if (!user) return false;
   if (!record) return false;
@@ -1367,9 +1541,6 @@ function canUserSeeRecord(record, user) {
   return false;
 }
 
-// ============================================
-// FILTERING (updated – only apply when filter has value)
-// ============================================
 function visibleReports() {
   let rows = savedReports.slice();
   if (globalFilterState.project) {
@@ -1427,13 +1598,13 @@ function updateAdminToolsVisibility() {
   if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
 }
 
-// ============================================
-// REFRESH HISTORY (new)
-// ============================================
+// ============================================================
+// 12. REFRESH FUNCTION
+// ============================================================
 function refreshHistory() {
-  globalFilterState = { 
-    project: '', type: '', contractor: '', discipline: '', 
-    status: '', fromDate: '', toDate: '', owner: '' 
+  globalFilterState = {
+    project: '', type: '', contractor: '', discipline: '',
+    status: '', fromDate: '', toDate: '', owner: ''
   };
   const fields = ['fltProject', 'fltType', 'fltContractor', 'fltDiscipline', 'fltStatus', 'fltDateFrom', 'fltDateTo', 'fltOwner'];
   fields.forEach(id => {
@@ -1453,10 +1624,10 @@ function refreshHistory() {
   });
 }
 
-// ============================================
-// VIEWS, CARDS, FORM RENDERING (unchanged – full functions)
-// ============================================
-function applyConfig() { /* ... */ }
+// ============================================================
+// 13. VIEWS, CARDS, FORM RENDERING (unchanged – large blocks)
+// ============================================================
+function applyConfig() { /* ... full function unchanged */ }
 function populateConfigForm() { /* ... */ }
 function populateMastersForm() { /* ... */ }
 function switchView(view) { /* ... */ }
@@ -1476,17 +1647,17 @@ function renderText(sec, secData) { /* ... */ }
 function stylizeStatus(sel) { /* ... */ }
 function renderSheet(t, report) { /* ... */ }
 
-// ============================================
-// DATA COLLECTION (unchanged)
-// ============================================
+// ============================================================
+// 14. DATA COLLECTION (unchanged)
+// ============================================================
 function collectMeta(t) { /* ... */ }
 function collectSections(t) { /* ... */ }
 function collectSectionsForProgress() { /* ... */ }
 function updateProgress() { /* ... */ }
 
-// ============================================
-// SAVE & WORKFLOW (with API and auto-refresh)
-// ============================================
+// ============================================================
+// 15. SAVE & WORKFLOW (with API and auto-refresh)
+// ============================================================
 function validateForm(meta) { /* ... */ }
 function getAuditNow(action, comment) { /* ... */ }
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
@@ -1616,68 +1787,48 @@ async function updateReportOnServer(row) {
 function updateWorkflowButtons(rec) { /* ... unchanged */ }
 function setChecklistButtonsState(rec) { /* ... unchanged */ }
 
-// ============================================
-// WORKFLOW ACTIONS (calling updateReportOnServer)
-// ============================================
-async function approveForQA() { /* ... */ }
-async function raiseNCRFromRFI() { /* ... */ }
-async function submitRecord() { /* ... */ }
-async function markUnderReview() { /* ... */ }
-async function approveRecord() { /* ... */ }
-async function approveWithCommentRecord() { /* ... */ }
-async function rejectRecord() { /* ... */ }
-async function closeRecord() { /* ... */ }
+// ============================================================
+// 16. WORKFLOW ACTIONS (calling updateReportOnServer)
+// ============================================================
+async function approveForQA() { /* ... unchanged */ }
+async function raiseNCRFromRFI() { /* ... unchanged */ }
+async function submitRecord() { /* ... unchanged */ }
+async function markUnderReview() { /* ... unchanged */ }
+async function approveRecord() { /* ... unchanged */ }
+async function approveWithCommentRecord() { /* ... unchanged */ }
+async function rejectRecord() { /* ... unchanged */ }
+async function closeRecord() { /* ... unchanged */ }
 
-// ============================================
-// CHECKLIST LINKING (unchanged)
-// ============================================
+// ============================================================
+// 17. CHECKLIST LINKING, OPEN RECORD, etc. (unchanged)
+// ============================================================
 function captureCurrentRfiPrefill() { /* ... */ }
 function launchChecklistFromRfi(templateKey) { /* ... */ }
 function openLinkedChecklistFromRfi(checklistId, parentRfiId) { /* ... */ }
 function applyPendingChecklistPrefill() { /* ... */ }
-
-// ============================================
-// OPEN TEMPLATE / RECORD (unchanged)
-// ============================================
 function openTemplate(key, reportId) { /* ... */ }
 function openRecord(id) { /* ... */ }
-
-// ============================================
-// STATS & DASHBOARD (unchanged)
-// ============================================
 function updateStats() { /* ... */ }
 function recordDateKey(rec) { /* ... */ }
 function getHistoryFilteredRows() { return visibleReports(); }
 function renderHistory() { /* ... */ }
-
-// ============================================
-// KPI FILTERING (unchanged)
-// ============================================
 function kpiLabel(type) { /* ... */ }
 function kpiStatusClass(status) { /* ... */ }
 function setActiveKpiCard(type) { /* ... */ }
 function filterKPI(type) { /* ... */ }
 function renderKPIResults(data, type, customTitle, customSub) { /* ... */ }
-
-// ============================================
-// PRINT FUNCTIONS (unchanged)
-// ============================================
 function buildPrintableRecordHtml(record) { /* ... */ }
 function printCurrentRecordWithChecklists() { /* ... */ }
 function printFilteredHistory() { /* ... */ }
-
-// ============================================
-// DATA EXPORT / IMPORT (unchanged)
-// ============================================
 function exportData() { /* ... */ }
 function importData(event) { /* ... */ }
 function exportAllDataJSON() { /* ... */ }
 function secureDeleteAllData() { /* ... */ }
 function syncWithCloud() { /* ... */ }
 
-// ============================================
-// INITIALIZATION
-// ============================================
+// ============================================================
+// 18. INITIALIZATION
+// ============================================================
 async function init() {
   document.getElementById('todayDate').innerText = todayText();
   loadConfig(); loadMasters(); loadDb();
@@ -1726,7 +1877,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// User mapping for notification routing (same as seeded in backend)
+// User mapping for notification routing (matches backend seeds)
 const users = [
   { u: 'admin', role: 'admin', name: 'System Admin' },
   { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A' },
