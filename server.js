@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -39,7 +38,7 @@ async function initDatabase() {
             )
         `);
 
-        // Reports table (RFI, NCR, Checklists)
+        // Reports table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS reports (
                 id TEXT PRIMARY KEY,
@@ -117,7 +116,7 @@ async function initDatabase() {
 // 2. HELPER FUNCTIONS
 // =============================================
 
-// Middleware: Verify JWT Token and attach user to request
+// Middleware: Verify JWT Token
 function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token provided' });
@@ -139,13 +138,13 @@ function verifyAdmin(req, res, next) {
     next();
 }
 
-// Helper: Get user by username (async)
+// Helper: Get user by username
 async function getUserByUsername(username) {
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
     return result.rows[0] || null;
 }
 
-// Helper: Check if a user has access to a specific site
+// Helper: Check site access
 function userHasSiteAccess(user, siteName) {
     const sites = user.assigned_sites || '[]';
     let assigned = [];
@@ -154,7 +153,7 @@ function userHasSiteAccess(user, siteName) {
     return assigned.includes(siteName);
 }
 
-// Helper: Build SQL placeholder string for site filtering
+// Helper: Build SQL filter for site
 function buildSiteFilter(user) {
     const sites = user.assigned_sites || '[]';
     let assigned = [];
@@ -167,10 +166,9 @@ function buildSiteFilter(user) {
 }
 
 // =============================================
-// 3. AUTH APIs (Login + User Management)
+// 3. AUTH APIs
 // =============================================
 
-// POST /api/login
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -181,13 +179,11 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
         const valid = bcrypt.compareSync(password, user.password);
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-        
-        // Include full_name in the token
         const token = jwt.sign(
-            { 
-                id: user.id, 
-                username: user.username, 
-                role: user.role, 
+            {
+                id: user.id,
+                username: user.username,
+                role: user.role,
                 assigned_sites: user.assigned_sites,
                 full_name: user.full_name || user.username
             },
@@ -237,7 +233,7 @@ app.post('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
         );
         res.status(201).json({ id: result.rows[0].id, message: 'User created' });
     } catch (err) {
-        if (err.code === '23505') { // unique violation
+        if (err.code === '23505') {
             return res.status(409).json({ error: 'Username already exists' });
         }
         res.status(500).json({ error: err.message });
@@ -260,10 +256,10 @@ app.delete('/api/users/:username', authenticateToken, verifyAdmin, async (req, r
 });
 
 // =============================================
-// 4. REPORTS API (RFI, NCR, Checklists)
+// 4. REPORTS API
 // =============================================
 
-// GET /api/reports - Fetch all reports (filtered by site)
+// GET /api/reports
 app.get('/api/reports', authenticateToken, async (req, res) => {
     try {
         const filter = buildSiteFilter(req.user);
@@ -281,7 +277,7 @@ app.get('/api/reports', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/reports/:id - Fetch a single report
+// GET /api/reports/:id
 app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -302,13 +298,13 @@ app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/reports - Create a new report
+// POST /api/reports
 app.post('/api/reports', authenticateToken, async (req, res) => {
     try {
-        const { 
-            id, template_key, template_name, format_no, meta, sections, 
-            score, defects_count, title_loc, prepared_by, status, comment, 
-            attachments, decision_by, decision_by_display, raised_from_rfi, site_name 
+        const {
+            id, template_key, template_name, format_no, meta, sections,
+            score, defects_count, title_loc, prepared_by, status, comment,
+            attachments, decision_by, decision_by_display, raised_from_rfi, site_name
         } = req.body;
 
         if (!id || !template_key || !site_name) {
@@ -324,9 +320,9 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
 
         await pool.query(
             `INSERT INTO reports (
-                id, template_key, template_name, format_no, meta, sections, 
-                score, defects_count, title_loc, prepared_by, status, comment, 
-                attachments, created_by, created_by_display, decision_by, 
+                id, template_key, template_name, format_no, meta, sections,
+                score, defects_count, title_loc, prepared_by, status, comment,
+                attachments, created_by, created_by_display, decision_by,
                 decision_by_display, saved_at, audit, raised_from_rfi, site_name
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
             [
@@ -338,24 +334,24 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
         );
         res.status(201).json({ message: 'Report saved', id });
     } catch (err) {
-        if (err.code === '23505') { // unique violation
+        if (err.code === '23505') {
             return res.status(409).json({ error: 'Report ID already exists' });
         }
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// PUT /api/reports/:id - Update a report
+// PUT /api/reports/:id
 app.put('/api/reports/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { 
-            meta, sections, score, defects_count, title_loc, prepared_by, 
-            status, comment, attachments, decision_by, decision_by_display, 
-            saved_at, audit, raised_from_rfi 
+        const {
+            meta, sections, score, defects_count, title_loc, prepared_by,
+            status, comment, attachments, decision_by, decision_by_display,
+            saved_at, audit, raised_from_rfi
         } = req.body;
 
-        // First, fetch the existing report to check site access
         const existing = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
         if (existing.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
         const row = existing.rows[0];
@@ -387,11 +383,12 @@ app.put('/api/reports/:id', authenticateToken, async (req, res) => {
         await pool.query(query, values);
         res.json({ message: 'Report updated' });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// DELETE /api/reports/:id - Delete a report (Admin only)
+// DELETE /api/reports/:id (Admin only)
 app.delete('/api/reports/:id', authenticateToken, verifyAdmin, async (req, res) => {
     try {
         const { id } = req.params;
@@ -407,7 +404,6 @@ app.delete('/api/reports/:id', authenticateToken, verifyAdmin, async (req, res) 
 // 5. NOTIFICATIONS API
 // =============================================
 
-// GET /api/notifications - Fetch notifications for the logged-in user
 app.get('/api/notifications', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
@@ -420,7 +416,6 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/notifications - Send a notification
 app.post('/api/notifications', authenticateToken, async (req, res) => {
     try {
         const { recipient_username, message, type, rfi_id, rfi_no, sender_name } = req.body;
@@ -442,7 +437,6 @@ app.post('/api/notifications', authenticateToken, async (req, res) => {
     }
 });
 
-// PUT /api/notifications/:id/read - Mark a notification as read
 app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
@@ -458,10 +452,9 @@ app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
 });
 
 // =============================================
-// 6. COMBINED DATA ENDPOINT (NEW)
+// 6. COMBINED DATA ENDPOINT (for frontend)
 // =============================================
 
-// GET /api/data – returns reports + notifications for the current user
 app.get('/api/data', authenticateToken, async (req, res) => {
     try {
         const filter = buildSiteFilter(req.user);
@@ -486,6 +479,7 @@ app.get('/api/data', authenticateToken, async (req, res) => {
 // =============================================
 // 7. HEALTH CHECK
 // =============================================
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'QA/QC Enterprise Server is running!' });
 });
@@ -493,6 +487,7 @@ app.get('/api/health', (req, res) => {
 // =============================================
 // 8. START SERVER
 // =============================================
+
 app.listen(PORT, async () => {
     await initDatabase();
     console.log(`🚀 Server running on http://localhost:${PORT}`);
