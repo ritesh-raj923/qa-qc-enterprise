@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
-/* ===== ALL YOUR ORIGINAL CSS – UNCHANGED ===== */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -469,21 +468,24 @@ header .sub { font-size: 13px; color: #555; }
         <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
         <div class="field">
           <label>Username</label>
-          <input id="loginUser" placeholder="Enter username" value="contractor1_siteA">
+          <input id="loginUser" placeholder="Enter username" value="Contractor 1">
         </div>
         <div class="field">
           <label>Password</label>
-          <input id="loginPass" type="password" placeholder="Enter password" value="ContA123">
+          <input id="loginPass" type="password" placeholder="Enter password" value="Contractor_1@811">
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-primary" type="button" onclick="login()">Login</button>
         </div>
         <div class="note" style="margin-top:12px; line-height:1.8;">
-          <b>Demo Users (from backend):</b><br>
-          👷 Contractor 1: contractor1_siteA / ContA123<br>
-          👷 Contractor 2: contractor2_siteA / ContA456<br>
-          🔧 Execution Engineer: exec_siteA / ExecA123<br>
-          👔 QA Head: qa_siteA / QaA123<br>
+          <b>Demo Users:</b><br>
+          👷 Contractor 1: Contractor 1 / Contractor_1@811<br>
+          👷 Contractor 2: Contractor 2 / Contractor_2@812<br>
+          👷 Contractor 3: Contractor 3 / Contractor_3@813<br>
+          👷 Contractor 4: Contractor 4 / Contractor_4@814<br>
+          👷 Contractor 5: Contractor 5 / Contractor_5@815<br>
+          🔧 Execution Engineer: exec_eng / Exec@123<br>
+          👔 QA Head: qahead / Head123<br>
           📊 Manager: manager / Mgr123<br>
           🔧 Admin: admin / Admin123<br>
           👀 Consultant: consultant / View123
@@ -494,18 +496,22 @@ header .sub { font-size: 13px; color: #555; }
 
   <div id="view-dashboard" class="view">
     <div class="dashboard-grid">
+      <!-- RFI Stats -->
       <div class="stat active-kpi" data-kpi="total" onclick="filterKPI('total')"><div class="label">📄 Total RFI</div><div class="value" id="totalRfiRaised">0</div></div>
       <div class="stat" data-kpi="approval" onclick="filterKPI('approval')"><div class="label">✅ RFI Approval %</div><div class="value" id="avgCompliance">0%</div></div>
       <div class="stat warn" data-kpi="pending" onclick="filterKPI('pending')"><div class="label">⏳ Pending RFI</div><div class="value" id="pendingRfi">0</div></div>
       <div class="stat ok" data-kpi="approved" onclick="filterKPI('approved')"><div class="label">✔️ Approved RFI</div><div class="value" id="approvedRfi">0</div></div>
       <div class="stat" data-kpi="approved_comment" onclick="filterKPI('approved_comment')"><div class="label">📝 RFI w/ Comment</div><div class="value" id="approvedCommentRfi">0</div></div>
       <div class="stat alert" data-kpi="rejected" onclick="filterKPI('rejected')"><div class="label">❌ Rejected RFI</div><div class="value" id="rejectedRfi">0</div></div>
+      <!-- NCR Stats -->
       <div class="stat" data-kpi="ncr_total" onclick="filterKPI('ncr_total')"><div class="label">📋 NCR Total</div><div class="value" id="ncrTotal">0</div></div>
       <div class="stat warn" data-kpi="ncr_open" onclick="filterKPI('ncr_open')"><div class="label">🔓 NCR Open</div><div class="value" id="ncrOpen">0</div></div>
       <div class="stat ok" data-kpi="ncr_closed" onclick="filterKPI('ncr_closed')"><div class="label">🔒 NCR Closed</div><div class="value" id="ncrClosed">0</div></div>
       <div class="stat" data-kpi="ncr_closed_pct" onclick="filterKPI('ncr_closed_pct')"><div class="label">📊 NCR Closed %</div><div class="value" id="ncrClosedPct">0%</div></div>
     </div>
+
     <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
+
     <div id="kpiResultSection" class="panel kpi-panel">
       <div class="kpi-panel-head">
         <div class="kpi-title-wrap">
@@ -524,6 +530,7 @@ header .sub { font-size: 13px; color: #555; }
         </table>
       </div>
     </div>
+
     <div class="cards" id="templateCards"></div>
   </div>
 
@@ -549,11 +556,10 @@ header .sub { font-size: 13px; color: #555; }
         <div class="field"><label>&nbsp;</label><button class="btn btn-primary" type="button" onclick="printFilteredHistory()">🖨️ Print</button></div>
       </div>
       <div class="data-actions">
-        <button class="btn btn-primary" onclick="refreshHistory()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Server sync</span>
+        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Local storage</span>
       </div>
       <table>
         <thead><tr><th>Saved Date</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
@@ -645,6 +651,7 @@ header .sub { font-size: 13px; color: #555; }
       <div id="relatedChecklistList" class="small">No linked checklist yet.</div>
     </div>
 
+    <!-- NEW: Linked NCRs Panel -->
     <div id="relatedNCRPanel" class="panel" style="margin-bottom:12px;">
       <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked NCRs</div>
       <div id="relatedNCRList" class="small">No linked NCR yet.</div>
@@ -667,40 +674,18 @@ header .sub { font-size: 13px; color: #555; }
 <div id="toast" class="toast">✅ Message</div>
 
 <script>
-// ============================================================
-// 1. API & AUTH HELPERS – SERVER INTEGRATION
-// ============================================================
-const API_BASE = window.location.origin;
-
-async function apiRequest(url, options = {}) {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error('Not authenticated');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
-  };
-  const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      throw new Error('401 Unauthorized');
-    }
-    throw new Error(err.error || 'API error');
-  }
-  return res.json();
-}
-
-// ============================================================
-// 2. DATA LAYER (localStorage cache + server as source of truth)
-// ============================================================
+// ============================================
+// DATA LAYER
+// ============================================
 const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
 const MASTER_KEY = 'qaqc_suite_masters_v2';
+const SESSION_KEY = 'qaqc_suite_session_v2';
 const NOTIFICATION_KEY = 'qaqc_suite_notifications_v2';
+const API_URL = '/api/data';
 
 let savedReports = [];
-let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1 };
+let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats' };
 let masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
 let currentUser = null;
 let activeTemplateKey = null;
@@ -711,49 +696,33 @@ let pendingLinkedRfiNo = null;
 let pendingParentMeta = null;
 let currentKpiFilter = 'total';
 let currentKpiRows = [];
+
+// ===== GLOBAL FILTER STATE (linked to Dashboard) =====
 let globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
+
+// Notifications
 let notifications = [];
 let notificationPollInterval = null;
 
-function isNcr() { return activeTemplateKey === 'ncr'; }
-function isRfi() { return activeTemplateKey === 'rfi'; }
-function isImir() { return activeTemplateKey === 'imir'; }
+// ============================================
+// USERS (5 Contractors + Execution Engineer + QA Head + others)
+// ============================================
+const users = [
+  { u: 'Contractor 1', p: 'Contractor_1@811', role: 'engineer', name: 'Contractor 1' },
+  { u: 'Contractor 2', p: 'Contractor_2@812', role: 'engineer', name: 'Contractor 2' },
+  { u: 'Contractor 3', p: 'Contractor_3@813', role: 'engineer', name: 'Contractor 3' },
+  { u: 'Contractor 4', p: 'Contractor_4@814', role: 'engineer', name: 'Contractor 4' },
+  { u: 'Contractor 5', p: 'Contractor_5@815', role: 'engineer', name: 'Contractor 5' },
+  { u: 'exec_eng', p: 'Exec@123', role: 'exec_engineer', name: 'Execution Engineer' },
+  { u: 'qahead', p: 'Head123', role: 'qa_head', name: 'QA Head' },
+  { u: 'manager', p: 'Mgr123', role: 'manager', name: 'Project Manager' },
+  { u: 'admin', p: 'Admin123', role: 'admin', name: 'Admin' },
+  { u: 'consultant', p: 'View123', role: 'consultant', name: 'Consultant' }
+];
 
-// ============================================================
-// 3. FIELD MAPPING HELPERS
-// ============================================================
-function getUserDefaultSite() {
-  if (currentUser && currentUser.assigned_sites && currentUser.assigned_sites.length > 0) {
-    return currentUser.assigned_sites[0];
-  }
-  return 'Default';
-}
-
-function toApiPayload(row, siteName) {
-  return {
-    id: row.id,
-    template_key: row.templateKey,
-    template_name: row.templateName,
-    format_no: row.formatNo,
-    meta: row.meta || {},
-    sections: row.sections || [],
-    score: row.score || 0,
-    defects_count: row.defectsCount || 0,
-    title_loc: row.titleLoc || '',
-    prepared_by: row.preparedBy || '',
-    status: row.status || 'Draft',
-    comment: row.comment || '',
-    attachments: row.attachments || [],
-    decision_by: row.decisionBy || '',
-    decision_by_display: row.decisionByDisplay || '',
-    raised_from_rfi: row.raisedFromRfi || '',
-    site_name: siteName
-  };
-}
-
-// ============================================================
-// 4. TEMPLATES (your full template definitions – unchanged)
-// ============================================================
+// ============================================
+// TEMPLATES (with all original definitions)
+// ============================================
 const templates = {
   rfi: {
     formatNo: 'QA / QC / SITE / 01',
@@ -866,8 +835,7 @@ const templates = {
       [{ l: 'WBS Code:', k: 'wbsCode' }, { l: 'Location:', k: 'location' }],
       [{ l: 'PO/SO Name:', k: 'poSoName' }, { l: 'Discipline:', k: 'discipline' }],
       [{ l: 'PO/SO No.:', k: 'poSoNo' }, { l: 'NCR Date:', k: 'ncrDate', t: 'date' }],
-      [{ l: 'PO/SO Date:', k: 'poSoDate', t: 'date' }, { l: 'Material/Service:', k: 'materialService' }],
-      [{ l: 'Severity:', k: 'severity', t: 'select', options: ['Major', 'Minor', 'Critical'] }, { l: 'Responsible:', k: 'responsible' }]
+      [{ l: 'PO/SO Date:', k: 'poSoDate', t: 'date' }, { l: 'Material/Service:', k: 'materialService' }]
     ],
     sections: [
       { type: 'table', title: 'Description of Material', columns: ['Description of Material', 'ID/ Tag', 'Quantity', 'UoM'], rows: 4 },
@@ -911,9 +879,9 @@ const templates = {
   }
 };
 
-// ============================================================
-// 5. EXACT EXCEL REPLICA RENDERING (fully written – same as before)
-// ============================================================
+// ============================================
+// EXACT EXCEL REPLICA RENDERING: NCR + IMIR
+// ============================================
 function ev(v) { return esc(v || ''); }
 function secVal(report, idx, fallbackKey) {
   const sec = (report?.sections || [])[idx] || {};
@@ -934,10 +902,7 @@ function signEntries(report, idx, roles) {
   const entries = ((report?.sections || [])[idx] || {}).entries || [];
   return roles.map((role, i) => ({ role, ...(entries[i] || {}) }));
 }
-function inputExact(id, value, type='text', options=[]) {
-  if (type === 'select') {
-    return `<select id="${id}" class="exact-select">${options.map(o => `<option value="${ev(o)}" ${String(value)===String(o)?'selected':''}>${ev(o)}</option>`).join('')}</select>`;
-  }
+function inputExact(id, value, type='text') {
   return `<input ${id ? `id="${id}"` : ''} type="${type}" class="exact-input" value="${ev(value)}">`;
 }
 function textExact(key, value, cls='') {
@@ -962,7 +927,6 @@ function renderNCRExact(report) {
       <tr><td class="exact-label">PO/SO Name:</td><td>${inputExact('meta_poSoName', m.poSoName)}</td><td class="exact-label">Discipline:</td><td>${inputExact('meta_discipline', m.discipline)}</td></tr>
       <tr><td class="exact-label">PO/SO No.:</td><td>${inputExact('meta_poSoNo', m.poSoNo)}</td><td class="exact-label">NCR Date:</td><td>${inputExact('meta_ncrDate', m.ncrDate, 'date')}</td></tr>
       <tr><td class="exact-label">PO/SO Date:</td><td>${inputExact('meta_poSoDate', m.poSoDate, 'date')}</td><td class="exact-label">Material/ Service:</td><td>${inputExact('meta_materialService', m.materialService)}</td></tr>
-      <tr><td class="exact-label">Severity:</td><td>${inputExact('meta_severity', m.severity, 'select', ['Major','Minor','Critical'])}</td><td class="exact-label">Responsible:</td><td>${inputExact('meta_responsible', m.responsible)}</td></tr>
     </table>
     <table class="exact-table ncr-material">
       <tr><th>Description of Material</th><th>ID/ Tag</th><th>Quantity</th><th>UoM</th></tr>
@@ -1084,23 +1048,26 @@ function collectIMIRSectionsExact() {
   ];
 }
 
-// ============================================================
-// 6. UTILITY FUNCTIONS (unchanged)
-// ============================================================
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 function toast(msg) {
   const t = document.getElementById('toast');
   t.innerText = msg;
   t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', 2000);
 }
+
 function esc(v) {
   return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
 function fmtDate(v) {
   if (!v) return '';
   const d = new Date(v);
   return String(d) === 'Invalid Date' ? String(v) : d.toLocaleDateString('en-GB');
 }
+
 function fmtTimeAgo(dateStr) {
   const d = new Date(dateStr);
   const now = new Date();
@@ -1110,45 +1077,54 @@ function fmtTimeAgo(dateStr) {
   if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
   return Math.floor(diff/86400) + 'd ago';
 }
+
 function todayText() {
   return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
+
 function getRfiRecords() { return savedReports.filter(r => r.templateKey === 'rfi'); }
 function getNcrRecords() { return savedReports.filter(r => r.templateKey === 'ncr'); }
 function getRfiOptions() {
   const vals = getRfiRecords().map(r => r.meta?.rfiNo || r.id).filter(Boolean);
   return [...new Set(vals)];
 }
+
 function getLinkedChecklistsForRfi(rfiNo) {
   return savedReports.filter(r => r.templateKey !== 'rfi' && (r.meta?.linkedRfi || '') === rfiNo);
 }
+
 function getLinkedNCRsForRfi(rfiNoOrId) {
   return savedReports.filter(r => r.templateKey === 'ncr' && (r.raisedFromRfi === rfiNoOrId || r.meta?.raisedFromRfi === rfiNoOrId));
 }
+
 function canAddChecklistToRfi(rec) {
   if (!rec) return false;
   return !['Approved', 'Approved with Comment', 'Rejected', 'Closed'].includes(rec.status || 'Draft');
 }
+
 function badgeForStatus(s) {
   const map = {
     'Approved': 'ok', 'Approved with Comment': 'mid', 'Rejected': 'bad',
     'Submitted': 'mid', 'Under Review': 'mid', 'Closed': 'ok', 'Draft': 'info',
-    'Approved by Execution': 'mid', 'Open': 'mid'
+    'Approved by Execution': 'mid'
   };
   const cls = map[s] || 'info';
   return `<span class="badge ${cls}">${esc(s || 'Draft')}</span>`;
 }
+
 function statusClass(v) {
   if (v === 'Yes') return 'select-yes';
   if (v === 'No') return 'select-no';
   if (v === 'NA') return 'select-na';
   return '';
 }
+
 function buildFormatNo(raw) {
   const m = String(raw || '').match(/(\d{2})\s*$/);
   const suffix = m ? m[1] : '01';
   return (appConfig.formatPrefix || 'QA / QC').trim() + ' / SITE / ' + suffix;
 }
+
 function getProjectDisplay() {
   const p = (appConfig.projectName || '').trim();
   const l = (appConfig.location || '').trim();
@@ -1156,76 +1132,66 @@ function getProjectDisplay() {
   return p || l || 'Project Name - Location';
 }
 
-// ============================================================
-// 7. NOTIFICATIONS (SERVER INTEGRATED)
-// ============================================================
-async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
-  try {
-    await apiRequest('/api/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        recipient_username: recipientUsername,
-        message,
-        type: type || 'info',
-        rfi_id: rfiId || '',
-        rfi_no: rfiNo || '',
-        sender_name: senderName || currentUser?.display || 'System'
-      })
-    });
-    // Also update local cache
-    const notif = {
-      id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      recipient_username: recipientUsername,
-      message,
-      type,
-      rfi_id: rfiId || '',
-      rfi_no: rfiNo || '',
-      sender_name: senderName || currentUser?.display || 'System',
-      read: 0,
-      created_at: new Date().toISOString()
+// ============================================
+// NOTIFICATION FUNCTIONS (with Desktop pop-ups)
+// ============================================
+function loadNotifications() {
+  try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
+}
+
+function saveNotifications() {
+  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+  updateNotificationUI();
+}
+
+function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
+  const notif = {
+    id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    recipientUsername: recipientUsername,
+    message: message,
+    type: type,
+    rfiId: rfiId,
+    rfiNo: rfiNo || 'Unknown',
+    senderName: senderName || currentUser?.display || 'System',
+    read: false,
+    createdAt: new Date().toISOString()
+  };
+  notifications.unshift(notif);
+  if (notifications.length > 200) notifications = notifications.slice(0, 200);
+  saveNotifications();
+
+  // If recipient is current user, show notification immediately
+  if (currentUser && currentUser.username === recipientUsername) {
+    const iconMap = {
+      'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
+      'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
+      'approved_for_qa': '📋'
     };
-    notifications.unshift(notif);
-    if (notifications.length > 200) notifications = notifications.slice(0, 200);
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-
-    if (currentUser && currentUser.username === recipientUsername) {
-      const iconMap = {
-        'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
-        'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
-        'approved_for_qa': '📋', 'ncr_open': '📤', 'ncr_submitted': '📩'
-      };
-      const icon = iconMap[type] || '📢';
-      toast(icon + ' ' + message);
-      if (Notification.permission === 'granted') {
-        try { new Notification(icon + ' ' + message, { body: 'Click to open', icon: '🔔' }); } catch(e) {}
-      }
-      updateNotificationUI();
+    const icon = iconMap[type] || '📢';
+    toast(icon + ' ' + message);
+    // Desktop notification
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(icon + ' ' + message, { body: 'Click to open', icon: '🔔' });
+      } catch(e) {}
     }
-  } catch(e) {
-    console.warn('Failed to send notification', e);
   }
+  if (currentUser && currentUser.username === recipientUsername) { updateNotificationUI(); }
 }
 
-async function markNotificationRead(notifId) {
-  try {
-    await apiRequest(`/api/notifications/${notifId}/read`, { method: 'PUT' });
-    const notif = notifications.find(n => n.id === notifId);
-    if (notif) { notif.read = 1; }
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    updateNotificationUI();
-  } catch(e) {
-    const notif = notifications.find(n => n.id === notifId);
-    if (notif) { notif.read = 1; }
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    updateNotificationUI();
-  }
+function getNotificationsForUser(username) { return notifications.filter(n => n.recipientUsername === username); }
+function getUnreadCount(username) { return notifications.filter(n => n.recipientUsername === username && !n.read).length; }
+
+function markNotificationRead(notifId) {
+  const notif = notifications.find(n => n.id === notifId);
+  if (notif) { notif.read = true; saveNotifications(); updateNotificationUI(); }
 }
 
-async function markAllNotificationsRead() {
-  const unread = notifications.filter(n => n.recipient_username === currentUser?.username && !n.read);
-  for (const n of unread) {
-    try { await markNotificationRead(n.id); } catch(e) {}
-  }
+function markAllNotificationsRead() {
+  const userNotifs = notifications.filter(n => n.recipientUsername === currentUser?.username);
+  userNotifs.forEach(n => n.read = true);
+  saveNotifications();
+  updateNotificationUI();
   toast('✅ All notifications marked as read');
 }
 
@@ -1238,7 +1204,7 @@ function toggleNotifications() {
 function updateNotificationUI() {
   if (!currentUser) { document.getElementById('notifContainer').style.display = 'none'; return; }
   document.getElementById('notifContainer').style.display = 'block';
-  const count = notifications.filter(n => n.recipient_username === currentUser.username && !n.read).length;
+  const count = getUnreadCount(currentUser.username);
   const badge = document.getElementById('notifBadge');
   if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); }
   else { badge.classList.add('hidden'); }
@@ -1246,14 +1212,14 @@ function updateNotificationUI() {
 
 function renderNotificationList() {
   const list = document.getElementById('notifList');
-  const userNotifs = notifications.filter(n => n.recipient_username === currentUser.username);
+  const userNotifs = getNotificationsForUser(currentUser.username);
   if (userNotifs.length === 0) { list.innerHTML = '<div class="notif-empty">✨ No notifications yet</div>'; return; }
   list.innerHTML = userNotifs.map(n => `
-    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.rfi_id}')">
+    <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.rfiId}')">
       <div class="notif-icon">${getNotifIcon(n.type)}</div>
       <div class="notif-body">
         <div>${esc(n.message)}</div>
-        <span class="notif-time">${fmtTimeAgo(n.created_at)}</span>
+        <span class="notif-time">${fmtTimeAgo(n.createdAt)}</span>
       </div>
       ${!n.read ? `<span class="notif-mark-read" onclick="event.stopPropagation();markNotificationRead('${n.id}')">✔</span>` : ''}
     </div>
@@ -1264,7 +1230,7 @@ function getNotifIcon(type) {
   const map = {
     'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
     'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
-    'approved_for_qa': '📋', 'ncr_open': '📤', 'ncr_submitted': '📩'
+    'approved_for_qa': '📋'
   };
   return map[type] || '📢';
 }
@@ -1275,119 +1241,87 @@ function handleNotificationClick(notifId, rfiId) {
   if (rfiId) openRecord(rfiId);
 }
 
-async function checkForNewNotifications() {
-  if (!currentUser) return;
-  try {
-    const data = await apiRequest('/api/notifications');
-    notifications = data;
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    const unread = notifications.filter(n => !n.read);
-    if (unread.length) {
-      const latest = unread[0];
-      const notifAge = Date.now() - new Date(latest.created_at).getTime();
-      if (notifAge < 30000) {
-        const icon = getNotifIcon(latest.type) || '📢';
-        toast(icon + ' ' + latest.message);
-        if (Notification.permission === 'granted') {
-          try { new Notification(icon + ' ' + latest.message, { body: 'Click to open', icon: '🔔' }); } catch(e) {}
-        }
-      }
-    }
-    updateNotificationUI();
-  } catch(e) {
-    // Fallback to cached if server fails
-    try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) {}
-    updateNotificationUI();
-  }
-}
-
+// ===== Notification polling for all logged-in users =====
 function startNotificationPolling() {
   if (notificationPollInterval) clearInterval(notificationPollInterval);
   if (!currentUser) return;
-  if (Notification.permission === 'default') { Notification.requestPermission(); }
+
+  // Request notification permission
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Initial check after 1 second
   setTimeout(checkForNewNotifications, 1000);
+  // Then every 10 seconds
   notificationPollInterval = setInterval(checkForNewNotifications, 10000);
 }
 
-// ============================================================
-// 8. STORAGE & SYNC – SERVER AS PRIMARY
-// ============================================================
+function checkForNewNotifications() {
+  if (!currentUser) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]');
+    const userNotifs = stored.filter(n => n.recipientUsername === currentUser.username && !n.read);
+    if (userNotifs.length > 0) {
+      const latest = userNotifs[0];
+      const notifAge = Date.now() - new Date(latest.createdAt).getTime();
+      if (notifAge < 30000) {
+        const iconMap = {
+          'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
+          'approved_comment': '📝', 'new_ncr': '📋', 'closed_ncr': '🔒',
+          'approved_for_qa': '📋'
+        };
+        const icon = iconMap[latest.type] || '📢';
+        toast(icon + ' ' + latest.message);
+        if (Notification.permission === 'granted') {
+          try {
+            new Notification(icon + ' ' + latest.message, { body: 'Click to open', icon: '🔔' });
+          } catch(e) {}
+        }
+      }
+      updateNotificationUI();
+    }
+  } catch(e) {}
+}
+
+// ============================================
+// STORAGE & SYNC
+// ============================================
 function loadDb() {
   try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
-  try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
+  loadNotifications();
 }
 
-// This function now updates both localStorage and the server
-async function syncReportToServer(row, isNew) {
-  const siteName = getUserDefaultSite();
-  const payload = toApiPayload(row, siteName);
-  if (isNew) {
-    await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
-  } else {
-    await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  }
-  // After successful server save, update local cache
-  const idx = savedReports.findIndex(r => r.id === row.id);
-  if (idx >= 0) savedReports[idx] = row;
-  else savedReports.unshift(row);
+function persistDb() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-  updateStats(); renderHistory(); updateNotificationUI();
-}
-
-async function deleteReportFromServer(id) {
-  await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
-  savedReports = savedReports.filter(r => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+  try {
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reports: savedReports, notifications: notifications })
+    }).catch(() => {});
+  } catch(e) {}
   updateStats(); renderHistory(); updateNotificationUI();
 }
 
 async function loadFromServer() {
   try {
-    const data = await apiRequest('/api/data');
-    // Transform snake_case to camelCase
-    savedReports = (data.reports || []).map(r => ({
-      id: r.id,
-      templateKey: r.template_key,
-      templateName: r.template_name,
-      formatNo: r.format_no,
-      meta: r.meta || {},
-      sections: r.sections || [],
-      score: r.score || 0,
-      defectsCount: r.defects_count || 0,
-      titleLoc: r.title_loc || '',
-      preparedBy: r.prepared_by || '',
-      status: r.status || 'Draft',
-      comment: r.comment || '',
-      attachments: r.attachments || [],
-      createdBy: r.created_by || '',
-      createdByDisplay: r.created_by_display || '',
-      decisionBy: r.decision_by || '',
-      decisionByDisplay: r.decision_by_display || '',
-      savedAt: r.saved_at || '',
-      audit: r.audit || [],
-      raisedFromRfi: r.raised_from_rfi || '',
-      siteName: r.site_name || ''
-    }));
-    notifications = data.notifications || [];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    renderHistory(); updateStats(); updateNotificationUI();
-    toast('✅ Synced with server');
-  } catch (e) {
-    if (e.message && e.message.includes('401')) throw e;
-    console.warn('Server offline, using cached data', e);
-    loadDb();
-    renderHistory(); updateStats(); updateNotificationUI();
-    toast('⚠️ Using cached data (server unavailable)');
-  }
+    const response = await fetch(API_URL);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.reports) { savedReports = data.reports; localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports)); }
+      if (data.notifications) { notifications = data.notifications; localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications)); }
+      renderHistory(); updateStats(); updateNotificationUI();
+      toast('✅ Synced with server');
+    }
+  } catch(e) { console.log('Server offline, using local data'); }
 }
 
-// ============================================================
-// 9. CONFIG / MASTERS (localStorage only – server not needed)
-// ============================================================
 function loadConfig() {
   try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
 }
+
 function saveConfig(ev) {
   ev.preventDefault();
   appConfig = {
@@ -1395,20 +1329,22 @@ function saveConfig(ev) {
     projectName: document.getElementById('cfgProjectName').value.trim() || 'Project Name',
     location: document.getElementById('cfgLocation').value.trim() || 'Location',
     formatPrefix: document.getElementById('cfgFormatPrefix').value.trim() || 'QA / QC',
-    businessPackage: document.getElementById('cfgBusinessPackage').value.trim() || 'Site Formats',
-    ncrCounter: appConfig.ncrCounter || 1
+    businessPackage: document.getElementById('cfgBusinessPackage').value.trim() || 'Site Formats'
   };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   applyConfig(); toast('✅ Configuration saved');
 }
+
 function resetConfig() {
-  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1 };
+  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats' };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   populateConfigForm(); applyConfig(); toast('↩️ Configuration reset');
 }
+
 function loadMasters() {
   try { masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'], ...JSON.parse(localStorage.getItem(MASTER_KEY) || '{}') }; } catch(e) {}
 }
+
 function saveMasters(ev) {
   ev.preventDefault();
   const val = document.getElementById('mstDisciplines').value || '';
@@ -1416,73 +1352,45 @@ function saveMasters(ev) {
   localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
   toast('✅ Master data saved');
 }
+
 function resetMasters() {
   masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
   localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
   populateMastersForm(); toast('↩️ Master data reset');
 }
 
-// ============================================================
-// 10. AUTH (API) – unchanged
-// ============================================================
-async function login() {
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
-  try {
-    const res = await fetch(`${API_BASE}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      toast('❌ ' + (err.error || 'Login failed'));
-      return;
-    }
-    const data = await res.json();
-    const { token, user } = data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    currentUser = user;
-    document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
-    renderCards();
-    await loadFromServer();
-    updateStats();
-    updateNotificationUI();
-    startNotificationPolling();
-    applyFiltersAndRefresh();
-    switchView('dashboard');
-    setActiveKpiCard('total');
-    toast('✅ Welcome ' + (user.full_name || user.username));
-    const unread = notifications.filter(n => n.recipient_username === user.username && !n.read).length;
-    if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
-  } catch(e) {
-    toast('⚠️ Login failed, trying cached session...');
-    const cachedUser = JSON.parse(localStorage.getItem('user') || 'null');
-    if (cachedUser) {
-      currentUser = cachedUser;
-      toast('⚠️ Using cached session (server unavailable)');
-      document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
-      loadDb();
-      renderCards();
-      updateStats();
-      updateNotificationUI();
-      startNotificationPolling();
-      switchView('dashboard');
-      toast('⚠️ Using offline mode - data may be outdated');
-    } else {
-      toast('❌ Network error: ' + e.message);
-    }
-  }
+function loadSession() { try { currentUser = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { currentUser = null; } }
+function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); }
+
+// ============================================
+// AUTH
+// ============================================
+function login() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value || '';
+  const found = users.find(x => x.u === u && x.p === p);
+  if (!found) { toast('❌ Wrong username/password'); return; }
+  currentUser = { username: found.u, role: found.role, display: found.name };
+  saveSession();
+  document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
+  renderCards(); renderHistory(); updateStats(); updateAdminToolsVisibility(); updateNotificationUI();
+  // Start notification polling
+  startNotificationPolling();
+  // Apply any saved filters
+  applyFiltersAndRefresh();
+  switchView('dashboard');
+  toast('✅ Welcome ' + found.name);
+  const unread = getUnreadCount(currentUser.username);
+  if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
 }
 
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
   currentUser = null;
+  saveSession();
   document.querySelectorAll('.auth-only').forEach(el => el.classList.add('hidden'));
   document.getElementById('notifContainer').style.display = 'none';
+  // Clear filter state
   globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
   switchView('login');
   toast('👋 Logged out');
@@ -1493,52 +1401,60 @@ function isExecEngineer() { return currentUser && currentUser.role === 'exec_eng
 function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'admin' || currentUser.role === 'manager' || currentUser.role === 'consultant' || currentUser.role === 'exec_engineer'); }
 function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
 
-// ============================================================
-// 11. VISIBILITY – unchanged
-// ============================================================
+// ============================================
+// STRICT VISIBILITY BASED ON ROUTING (with NCR parent RFI ownership)
+// ============================================
 function canUserSeeRecord(record, user) {
   if (!user) return false;
   if (!record) return false;
+
+  // Always allow owner
   if (record.createdBy === user.username) return true;
+
+  // Admin sees all
   if (user.role === 'admin') return true;
-  if (record.templateKey === 'ncr') {
-    if (user.role === 'engineer') {
-      const linkedId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
-      if (linkedId) {
-        const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedId || r.meta?.rfiNo === linkedId));
-        if (parentRfi && parentRfi.createdBy === user.username) return true;
-      }
-      if (record.createdBy === user.username) return true;
-      return false;
-    }
-    if (user.role === 'qa_head' || user.role === 'exec_engineer' || user.role === 'manager' || user.role === 'consultant') return true;
-    return false;
-  }
+
+  // For non-RFI records (checklists, NCRs, IMIRs), we need to check linked RFI
   if (record.templateKey !== 'rfi') {
+    // First, try to find a linked RFI from various fields
     let linkedRfiId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
     if (linkedRfiId) {
+      // Search for the parent RFI
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi) {
+        // If current user is the owner of the parent RFI, they can see this record
         if (parentRfi.createdBy === user.username) return true;
+        // Otherwise, check if they have permission to see the parent RFI based on routing
         return canUserSeeRecord(parentRfi, user);
       }
     }
+    // If no linked RFI, allow if user is manager, consultant, QA Head, or Execution Engineer (for standalone records)
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
   }
+
+  // Now handle RFI records
   const routing = record.meta?.routing || 'Execution Engineer → QA Head';
   const status = record.status || 'Draft';
-  if (routing === 'Direct to QA Head') return user.role === 'qa_head';
-  if (routing === 'Execution Engineer → QA Head') {
+
+  if (routing === 'Direct to QA Head') {
+    // Only QA Head (and Admin + owner already handled)
+    return user.role === 'qa_head';
+  } else if (routing === 'Execution Engineer → QA Head') {
+    // Execution Engineer can see always
     if (user.role === 'exec_engineer') return true;
+    // QA Head can see only after Execution Engineer has approved (status = Approved by Execution)
     if (user.role === 'qa_head' && status === 'Approved by Execution') return true;
     return false;
+  } else if (routing === 'Both') {
+    // Both QA Head and Execution Engineer can see
+    return user.role === 'qa_head' || user.role === 'exec_engineer';
   }
-  if (routing === 'Both') return user.role === 'qa_head' || user.role === 'exec_engineer';
   return false;
 }
 
 function visibleReports() {
   let rows = savedReports.slice();
+  // Apply global filter state
   if (globalFilterState.project) {
     rows = rows.filter(r => String(r.meta?.project || r.titleLoc || '').toLowerCase().includes(globalFilterState.project.toLowerCase()));
   }
@@ -1563,11 +1479,21 @@ function visibleReports() {
   if (globalFilterState.owner) {
     rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
   }
+
+  // Apply strict visibility
   if (!currentUser) return [];
   rows = rows.filter(r => canUserSeeRecord(r, currentUser));
   return rows;
 }
 
+function updateAdminToolsVisibility() {
+  const box = document.getElementById('adminToolsBox');
+  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
+}
+
+// ============================================
+// FILTER SYNC: Saved Records ↔ Dashboard
+// ============================================
 function getSavedRecordFilterState() {
   return {
     project: document.getElementById('fltProject')?.value || '',
@@ -1580,6 +1506,7 @@ function getSavedRecordFilterState() {
     owner: document.getElementById('fltOwner')?.value || ''
   };
 }
+
 function applyFiltersAndRefresh() {
   globalFilterState = getSavedRecordFilterState();
   updateStats();
@@ -1588,40 +1515,10 @@ function applyFiltersAndRefresh() {
     if (currentKpiFilter) filterKPI(currentKpiFilter);
   }
 }
-function updateAdminToolsVisibility() {
-  const box = document.getElementById('adminToolsBox');
-  if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
-}
 
-// ============================================================
-// 12. REFRESH – now loads from server
-// ============================================================
-function refreshHistory() {
-  globalFilterState = {
-    project: '', type: '', contractor: '', discipline: '',
-    status: '', fromDate: '', toDate: '', owner: ''
-  };
-  const fields = ['fltProject', 'fltType', 'fltContractor', 'fltDiscipline', 'fltStatus', 'fltDateFrom', 'fltDateTo', 'fltOwner'];
-  fields.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      if (el.tagName === 'SELECT') el.value = '';
-      else el.value = '';
-    }
-  });
-  loadFromServer().then(() => {
-    renderHistory();
-    toast('✅ Records refreshed');
-  }).catch(() => {
-    loadDb();
-    renderHistory();
-    toast('⚠️ Using cached data');
-  });
-}
-
-// ============================================================
-// 13. VIEWS, CARDS, FORM RENDERING – unchanged
-// ============================================================
+// ============================================
+// CONFIG APPLICATION
+// ============================================
 function applyConfig() {
   document.getElementById('brandTitle').innerText = appConfig.companyName || 'QA/QC Suite';
   document.getElementById('brandSub').innerText = appConfig.businessPackage || 'Site Formats';
@@ -1630,6 +1527,7 @@ function applyConfig() {
   document.getElementById('appTitle').innerText = cleanName + ' Inspection Suite';
   document.getElementById('appSub').innerText = getProjectDisplay();
 }
+
 function populateConfigForm() {
   document.getElementById('cfgCompanyName').value = appConfig.companyName || '';
   document.getElementById('cfgProjectName').value = appConfig.projectName || '';
@@ -1637,9 +1535,14 @@ function populateConfigForm() {
   document.getElementById('cfgFormatPrefix').value = appConfig.formatPrefix || '';
   document.getElementById('cfgBusinessPackage').value = appConfig.businessPackage || '';
 }
+
 function populateMastersForm() {
   document.getElementById('mstDisciplines').value = (masters.disciplines || []).join(', ');
 }
+
+// ============================================
+// VIEWS
+// ============================================
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const pane = document.getElementById('view-' + view);
@@ -1672,6 +1575,7 @@ function switchView(view) {
   }
   updateNotificationUI();
 }
+
 function backFromForm() {
   if (activeTemplateKey !== 'rfi' && pendingReturnRfiId) {
     openTemplate('rfi', pendingReturnRfiId);
@@ -1679,6 +1583,10 @@ function backFromForm() {
   }
   switchView(previousView || 'dashboard');
 }
+
+// ============================================
+// CARDS (Execution Engineer cannot create RFI)
+// ============================================
 function renderCards() {
   const host = document.getElementById('templateCards');
   host.innerHTML = '';
@@ -1689,6 +1597,7 @@ function renderCards() {
   }
   const isExec = isExecEngineer();
   Object.entries(templates).forEach(([k, t]) => {
+    // Execution Engineer cannot create RFI
     if (isExec && k === 'rfi') return;
     const c = document.createElement('div');
     c.className = 'card';
@@ -1703,18 +1612,24 @@ function renderCards() {
     host.appendChild(c);
   });
 }
+
+// ============================================
+// FORM RENDERING
+// ============================================
 function makeInput(id, value, type = 'text', options = []) {
   if (type === 'select') {
     const vals = options.length ? options : (id === 'meta_discipline' ? masters.disciplines : []);
     return `<select class="value-input" id="${id}">${vals.map(v => `<option value="${esc(v)}" ${String(value) === String(v) ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
   }
   if (type === 'radio') {
+    // Radio buttons – only show if user is contractor or admin (as per matrix)
     const show = currentUser && (currentUser.role === 'engineer' || currentUser.role === 'admin');
     if (!show) return '<span class="small">(Routing not applicable)</span>';
     return `<div class="radio-line">${options.map(o => `<label><input type="radio" name="meta_routing" value="${esc(o)}" ${String(value) === String(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>`;
   }
   return `<input type="${type}" class="value-input" id="${id}" value="${esc(value || '')}">`;
 }
+
 function renderMetaRows(metaRows, metaData = {}) {
   let html = '<table class="sheet-table">';
   metaRows.forEach(row => {
@@ -1738,6 +1653,7 @@ function renderMetaRows(metaRows, metaData = {}) {
   });
   return html + '</table>';
 }
+
 function renderSimpleCheck(sec, secData = {}) {
   let html = `<table class="sheet-table"><tr><th colspan="5">${esc(sec.title)}</th></tr><tr><th>Check Item</th><th>Contractor</th><th>Company</th><th>Remarks</th><th>Status</th></tr>`;
   sec.items.forEach((it, i) => {
@@ -1757,6 +1673,7 @@ function renderSimpleCheck(sec, secData = {}) {
   });
   return html + '</table>';
 }
+
 function renderChecklist(sec, secData = {}) {
   let html = `<table class="sheet-table"><tr>${sec.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
   let itemIndex = 0, sr = 1;
@@ -1780,6 +1697,7 @@ function renderChecklist(sec, secData = {}) {
   });
   return html + '</table>';
 }
+
 function renderTable(sec, secData = {}) {
   let html = `<table class="sheet-table"><tr><th colspan="${sec.columns.length}">${esc(sec.title)}</th></tr><tr>${sec.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
   const rows = secData.rows || [];
@@ -1789,6 +1707,7 @@ function renderTable(sec, secData = {}) {
   }
   return html + '</table>';
 }
+
 function renderAccepted(sec, secData = {}) {
   let html = `<table class="sheet-table"><tr><th colspan="4">${esc(sec.title)}</th></tr><tr><th>Role</th><th>Name</th><th>Signature</th><th>Date</th></tr>`;
   sec.rows.forEach((role, i) => {
@@ -1802,17 +1721,21 @@ function renderAccepted(sec, secData = {}) {
   });
   return html + '</table>';
 }
+
 function renderStatus(sec, secData = {}, si) {
   const val = secData.value || '';
   return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><div class="radio-line">${sec.options.map(o => `<label><input type="radio" name="status_${si}" value="${esc(o)}" ${val === o ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div></td></tr></table>`;
 }
+
 function renderTextarea(sec, secData = {}) {
   return `<table class="sheet-table"><tr><th>${esc(sec.title)} ${sec.note ? `<span class="small">${esc(sec.note)}</span>` : ''}</th></tr><tr><td><textarea class="plain-textarea">${esc(secData.value || '')}</textarea></td></tr></table>`;
 }
+
 function renderDate(sec, secData = {}, key) {
   const val = secData[key] || '';
   return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><input type="date" class="value-input" id="meta_${key}" value="${esc(val)}"></td></tr></table>`;
 }
+
 function renderSignatures(sec, secData = {}) {
   let html = `<table class="sheet-table"><tr>${sec.roles.map(r => `<th>${esc(r)}</th>`).join('')}</tr><tr>`;
   sec.roles.forEach((r, ri) => {
@@ -1821,16 +1744,19 @@ function renderSignatures(sec, secData = {}) {
   });
   return html + '</tr></table>';
 }
+
 function renderText(sec, secData = {}) {
   const val = secData[sec.k] || '';
   return `<table class="sheet-table"><tr><th>${esc(sec.title)}</th></tr><tr><td><input class="value-input" id="meta_${sec.k}" value="${esc(val)}"></td></tr></table>`;
 }
+
 function stylizeStatus(sel) {
   sel.classList.remove('select-yes', 'select-no', 'select-na');
   if (sel.value === 'Yes') sel.classList.add('select-yes');
   else if (sel.value === 'No') sel.classList.add('select-no');
   else if (sel.value === 'NA') sel.classList.add('select-na');
 }
+
 function renderSheet(t, report) {
   const body = document.getElementById('sheetBody');
   const meta = report?.meta || {};
@@ -1862,6 +1788,7 @@ function renderSheet(t, report) {
   });
   body.innerHTML = html;
   body.querySelectorAll('.status-select').forEach(stylizeStatus);
+  // Ensure radio button for routing is pre-selected if exists
   const routingVal = meta.routing || 'Execution Engineer → QA Head';
   const radioGroup = document.querySelector('input[name="meta_routing"]');
   if (radioGroup) {
@@ -1869,12 +1796,62 @@ function renderSheet(t, report) {
     radios.forEach(r => r.checked = (r.value === routingVal));
   }
   updateProgress();
-  if (activeTemplateKey === 'rfi') renderLinkedNCRs();
+  // After rendering, update linked NCRs if this is an RFI
+  if (activeTemplateKey === 'rfi') {
+    renderLinkedNCRs();
+  }
 }
 
-// ============================================================
-// 14. DATA COLLECTION – unchanged
-// ============================================================
+// ============================================
+// RENDER LINKED NCRs (new function)
+// ============================================
+function renderLinkedNCRs() {
+  const list = document.getElementById('relatedNCRList');
+  if (!list) return;
+  if (activeTemplateKey !== 'rfi') {
+    list.innerHTML = '';
+    return;
+  }
+  // Get the current RFI's identifier
+  const rfiNo = document.getElementById('meta_rfiNo')?.value || '';
+  const rfiId = activeReportId || '';
+  // Find linked NCRs using both rfiNo and rfiId
+  let linked = [];
+  if (rfiNo) linked = getLinkedNCRsForRfi(rfiNo);
+  if (rfiId && rfiId !== rfiNo) {
+    const extra = getLinkedNCRsForRfi(rfiId);
+    linked = linked.concat(extra);
+  }
+  // Remove duplicates by id
+  const seen = new Set();
+  linked = linked.filter(n => {
+    if (seen.has(n.id)) return false;
+    seen.add(n.id);
+    return true;
+  });
+
+  if (!linked.length) {
+    list.innerHTML = 'No linked NCR yet.';
+    return;
+  }
+
+  let html = '<ul style="list-style:none;padding:0;margin:0;">';
+  linked.forEach(n => {
+    const status = n.status || 'Draft';
+    const canEdit = canEditNCR(n);
+    const editBtn = canEdit ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">Open & Edit</button>` : `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">View</button>`;
+    html += `<li style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #eee;">
+      <span><b>${esc(n.meta?.ncrNo || n.id)}</b> – ${esc(status)}</span>
+      ${editBtn}
+    </li>`;
+  });
+  html += '</ul>';
+  list.innerHTML = html;
+}
+
+// ============================================
+// DATA COLLECTION
+// ============================================
 function collectMeta(t) {
   const meta = {};
   t.metaRows.flat().forEach(cell => {
@@ -1890,9 +1867,11 @@ function collectMeta(t) {
     const key = el.id.replace(/^meta_/, '');
     meta[key] = el.value || '';
   });
+  // Ensure routing is set
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
   return meta;
 }
+
 function collectSections(t) {
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
   if (activeTemplateKey === 'imir') return collectIMIRSectionsExact();
@@ -1958,6 +1937,7 @@ function collectSections(t) {
   });
   return sections;
 }
+
 function collectSectionsForProgress() {
   let total = 0, filled = 0, yes = 0, no = 0;
   document.querySelectorAll('#sheetBody .status-select').forEach(sel => {
@@ -1966,6 +1946,7 @@ function collectSectionsForProgress() {
   });
   return { total, filled, score: (yes + no) ? Math.round((yes / (yes + no)) * 100) : 100 };
 }
+
 function updateProgress() {
   if (!activeTemplateKey) {
     document.getElementById('progressText').innerText = '0 / 0 Items | 0%';
@@ -1977,9 +1958,9 @@ function updateProgress() {
   document.getElementById('progressBar').style.width = s.total ? `${(s.filled / s.total) * 100}%` : '0%';
 }
 
-// ============================================================
-// 15. SAVE & WORKFLOW – now uses server sync
-// ============================================================
+// ============================================
+// SAVE & WORKFLOW
+// ============================================
 function validateForm(meta) {
   const req = [];
   if (activeTemplateKey === 'rfi') {
@@ -2006,11 +1987,16 @@ function validateForm(meta) {
   if (req.length) { toast('❌ Required: ' + req.join(', ')); return false; }
   return true;
 }
+
 function getAuditNow(action, comment) {
   return { action, by: currentUser?.display || 'Unknown', role: currentUser?.role || '', at: new Date().toISOString(), comment: comment || '' };
 }
+
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
 
+// ============================================
+// ENHANCED canEditNCR to check parent RFI ownership
+// ============================================
 function canEditNCR(rec) {
   if (!rec) return false;
   const status = rec.status || 'Draft';
@@ -2018,44 +2004,30 @@ function canEditNCR(rec) {
   const isQAExec = currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
   if (status === 'Closed' || status === 'Approved') return false;
   if (isContractor) {
+    // Check if this NCR is linked to an RFI owned by this contractor
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy === currentUser.username) {
+        // Contractor owns the parent RFI, so they can edit if status is Open or Rejected
         return (status === 'Open' || status === 'Rejected');
       }
     }
+    // If not linked to their RFI, they cannot edit
     return false;
   }
   if (isQAExec) {
+    // QA/Exec can edit if status is Draft or Under Review
     return (status === 'Draft' || status === 'Under Review');
   }
   return false;
 }
 
-function generateNcrNumber() {
-  let counter = appConfig.ncrCounter || 1;
-  const num = String(counter).padStart(3, '0');
-  appConfig.ncrCounter = counter + 1;
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
-  return 'NCR-' + num;
-}
-
-async function saveReport(ev) {
+function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
   if (!t) return;
   const meta = collectMeta(t);
-  if (activeTemplateKey === 'ncr') {
-    const rec = currentRecord();
-    if (!canEditNCR(rec)) {
-      toast('⛔ You cannot edit this NCR in current state');
-      return;
-    }
-    if (!meta.ncrNo || meta.ncrNo.trim() === '') {
-      meta.ncrNo = generateNcrNumber();
-    }
-  }
   if (!validateForm(meta)) return;
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
@@ -2064,7 +2036,7 @@ async function saveReport(ev) {
   const preparedBy = meta.preparedBy || meta.raisedBy || meta.contractor || meta.agency || meta.to || '';
   const attachmentInput = document.getElementById('wfAttachment');
   const attachmentNames = attachmentInput ? Array.from(attachmentInput.files || []).map(f => f.name) : (existing?.attachments || []);
-  const raisedFromRfi = meta.raisedFromRfi || existing?.raisedFromRfi || '';
+  const raisedFromRfi = meta.raisedFromRfi || '';
   const row = {
     id, templateKey: activeTemplateKey, templateName: t.title,
     formatNo: t.formatNo || buildFormatNo('01'), meta, sections,
@@ -2089,63 +2061,49 @@ async function saveReport(ev) {
   row.score = (yes + no) ? Math.round((yes / (yes + no)) * 100) : 100;
   row.defectsCount = no;
 
+  // For NCR, check if editable
+  if (activeTemplateKey === 'ncr' && !canEditNCR(row)) {
+    toast('⛔ You cannot edit this NCR in its current state');
+    return;
+  }
+
   if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && !row.meta.linkedRfi) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
 
-  try {
-    const isNew = !savedReports.find(r => r.id === id);
-    await syncReportToServer(row, isNew);
-    activeReportId = id;
-    if (activeTemplateKey === 'rfi') {
-      pendingReturnRfiId = id;
-      pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
-      pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
-      renderLinkedNCRs();
-    }
-    updateWorkflowButtons(row);
-    setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
-    toast('✅ Saved successfully');
-    // Refresh from server after save to reflect latest data
-    setTimeout(() => loadFromServer(), 500);
-  } catch(e) {
-    toast('❌ Save failed: ' + e.message);
+  const idx = savedReports.findIndex(r => r.id === id);
+  if (idx >= 0) savedReports[idx] = row;
+  else savedReports.unshift(row);
+  activeReportId = id;
+  persistDb();
+  if (activeTemplateKey === 'rfi') {
+    pendingReturnRfiId = id;
+    pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
+    pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
+    // Re-render linked NCRs for this RFI
+    renderLinkedNCRs();
   }
-}
-
-async function deleteReport(id) {
-  const r = savedReports.find(x => x.id === id);
-  if (!r) return;
-  if (!canDeleteRecord(r)) { toast('⛔ Delete not allowed'); return; }
-  if (!confirm('Delete this saved report?')) return;
-  try {
-    await deleteReportFromServer(id);
-    toast('🗑️ Deleted');
-    if (activeReportId === id) backFromForm();
-    setTimeout(() => loadFromServer(), 500);
-  } catch(e) {
-    toast('❌ Delete failed: ' + e.message);
-  }
-}
-
-async function updateReportOnServer(row) {
-  await syncReportToServer(row, false);
-  setTimeout(() => loadFromServer(), 500);
+  updateWorkflowButtons(row);
+  setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
+  toast('✅ Saved successfully');
 }
 
 function updateWorkflowButtons(rec) {
-  const isNcrFlag = isNcr();
-  const isRfiFlag = isRfi();
-  const isImirFlag = isImir();
+  const isRfi = activeTemplateKey === 'rfi';
+  const isNcr = activeTemplateKey === 'ncr';
+  const isImir = activeTemplateKey === 'imir';
   const panel = document.getElementById('workflowPanel');
   const relatedPanel = document.getElementById('relatedChecklistPanel');
-  if (panel) panel.style.display = (isRfiFlag || isNcrFlag || isImirFlag) ? 'block' : 'none';
-  if (relatedPanel) relatedPanel.style.display = isRfiFlag ? 'block' : 'none';
-  if (!isRfiFlag && !isNcrFlag && !isImirFlag) return;
+  if (panel) panel.style.display = (isRfi || isNcr || isImir) ? 'block' : 'none';
+  if (relatedPanel) relatedPanel.style.display = isRfi ? 'block' : 'none';
+  if (!isRfi && !isNcr && !isImir) return;
 
   const status = rec?.status || 'Draft';
   const meta = rec?.meta || {};
+  const routing = meta.routing || 'Execution Engineer → QA Head';
+  const isDirect = routing === 'Direct to QA Head';
+  const isBoth = routing === 'Both';
 
   document.getElementById('wfStatus').value = status;
   document.getElementById('wfOwner').value = rec?.createdByDisplay || currentUser?.display || '';
@@ -2155,15 +2113,15 @@ function updateWorkflowButtons(rec) {
   const isAdmin = currentUser?.role === 'admin';
   const isQA = canApprove();
   const isContractor = currentUser?.role === 'engineer';
-  const isQAExec = isQA || isExec;
 
-  if (isNcrFlag) {
+  // For NCR, we need different button logic based on canEditNCR
+  if (isNcr) {
     const editable = canEditNCR(rec);
     const showContractorSubmit = isContractor && editable && (status === 'Open' || status === 'Rejected');
-    const showQASend = isQAExec && (status === 'Draft');
-    const showApprove = isQAExec && (status === 'Under Review');
-    const showReject = isQAExec && (status === 'Under Review');
-    const showClose = isQAExec && (status === 'Approved' || status === 'Approved with Comment');
+    const showQASend = (isQA || isExec) && (status === 'Draft');
+    const showApprove = (isQA || isExec) && (status === 'Under Review');
+    const showReject = (isQA || isExec) && (status === 'Under Review');
+    const showClose = (isQA || isExec) && (status === 'Approved' || status === 'Approved with Comment');
 
     document.getElementById('btnSubmit').classList.toggle('hidden', !showQASend);
     document.getElementById('btnReview').classList.toggle('hidden', !showContractorSubmit);
@@ -2176,10 +2134,8 @@ function updateWorkflowButtons(rec) {
     return;
   }
 
-  const routing = meta.routing || 'Execution Engineer → QA Head';
-  const isDirect = routing === 'Direct to QA Head';
-  const isBoth = routing === 'Both';
-
+  // RFI and IMIR workflow (unchanged)
+  // Submit: only contractor or admin (not exec_engineer)
   const showSubmit = currentUser && (currentUser.role === 'engineer' || isAdmin) && (!rec || ['Draft', 'Rejected'].includes(status));
   const showReview = isQA && status === 'Submitted';
   const showApproveQA = isExec && status === 'Submitted' && !isDirect;
@@ -2197,70 +2153,31 @@ function updateWorkflowButtons(rec) {
 
   const btnRaiseNCR = document.getElementById('btnRaiseNCR');
   if (btnRaiseNCR) {
-    btnRaiseNCR.classList.toggle('hidden', !(isRfiFlag && (isQA || isAdmin || isExec)));
+    btnRaiseNCR.classList.toggle('hidden', !(isRfi && (isQA || isAdmin || isExec)));
   }
 
   document.getElementById('btnSubmit').classList.toggle('hidden', !showSubmit);
   document.getElementById('btnReview').classList.toggle('hidden', !showReview);
   document.getElementById('btnApproveQA').classList.toggle('hidden', !showApproveQA);
   document.getElementById('btnApprove').classList.toggle('hidden', !showApprove);
-  document.getElementById('btnApproveComment').classList.toggle('hidden', !(showApprove && isRfiFlag));
+  document.getElementById('btnApproveComment').classList.toggle('hidden', !(showApprove && isRfi));
   document.getElementById('btnReject').classList.toggle('hidden', !showReject);
   document.getElementById('btnClose').classList.toggle('hidden', showClose);
 }
 
 function setChecklistButtonsState(rec) {
-  const isRfiFlag = isRfi();
-  const disabled = !isRfiFlag || !canAddChecklistToRfi(rec);
+  const isRfi = activeTemplateKey === 'rfi';
+  const disabled = !isRfi || !canAddChecklistToRfi(rec);
   ['btnAddBrickChecklist', 'btnAddPlasterChecklist', 'btnAddConcreteChecklist'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = disabled;
   });
 }
 
-function renderLinkedNCRs() {
-  const list = document.getElementById('relatedNCRList');
-  if (!list) return;
-  if (activeTemplateKey !== 'rfi') {
-    list.innerHTML = '';
-    return;
-  }
-  const rfiNo = document.getElementById('meta_rfiNo')?.value || '';
-  const rfiId = activeReportId || '';
-  let linked = [];
-  if (rfiNo) linked = getLinkedNCRsForRfi(rfiNo);
-  if (rfiId && rfiId !== rfiNo) {
-    const extra = getLinkedNCRsForRfi(rfiId);
-    linked = linked.concat(extra);
-  }
-  const seen = new Set();
-  linked = linked.filter(n => {
-    if (seen.has(n.id)) return false;
-    seen.add(n.id);
-    return true;
-  });
-  if (!linked.length) {
-    list.innerHTML = 'No linked NCR yet.';
-    return;
-  }
-  let html = '<ul style="list-style:none;padding:0;margin:0;">';
-  linked.forEach(n => {
-    const status = n.status || 'Draft';
-    const canEdit = canEditNCR(n);
-    const editBtn = canEdit ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">Open & Edit</button>` : `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">View</button>`;
-    html += `<li style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #eee;">
-      <span><b>${esc(n.meta?.ncrNo || n.id)}</b> – ${esc(status)}</span>
-      ${editBtn}
-    </li>`;
-  });
-  html += '</ul>';
-  list.innerHTML = html;
-}
-
-// ============================================================
-// 16. WORKFLOW ACTIONS – updated to use async server sync
-// ============================================================
-async function approveForQA() {
+// ============================================
+// APPROVE FOR QA – Execution Engineer
+// ============================================
+function approveForQA() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
   if (!isExecEngineer()) { toast('⛔ Only Execution Engineer can perform this action'); return; }
@@ -2271,17 +2188,22 @@ async function approveForQA() {
   rec.decisionByDisplay = currentUser.display;
   rec.audit.push(getAuditNow('Approved for QA', rec.comment));
   rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
+  persistDb();
   updateWorkflowButtons(rec);
   toast('📋 RFI approved for QA review');
+
+  // Notify QA Head
   const qaHeadUser = users.find(u => u.role === 'qa_head');
   if (qaHeadUser) {
     const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-    await sendNotification(qaHeadUser.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
+    sendNotification(qaHeadUser.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
   }
 }
 
-async function raiseNCRFromRFI() {
+// ============================================
+// RAISE NCR FROM RFI (now allowed for Exec, QA, Admin)
+// ============================================
+function raiseNCRFromRFI() {
   const rfi = currentRecord();
   if (!rfi) { toast('⚠️ No RFI found.'); return; }
   if (!currentUser || (currentUser.role !== 'qa_head' && currentUser.role !== 'admin' && currentUser.role !== 'exec_engineer')) {
@@ -2290,7 +2212,7 @@ async function raiseNCRFromRFI() {
   }
   const rfiMeta = rfi.meta || {};
   const ncrMeta = {
-    ncrNo: generateNcrNumber(),
+    ncrNo: '',
     category: '',
     project: rfiMeta.project || '',
     entityType: '',
@@ -2304,9 +2226,7 @@ async function raiseNCRFromRFI() {
     ncrDate: new Date().toISOString().split('T')[0],
     poSoDate: '',
     materialService: '',
-    raisedFromRfi: rfiMeta.rfiNo || rfi.id || '',
-    severity: '',
-    responsible: ''
+    raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
   };
   const ncrId = 'rep_' + Date.now();
   const newNCR = {
@@ -2331,148 +2251,144 @@ async function raiseNCRFromRFI() {
     audit: [getAuditNow('Created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''), '')],
     raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
   };
-  try {
-    await syncReportToServer(newNCR, true);
-    toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
-    const contractorUser = users.find(u => u.username === rfi.createdBy);
-    if (contractorUser) {
-      const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
-      await sendNotification(contractorUser.u, `📋 NCR #${ncrMeta.ncrNo} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
-    }
-    openTemplate('ncr', ncrId);
-  } catch(e) {
-    toast('❌ Failed to create NCR: ' + e.message);
+  savedReports.unshift(newNCR);
+  persistDb();
+  toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
+
+  // Notify the original Contractor
+  const contractorUser = users.find(u => u.username === rfi.createdBy);
+  if (contractorUser) {
+    const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
+    sendNotification(contractorUser.u, `📋 NCR #${ncrId} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
   }
+  openTemplate('ncr', ncrId);
 }
 
-async function submitRecord() {
+// ============================================
+// WORKFLOW ACTIONS (with proper notifications)
+// ============================================
+function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
-  
-  if (isNcr()) {
-    if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
-    rec.status = 'Open';
-    rec.comment = document.getElementById('wfComment').value.trim() || 'NCR raised and sent to contractor';
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Sent to Contractor', rec.comment));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('📤 NCR sent to contractor');
-    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
-    if (linkedRfiId) {
-      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
-      if (parentRfi && parentRfi.createdBy) {
-        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
-        if (contractorUser) {
-          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`, 'ncr_open', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
-        }
-      }
-    }
-    return;
-  }
-
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
   rec.status = 'Submitted';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
   rec.savedAt = new Date().toISOString();
 
+  // Routing logic – send notifications accordingly
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
   const execUser = users.find(u => u.role === 'exec_engineer');
   const qaHeadUser = users.find(u => u.role === 'qa_head');
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
 
-  await updateReportOnServer(rec);
   if (routing === 'Direct to QA Head') {
-    if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
+    if (qaHeadUser) {
+      sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
   } else if (routing === 'Execution Engineer → QA Head') {
-    if (execUser) await sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
+    if (execUser) {
+      sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
   } else if (routing === 'Both') {
-    if (execUser) await sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
-    if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
+    if (execUser) {
+      sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
+    if (qaHeadUser) {
+      sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
+    }
   }
+
+  persistDb();
   updateWorkflowButtons(rec); setChecklistButtonsState(rec);
   toast('📤 Submitted');
 }
 
-async function markUnderReview() {
+function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
-  if (isNcr()) {
-    if (rec.status !== 'Open' && rec.status !== 'Rejected') { toast('⚠️ Cannot submit this NCR'); return; }
+  if (rec.templateKey === 'ncr') {
+    // For NCR, only contractor can mark Under Review (submit response)
+    if (currentUser?.role !== 'engineer') {
+      toast('⛔ Only contractor can submit NCR response');
+      return;
+    }
+    if (rec.status !== 'Open' && rec.status !== 'Rejected') {
+      toast('⚠️ Cannot submit this NCR');
+      return;
+    }
     rec.status = 'Under Review';
     rec.comment = document.getElementById('wfComment').value.trim() || 'Contractor submitted response for review';
     rec.savedAt = new Date().toISOString();
     rec.audit.push(getAuditNow('Submitted by Contractor', rec.comment));
-    await updateReportOnServer(rec);
+    persistDb();
     updateWorkflowButtons(rec);
     toast('📩 Response submitted for review');
+
+    // Notify QA Head and Exec Engineer
     const qaHeadUser = users.find(u => u.role === 'qa_head');
     const execUser = users.find(u => u.role === 'exec_engineer');
     const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
-    if (qaHeadUser) await sendNotification(qaHeadUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-    if (execUser) await sendNotification(execUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+    if (qaHeadUser) sendNotification(qaHeadUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+    if (execUser) sendNotification(execUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
     return;
   }
 
+  // For RFI
   rec.status = 'Under Review';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Marked Under Review', rec.comment));
   rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
+  persistDb(); updateWorkflowButtons(rec);
   toast('🔍 Under review');
   if (rec.createdBy) {
     const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-    await sendNotification(rec.createdBy, `Your RFI #${docNo} is now Under Review by ${currentUser.display}`, 'under_review', rec.id, docNo, currentUser.display);
+    sendNotification(rec.createdBy, `Your RFI #${docNo} is now Under Review by ${currentUser.display}`, 'under_review', rec.id, docNo, currentUser.display);
   }
 }
 
-async function approveRecord() {
+function approveRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
-  if (isNcr()) {
+  if (rec.templateKey === 'ncr') {
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can approve NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
-    rec.status = 'Closed';
-    rec.comment = document.getElementById('wfComment').value.trim() || 'NCR Approved and Closed';
+    rec.status = 'Approved';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'NCR Approved';
     rec.decisionBy = currentUser.username;
     rec.decisionByDisplay = currentUser.display;
     rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Approved & Closed', rec.comment));
-    await updateReportOnServer(rec);
+    rec.audit.push(getAuditNow('Approved', rec.comment));
+    persistDb();
     updateWorkflowButtons(rec);
-    toast('✅ NCR Closed');
-    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
-    if (linkedRfiId) {
-      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
-      if (parentRfi && parentRfi.createdBy) {
-        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
-        if (contractorUser) {
-          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} has been Approved & Closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
-        }
-      }
+    toast('✅ NCR Approved');
+    // Notify contractor
+    const contractorUser = users.find(u => u.username === rec.createdBy);
+    if (contractorUser) {
+      const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
+      sendNotification(contractorUser.u, `NCR #${docNo} has been Approved by ${currentUser.display}`, 'approved', rec.id, docNo, currentUser.display);
     }
     return;
   }
 
+  // For RFI
   rec.status = 'Approved';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.decisionBy = currentUser.username;
   rec.decisionByDisplay = currentUser.display;
   rec.audit.push(getAuditNow('Approved', rec.comment));
   rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
+  persistDb(); updateWorkflowButtons(rec);
   toast('✅ Approved');
   if (rec.createdBy) {
     const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-    await sendNotification(rec.createdBy, `Your ${rec.templateKey === 'imir' ? 'IMIR' : 'RFI'} #${docNo} has been Approved by ${currentUser.display}`, 'approved', rec.id, docNo, currentUser.display);
+    sendNotification(rec.createdBy, `Your ${rec.templateKey === 'imir' ? 'IMIR' : 'RFI'} #${docNo} has been Approved by ${currentUser.display}`, 'approved', rec.id, docNo, currentUser.display);
   }
 }
 
-async function approveWithCommentRecord() {
+function approveWithCommentRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
   const c = document.getElementById('wfComment').value.trim();
@@ -2483,41 +2399,37 @@ async function approveWithCommentRecord() {
   rec.decisionByDisplay = currentUser.display;
   rec.audit.push(getAuditNow('Approved with Comment', c));
   rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
+  persistDb(); updateWorkflowButtons(rec);
   toast('📝 Approved with comment');
   if (rec.createdBy) {
     const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-    await sendNotification(rec.createdBy, `Your RFI #${docNo} has been Approved with Comment by ${currentUser.display}`, 'approved_comment', rec.id, docNo, currentUser.display);
+    sendNotification(rec.createdBy, `Your RFI #${docNo} has been Approved with Comment by ${currentUser.display}`, 'approved_comment', rec.id, docNo, currentUser.display);
   }
 }
 
-async function rejectRecord() {
+function rejectRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
-  if (isNcr()) {
+  if (rec.templateKey === 'ncr') {
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can reject NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
     const c = document.getElementById('wfComment').value.trim();
     if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
-    rec.status = 'Open';
+    rec.status = 'Rejected';
     rec.comment = 'Returned for rework: ' + c;
     rec.decisionBy = currentUser.username;
     rec.decisionByDisplay = currentUser.display;
     rec.savedAt = new Date().toISOString();
     rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
-    await updateReportOnServer(rec);
+    persistDb();
     updateWorkflowButtons(rec);
     toast('↩️ NCR returned to contractor');
-    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
-    if (linkedRfiId) {
-      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
-      if (parentRfi && parentRfi.createdBy) {
-        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
-        if (contractorUser) {
-          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'ncr_open', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
-        }
-      }
+    // Notify contractor
+    const contractorUser = users.find(u => u.username === rec.createdBy);
+    if (contractorUser) {
+      const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
+      sendNotification(contractorUser.u, `NCR #${docNo} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, docNo, currentUser.display);
     }
     return;
   }
@@ -2530,35 +2442,35 @@ async function rejectRecord() {
   rec.decisionByDisplay = currentUser.display;
   rec.audit.push(getAuditNow('Rejected', c));
   rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
+  persistDb(); updateWorkflowButtons(rec);
   toast('❌ Rejected');
   if (rec.createdBy) {
     const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-    await sendNotification(rec.createdBy, `Your ${rec.templateKey === 'imir' ? 'IMIR' : 'RFI'} #${docNo} has been Rejected by ${currentUser.display}`, 'rejected', rec.id, docNo, currentUser.display);
+    sendNotification(rec.createdBy, `Your ${rec.templateKey === 'imir' ? 'IMIR' : 'RFI'} #${docNo} has been Rejected by ${currentUser.display}`, 'rejected', rec.id, docNo, currentUser.display);
   }
 }
 
-async function closeRecord() {
+function closeRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-  if (isNcr()) {
-    if (!(isExecEngineer() || canApprove())) { toast('⛔ Only Execution Engineer, QA Head or Admin can close NCR'); return; }
+  if (rec.templateKey === 'ncr') {
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can close NCR'); return; }
+    if (rec.status !== 'Approved' && rec.status !== 'Approved with Comment') { toast('⚠️ Only Approved NCR can be closed'); return; }
     rec.status = 'Closed';
-    rec.comment = document.getElementById('wfComment').value.trim() || 'Closed manually';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Closed';
     rec.audit.push(getAuditNow('Closed', rec.comment));
     rec.savedAt = new Date().toISOString();
-    await updateReportOnServer(rec);
+    persistDb();
     updateWorkflowButtons(rec);
-    toast('🔒 Closed');
+    toast('🔒 NCR Closed');
     return;
   }
   toast('⚠️ Not applicable');
 }
 
-// ============================================================
-// 17. CHECKLIST LINKING – unchanged
-// ============================================================
+// ============================================
+// CHECKLIST LINKING
+// ============================================
 function captureCurrentRfiPrefill() {
   return {
     project: document.getElementById('meta_project')?.value || '',
@@ -2568,6 +2480,7 @@ function captureCurrentRfiPrefill() {
     date: document.getElementById('meta_date')?.value || ''
   };
 }
+
 function launchChecklistFromRfi(templateKey) {
   if (activeTemplateKey !== 'rfi') { toast('⚠️ Open an RFI first'); return; }
   const rfiNoEl = document.getElementById('meta_rfiNo');
@@ -2582,12 +2495,14 @@ function launchChecklistFromRfi(templateKey) {
   pendingParentMeta = captureCurrentRfiPrefill();
   openTemplate(templateKey);
 }
+
 function openLinkedChecklistFromRfi(checklistId, parentRfiId) {
   const chk = savedReports.find(r => r.id === checklistId);
   if (!chk) { toast('⚠️ Checklist not found'); return; }
   pendingReturnRfiId = parentRfiId || null;
   openTemplate(chk.templateKey, chk.id);
 }
+
 function applyPendingChecklistPrefill() {
   if (activeTemplateKey === 'rfi') return;
   if (pendingLinkedRfiNo) {
@@ -2606,9 +2521,9 @@ function applyPendingChecklistPrefill() {
   });
 }
 
-// ============================================================
-// 18. OPEN TEMPLATE / RECORD – unchanged
-// ============================================================
+// ============================================
+// OPEN TEMPLATE / RECORD
+// ============================================
 function openTemplate(key, reportId = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
@@ -2630,9 +2545,14 @@ function openTemplate(key, reportId = null) {
   switchView('form');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ============================================
+// OPEN RECORD – FIXED: uses canUserSeeRecord consistently
+// ============================================
 function openRecord(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
+  // Use the same visibility check as visibleReports
   if (!canUserSeeRecord(r, currentUser)) {
     toast('⛔ Access denied');
     return;
@@ -2640,9 +2560,19 @@ function openRecord(id) {
   openTemplate(r.templateKey, r.id);
 }
 
-// ============================================================
-// 19. STATS & DASHBOARD – unchanged
-// ============================================================
+function deleteReport(id) {
+  const r = savedReports.find(x => x.id === id);
+  if (!r) return;
+  if (!canDeleteRecord(r)) { toast('⛔ Delete not allowed'); return; }
+  if (!confirm('Delete this saved report?')) return;
+  savedReports = savedReports.filter(x => x.id !== id);
+  persistDb();
+  toast('🗑️ Deleted');
+}
+
+// ============================================
+// STATS & DASHBOARD (with filter sync)
+// ============================================
 function updateStats() {
   const rows = visibleReports();
   const rfis = rows.filter(r => r.templateKey === 'rfi');
@@ -2672,6 +2602,7 @@ function updateStats() {
   if (currentKpiFilter) filterKPI(currentKpiFilter);
   updateNotificationUI();
 }
+
 function recordDateKey(rec) {
   const raw = rec.meta?.date || rec.savedAt || '';
   if (!raw) return '';
@@ -2681,11 +2612,11 @@ function recordDateKey(rec) {
   if (String(d) === 'Invalid Date') return '';
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function getHistoryFilteredRows() { return visibleReports(); }
 
-// ============================================================
-// 20. RENDER HISTORY – unchanged (already shows linked NCRs)
-// ============================================================
+function getHistoryFilteredRows() {
+  return visibleReports();
+}
+
 function renderHistory() {
   const body = document.getElementById('historyBody');
   body.innerHTML = '';
@@ -2695,6 +2626,7 @@ function renderHistory() {
     return;
   }
 
+  // Group RFIs with their linked checklists AND linked NCRs
   const rfiRows = rows.filter(r => r.templateKey === 'rfi');
   const otherRows = rows.filter(r => r.templateKey !== 'rfi');
   const checklistMap = new Map();
@@ -2711,6 +2643,7 @@ function renderHistory() {
     }
   });
 
+  // Standalone IMIR (not linked to any RFI)
   const standaloneChecklists = checklistMap.get('__standalone__') || [];
   standaloneChecklists.forEach(r => {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
@@ -2727,6 +2660,7 @@ function renderHistory() {
     body.appendChild(tr);
   });
 
+  // Standalone NCRs (not linked to any RFI)
   const standaloneNCRs = ncrMap.get('__standalone__') || [];
   standaloneNCRs.forEach(r => {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
@@ -2743,10 +2677,11 @@ function renderHistory() {
     body.appendChild(tr);
   });
 
+  // RFI parent rows with linked checklists AND linked NCRs
   rfiRows.forEach(r => {
     const linkedKey = r.meta?.rfiNo || r.id;
-    const linkedChecklists = (checklistMap.get(linkedKey) || []).filter(chk => canUserSeeRecord(chk, currentUser));
-    const linkedNCRs = (ncrMap.get(linkedKey) || []).filter(chk => canUserSeeRecord(chk, currentUser));
+    const linkedChecklists = checklistMap.get(linkedKey) || [];
+    const linkedNCRs = ncrMap.get(linkedKey) || [];
     const allLinked = [...linkedChecklists, ...linkedNCRs];
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
@@ -2762,6 +2697,7 @@ function renderHistory() {
       <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button> ${canDeleteRecord(r) ? `<button class="btn btn-danger" style="padding:6px 10px;font-size:12px;" onclick="deleteReport('${r.id}')">Delete</button>` : ''}</td>`;
     body.appendChild(tr);
 
+    // Show checklists as child rows
     linkedChecklists.forEach(chk => {
       const chkScoreBadge = typeof chk.score === 'number' ? `<span class="badge ${chk.score < 60 ? 'bad' : chk.score < 85 ? 'mid' : 'ok'}">${chk.score}%</span>` : '<span class="badge mid">N/A</span>';
       const child = document.createElement('tr');
@@ -2778,6 +2714,7 @@ function renderHistory() {
       body.appendChild(child);
     });
 
+    // Show NCRs as child rows (linked via raisedFromRfi)
     linkedNCRs.forEach(chk => {
       const chkScoreBadge = typeof chk.score === 'number' ? `<span class="badge ${chk.score < 60 ? 'bad' : chk.score < 85 ? 'mid' : 'ok'}">${chk.score}%</span>` : '<span class="badge mid">N/A</span>';
       const child = document.createElement('tr');
@@ -2796,9 +2733,9 @@ function renderHistory() {
   });
 }
 
-// ============================================================
-// 21. KPI FILTERING – unchanged
-// ============================================================
+// ============================================
+// KPI FILTERING
+// ============================================
 function kpiLabel(type) {
   const map = {
     total: 'All RFI', approval: 'Approved RFI',
@@ -2809,6 +2746,7 @@ function kpiLabel(type) {
   };
   return map[type] || 'Filtered';
 }
+
 function kpiStatusClass(status) {
   if (status === 'Approved' || status === 'Closed') return 'approved';
   if (status === 'Approved with Comment') return 'comment';
@@ -2816,11 +2754,13 @@ function kpiStatusClass(status) {
   if (status === 'Approved by Execution') return 'exec_approved';
   return 'pending';
 }
+
 function setActiveKpiCard(type) {
   document.querySelectorAll('.dashboard-grid .stat[data-kpi]').forEach(card => {
     card.classList.toggle('active-kpi', card.getAttribute('data-kpi') === type);
   });
 }
+
 function filterKPI(type) {
   const sourceRows = visibleReports();
   let filtered = [];
@@ -2849,6 +2789,7 @@ function filterKPI(type) {
   renderKPIResults(filtered, type, title, sub);
   setActiveKpiCard(type);
 }
+
 function renderKPIResults(data, type, customTitle, customSub) {
   const body = document.getElementById('kpiResultBody');
   const chip = document.getElementById('kpiActiveFilterChip');
@@ -2866,6 +2807,7 @@ function renderKPIResults(data, type, customTitle, customSub) {
     body.innerHTML = '<tr><td colspan="7" class="kpi-empty">No records found for this filter.</td></tr>';
     return;
   }
+
   body.innerHTML = data.map(r => {
     const idDisplay = r.meta?.rfiNo || r.meta?.ncrNo || r.id || '-';
     const typeLabel = r.templateKey === 'rfi' ? 'RFI' : (r.templateKey === 'ncr' ? 'NCR' : (r.templateKey === 'imir' ? 'IMIR' : r.templateName));
@@ -2882,9 +2824,9 @@ function renderKPIResults(data, type, customTitle, customSub) {
   `}).join('');
 }
 
-// ============================================================
-// 22. PRINT FUNCTIONS – unchanged
-// ============================================================
+// ============================================
+// PRINT FUNCTIONS (includes RFI + Checklists + NCRs)
+// ============================================
 function buildPrintableRecordHtml(record) {
   if (!record) return '';
   const t = templates[record.templateKey];
@@ -2917,9 +2859,12 @@ function buildPrintableRecordHtml(record) {
   });
   return html + '</div></div>';
 }
+
 function printCurrentRecordWithChecklists() {
   const rec = currentRecord();
   if (!rec) { window.print(); return; }
+
+  // If it's not an RFI, just print the record itself
   if (rec.templateKey !== 'rfi') {
     const pw = window.open('', '_blank');
     if (!pw) { toast('⚠️ Allow pop-up to print'); return; }
@@ -2929,14 +2874,19 @@ function printCurrentRecordWithChecklists() {
     pw.document.close(); pw.focus(); setTimeout(() => pw.print(), 250);
     return;
   }
+
+  // For RFI: combine RFI + linked Checklists + linked NCRs
   const rfiNo = rec.meta?.rfiNo || rec.id || '';
   const linkedChecklists = getLinkedChecklistsForRfi(rfiNo);
   const linkedNCRs = getLinkedNCRsForRfi(rfiNo);
 
   let combinedHtml = `<div style="font-family:Arial;padding:18px;background:#fff;">`;
   combinedHtml += `<h1 style="color:#123a66;font-size:22px;margin-bottom:12px;">RFI with Attached Documents</h1>`;
+
+  // 1. RFI
   combinedHtml += `<div style="margin-bottom:30px;page-break-after:avoid;">${buildPrintableRecordHtml(rec)}</div>`;
 
+  // 2. Checklists
   if (linkedChecklists.length) {
     combinedHtml += `<div style="margin-top:20px;border-top:2px dashed #ccc;padding-top:20px;">`;
     combinedHtml += `<h2 style="color:#123a66;font-size:18px;">Linked Checklists</h2>`;
@@ -2945,6 +2895,8 @@ function printCurrentRecordWithChecklists() {
     });
     combinedHtml += `</div>`;
   }
+
+  // 3. NCRs
   if (linkedNCRs.length) {
     combinedHtml += `<div style="margin-top:20px;border-top:2px dashed #ccc;padding-top:20px;">`;
     combinedHtml += `<h2 style="color:#123a66;font-size:18px;">Linked NCRs</h2>`;
@@ -2953,6 +2905,7 @@ function printCurrentRecordWithChecklists() {
     });
     combinedHtml += `</div>`;
   }
+
   combinedHtml += `</div>`;
 
   const pw = window.open('', '_blank');
@@ -2960,8 +2913,11 @@ function printCurrentRecordWithChecklists() {
   pw.document.write(`<html><head><title>RFI with linked documents</title>
     <style>body{background:#fff;margin:0;padding:0;} .sheet-head{text-align:center;border:1.8px solid #dbe4ee;border-bottom:none;padding:10px 8px;} .org{font-size:19px;font-weight:700;text-transform:uppercase;} .dept{font-size:16px;font-weight:700;} .format{font-size:13px;font-weight:700;} .title{font-size:20px;font-weight:700;text-transform:uppercase;} table{width:100%;border-collapse:collapse;} td,th{border:1px solid #dbe4ee;padding:6px 8px;font-size:13px;} th{background:#f3f3f3;} .label-cell{font-weight:700;background:#fafafa;width:18%;} input,select,textarea{border:none;background:transparent;width:100%;font-size:13px;outline:none;} textarea{min-height:40px;} .check-section-row td{background:#efefef!important;font-weight:700;text-transform:uppercase;} @page{margin:12mm;} .exact-format .sheet-table, .exact-format table.exact-table{border:1.6px solid #000;} .exact-format .sheet-table td, .exact-format .sheet-table th, .exact-format table.exact-table td, .exact-format table.exact-table th{border:1px solid #000;}
     </style></head><body>${combinedHtml}</body></html>`);
-  pw.document.close(); pw.focus(); setTimeout(() => pw.print(), 250);
+  pw.document.close();
+  pw.focus();
+  setTimeout(() => pw.print(), 250);
 }
+
 function printFilteredHistory() {
   const rows = getHistoryFilteredRows();
   if (!rows.length) { toast('No records to print'); return; }
@@ -2977,9 +2933,9 @@ function printFilteredHistory() {
   pw.document.close(); pw.focus(); setTimeout(() => pw.print(), 250);
 }
 
-// ============================================================
-// 23. DATA EXPORT / IMPORT – unchanged
-// ============================================================
+// ============================================
+// DATA EXPORT / IMPORT
+// ============================================
 function exportData() {
   const data = JSON.stringify(savedReports, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
@@ -2989,6 +2945,7 @@ function exportData() {
   document.body.appendChild(a); a.click(); a.remove();
   toast('📤 Data exported');
 }
+
 function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -2997,16 +2954,14 @@ function importData(event) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error('Invalid format');
-      savedReports = data; 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-      // Also push to server?
-      toast('📥 Data imported locally (use Refresh to sync)');
-      renderHistory(); updateStats();
+      savedReports = data; persistDb();
+      toast('📥 Data imported successfully');
     } catch (err) { toast('❌ Invalid file format'); }
   };
   reader.readAsText(file);
   event.target.value = '';
 }
+
 function exportAllDataJSON() {
   if (!(currentUser && currentUser.role === 'admin')) { toast('⛔ Admin only'); return; }
   const payload = { exportedAt: new Date().toISOString(), appConfig, masters, savedReports, notifications };
@@ -3018,6 +2973,7 @@ function exportAllDataJSON() {
   document.body.appendChild(a); a.click(); a.remove();
   toast('📤 Full backup exported');
 }
+
 function secureDeleteAllData() {
   if (!(currentUser && currentUser.role === 'admin')) { toast('⛔ Admin only'); return; }
   const phrase = prompt('Type DELETE ALL to confirm');
@@ -3027,46 +2983,32 @@ function secureDeleteAllData() {
   if (!confirm('Final confirmation?')) return;
   savedReports = []; notifications = [];
   localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(NOTIFICATION_KEY);
-  toast('🗑️ All data deleted (local)');
+  toast('🗑️ All data deleted');
   renderHistory(); updateStats(); updateNotificationUI();
 }
+
 function syncWithCloud() {
-  toast('☁️ Sync: Use Refresh button to load latest from server');
+  toast('☁️ Sync: Export/Import using the buttons above');
   document.getElementById('syncStatus').innerText = '💾 ' + (savedReports.length) + ' records';
 }
 
-// ============================================================
-// 24. INITIALIZATION
-// ============================================================
-async function init() {
+// ============================================
+// INITIALIZATION
+// ============================================
+function init() {
   document.getElementById('todayDate').innerText = todayText();
-  loadConfig(); loadMasters(); loadDb();
+  loadConfig(); loadMasters(); loadDb(); loadFromServer(); loadSession();
   applyConfig(); populateConfigForm(); populateMastersForm();
+  renderCards(); renderHistory(); updateStats(); updateNotificationUI();
 
-  const token = localStorage.getItem('token');
-  if (token) {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
-      if (!user) {
-        logout();
-        return;
-      }
-      currentUser = user;
-      document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
-      await loadFromServer();
-      renderCards();
-      updateStats();
-      updateNotificationUI();
-      startNotificationPolling();
-      applyFiltersAndRefresh();
-      switchView('dashboard');
-      setActiveKpiCard('total');
-      const unread = notifications.filter(n => n.recipient_username === user.username && !n.read).length;
-      if (unread > 0) toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : ''));
-    } catch (e) {
-      console.warn('Auto-login failed, logging out', e);
-      logout();
-    }
+  if (currentUser) {
+    document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
+    startNotificationPolling();
+    applyFiltersAndRefresh();
+    switchView('dashboard');
+    setActiveKpiCard('total');
+    const unread = getUnreadCount(currentUser.username);
+    if (unread > 0) setTimeout(() => toast('🔔 You have ' + unread + ' unread notification' + (unread > 1 ? 's' : '')), 500);
   } else {
     document.querySelectorAll('.auth-only').forEach(el => el.classList.add('hidden'));
     switchView('login');
@@ -3086,20 +3028,6 @@ document.addEventListener('click', function(e) {
     document.getElementById('notifDropdown').classList.remove('open');
   }
 });
-
-// User mapping for notification routing (matches backend seeds)
-const users = [
-  { u: 'admin', role: 'admin', name: 'System Admin' },
-  { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A' },
-  { u: 'exec_siteB', role: 'exec_engineer', name: 'Execution Engineer Site B' },
-  { u: 'qa_siteA', role: 'qa_head', name: 'QA Head Site A' },
-  { u: 'qa_siteB', role: 'qa_head', name: 'QA Head Site B' },
-  { u: 'contractor1_siteA', role: 'engineer', name: 'Contractor 1 - Site A' },
-  { u: 'contractor2_siteA', role: 'engineer', name: 'Contractor 2 - Site A' },
-  { u: 'contractor1_siteB', role: 'engineer', name: 'Contractor 1 - Site B' },
-  { u: 'manager', role: 'manager', name: 'Project Manager' },
-  { u: 'consultant', role: 'consultant', name: 'Consultant' }
-];
 </script>
 </body>
 </html>
