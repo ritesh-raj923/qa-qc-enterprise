@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
-/* ============================================================
-   ALL CSS – EXACTLY AS YOUR ORIGINAL – UNCHANGED
-   ============================================================ */
+/* ===== ALL YOUR ORIGINAL CSS – UNCHANGED ===== */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -647,6 +645,11 @@ header .sub { font-size: 13px; color: #555; }
       <div id="relatedChecklistList" class="small">No linked checklist yet.</div>
     </div>
 
+    <div id="relatedNCRPanel" class="panel" style="margin-bottom:12px;">
+      <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked NCRs</div>
+      <div id="relatedNCRList" class="small">No linked NCR yet.</div>
+    </div>
+
     <form id="recordForm" onsubmit="saveReport(event)">
       <div class="sheet-shell">
         <div class="sheet-head">
@@ -665,7 +668,7 @@ header .sub { font-size: 13px; color: #555; }
 
 <script>
 // ============================================================
-// 1. API & AUTH HELPERS
+// 1. API & AUTH HELPERS – SERVER INTEGRATION
 // ============================================================
 const API_BASE = window.location.origin;
 
@@ -689,7 +692,7 @@ async function apiRequest(url, options = {}) {
 }
 
 // ============================================================
-// 2. DATA LAYER
+// 2. DATA LAYER (localStorage cache + server as source of truth)
 // ============================================================
 const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
@@ -909,7 +912,7 @@ const templates = {
 };
 
 // ============================================================
-// 5. EXACT EXCEL REPLICA RENDERING (fully written)
+// 5. EXACT EXCEL REPLICA RENDERING (fully written – same as before)
 // ============================================================
 function ev(v) { return esc(v || ''); }
 function secVal(report, idx, fallbackKey) {
@@ -1082,7 +1085,7 @@ function collectIMIRSectionsExact() {
 }
 
 // ============================================================
-// 6. UTILITY FUNCTIONS
+// 6. UTILITY FUNCTIONS (unchanged)
 // ============================================================
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -1154,7 +1157,7 @@ function getProjectDisplay() {
 }
 
 // ============================================================
-// 7. NOTIFICATIONS (API)
+// 7. NOTIFICATIONS (SERVER INTEGRATED)
 // ============================================================
 async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, senderName) {
   try {
@@ -1169,6 +1172,7 @@ async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, 
         sender_name: senderName || currentUser?.display || 'System'
       })
     });
+    // Also update local cache
     const notif = {
       id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       recipient_username: recipientUsername,
@@ -1291,6 +1295,7 @@ async function checkForNewNotifications() {
     }
     updateNotificationUI();
   } catch(e) {
+    // Fallback to cached if server fails
     try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) {}
     updateNotificationUI();
   }
@@ -1305,19 +1310,35 @@ function startNotificationPolling() {
 }
 
 // ============================================================
-// 8. STORAGE & SYNC (with proper 401 handling)
+// 8. STORAGE & SYNC – SERVER AS PRIMARY
 // ============================================================
 function loadDb() {
   try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
   try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
 }
 
-function persistDb() {
+// This function now updates both localStorage and the server
+async function syncReportToServer(row, isNew) {
+  const siteName = getUserDefaultSite();
+  const payload = toApiPayload(row, siteName);
+  if (isNew) {
+    await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
+  } else {
+    await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+  }
+  // After successful server save, update local cache
+  const idx = savedReports.findIndex(r => r.id === row.id);
+  if (idx >= 0) savedReports[idx] = row;
+  else savedReports.unshift(row);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-  updateStats();
-  renderHistory();
-  updateNotificationUI();
+  updateStats(); renderHistory(); updateNotificationUI();
+}
+
+async function deleteReportFromServer(id) {
+  await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
+  savedReports = savedReports.filter(r => r.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+  updateStats(); renderHistory(); updateNotificationUI();
 }
 
 async function loadFromServer() {
@@ -1350,27 +1371,19 @@ async function loadFromServer() {
     notifications = data.notifications || [];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-    renderHistory();
-    updateStats();
-    updateNotificationUI();
+    renderHistory(); updateStats(); updateNotificationUI();
     toast('✅ Synced with server');
   } catch (e) {
-    // If 401, re-throw to trigger logout
-    if (e.message && e.message.includes('401')) {
-      throw e;
-    }
-    // Other errors: fallback to cached data
-    console.warn('Server offline or blocked, using local data', e);
+    if (e.message && e.message.includes('401')) throw e;
+    console.warn('Server offline, using cached data', e);
     loadDb();
-    renderHistory();
-    updateStats();
-    updateNotificationUI();
+    renderHistory(); updateStats(); updateNotificationUI();
     toast('⚠️ Using cached data (server unavailable)');
   }
 }
 
 // ============================================================
-// 9. CONFIG / MASTERS (localStorage only)
+// 9. CONFIG / MASTERS (localStorage only – server not needed)
 // ============================================================
 function loadConfig() {
   try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
@@ -1410,7 +1423,7 @@ function resetMasters() {
 }
 
 // ============================================================
-// 10. AUTH (API)
+// 10. AUTH (API) – unchanged
 // ============================================================
 async function login() {
   const username = document.getElementById('loginUser').value.trim();
@@ -1481,7 +1494,7 @@ function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || 
 function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
 
 // ============================================================
-// 11. VISIBILITY LOGIC
+// 11. VISIBILITY – unchanged
 // ============================================================
 function canUserSeeRecord(record, user) {
   if (!user) return false;
@@ -1575,14 +1588,13 @@ function applyFiltersAndRefresh() {
     if (currentKpiFilter) filterKPI(currentKpiFilter);
   }
 }
-
 function updateAdminToolsVisibility() {
   const box = document.getElementById('adminToolsBox');
   if (box) box.classList.toggle('hidden', !(currentUser && currentUser.role === 'admin'));
 }
 
 // ============================================================
-// 12. REFRESH FUNCTION
+// 12. REFRESH – now loads from server
 // ============================================================
 function refreshHistory() {
   globalFilterState = {
@@ -1608,7 +1620,7 @@ function refreshHistory() {
 }
 
 // ============================================================
-// 13. VIEWS, CARDS, FORM RENDERING
+// 13. VIEWS, CARDS, FORM RENDERING – unchanged
 // ============================================================
 function applyConfig() {
   document.getElementById('brandTitle').innerText = appConfig.companyName || 'QA/QC Suite';
@@ -1857,10 +1869,11 @@ function renderSheet(t, report) {
     radios.forEach(r => r.checked = (r.value === routingVal));
   }
   updateProgress();
+  if (activeTemplateKey === 'rfi') renderLinkedNCRs();
 }
 
 // ============================================================
-// 14. DATA COLLECTION
+// 14. DATA COLLECTION – unchanged
 // ============================================================
 function collectMeta(t) {
   const meta = {};
@@ -1965,7 +1978,7 @@ function updateProgress() {
 }
 
 // ============================================================
-// 15. SAVE & WORKFLOW (with API and auto-refresh)
+// 15. SAVE & WORKFLOW – now uses server sync
 // ============================================================
 function validateForm(meta) {
   const req = [];
@@ -1997,16 +2010,29 @@ function getAuditNow(action, comment) {
   return { action, by: currentUser?.display || 'Unknown', role: currentUser?.role || '', at: new Date().toISOString(), comment: comment || '' };
 }
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
+
 function canEditNCR(rec) {
   if (!rec) return false;
   const status = rec.status || 'Draft';
   const isContractor = currentUser?.role === 'engineer';
   const isQAExec = currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
   if (status === 'Closed' || status === 'Approved') return false;
-  if (isContractor && (status === 'Open' || status === 'Rejected')) return true;
-  if (isQAExec && (status === 'Draft' || status === 'Under Review')) return true;
+  if (isContractor) {
+    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
+    if (linkedRfiId) {
+      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
+      if (parentRfi && parentRfi.createdBy === currentUser.username) {
+        return (status === 'Open' || status === 'Rejected');
+      }
+    }
+    return false;
+  }
+  if (isQAExec) {
+    return (status === 'Draft' || status === 'Under Review');
+  }
   return false;
 }
+
 function generateNcrNumber() {
   let counter = appConfig.ncrCounter || 1;
   const num = String(counter).padStart(3, '0');
@@ -2068,35 +2094,21 @@ async function saveReport(ev) {
     return;
   }
 
-  const siteName = getUserDefaultSite();
-  const payload = toApiPayload(row, siteName);
-
   try {
     const isNew = !savedReports.find(r => r.id === id);
-    if (isNew) {
-      await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
-      savedReports.unshift(row);
-    } else {
-      await apiRequest(`/api/reports/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-      const idx = savedReports.findIndex(r => r.id === id);
-      if (idx >= 0) savedReports[idx] = row;
-    }
+    await syncReportToServer(row, isNew);
     activeReportId = id;
-    persistDb();
     if (activeTemplateKey === 'rfi') {
       pendingReturnRfiId = id;
       pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
       pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
+      renderLinkedNCRs();
     }
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-
-    // Auto-refresh after save
-    setTimeout(() => {
-      loadFromServer().then(() => renderHistory()).catch(() => { loadDb(); renderHistory(); });
-    }, 300);
-
+    // Refresh from server after save to reflect latest data
+    setTimeout(() => loadFromServer(), 500);
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
   }
@@ -2108,31 +2120,18 @@ async function deleteReport(id) {
   if (!canDeleteRecord(r)) { toast('⛔ Delete not allowed'); return; }
   if (!confirm('Delete this saved report?')) return;
   try {
-    await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
-    savedReports = savedReports.filter(x => x.id !== id);
-    persistDb();
+    await deleteReportFromServer(id);
     toast('🗑️ Deleted');
-    setTimeout(() => {
-      loadFromServer().then(() => renderHistory()).catch(() => { loadDb(); renderHistory(); });
-    }, 300);
     if (activeReportId === id) backFromForm();
+    setTimeout(() => loadFromServer(), 500);
   } catch(e) {
     toast('❌ Delete failed: ' + e.message);
   }
 }
 
 async function updateReportOnServer(row) {
-  const siteName = getUserDefaultSite();
-  const payload = toApiPayload(row, siteName);
-  try {
-    await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
-    persistDb();
-    setTimeout(() => {
-      loadFromServer().then(() => renderHistory()).catch(() => { loadDb(); renderHistory(); });
-    }, 300);
-  } catch(e) {
-    toast('❌ Server update failed: ' + e.message);
-  }
+  await syncReportToServer(row, false);
+  setTimeout(() => loadFromServer(), 500);
 }
 
 function updateWorkflowButtons(rec) {
@@ -2159,16 +2158,18 @@ function updateWorkflowButtons(rec) {
   const isQAExec = isQA || isExec;
 
   if (isNcrFlag) {
-    const showContractorSubmit = isContractor && (status === 'Open' || status === 'Rejected');
-    const showQASend = isQAExec && status === 'Draft';
-    const showApprove = isQAExec && status === 'Under Review';
-    const showReject = isQAExec && status === 'Under Review';
+    const editable = canEditNCR(rec);
+    const showContractorSubmit = isContractor && editable && (status === 'Open' || status === 'Rejected');
+    const showQASend = isQAExec && (status === 'Draft');
+    const showApprove = isQAExec && (status === 'Under Review');
+    const showReject = isQAExec && (status === 'Under Review');
+    const showClose = isQAExec && (status === 'Approved' || status === 'Approved with Comment');
 
     document.getElementById('btnSubmit').classList.toggle('hidden', !showQASend);
     document.getElementById('btnReview').classList.toggle('hidden', !showContractorSubmit);
     document.getElementById('btnApprove').classList.toggle('hidden', !showApprove);
     document.getElementById('btnReject').classList.toggle('hidden', !showReject);
-    document.getElementById('btnClose').classList.toggle('hidden', true);
+    document.getElementById('btnClose').classList.toggle('hidden', !showClose);
     document.getElementById('btnApproveComment').classList.toggle('hidden', true);
     document.getElementById('btnApproveQA').classList.toggle('hidden', true);
     document.getElementById('btnRaiseNCR').classList.toggle('hidden', true);
@@ -2217,8 +2218,47 @@ function setChecklistButtonsState(rec) {
   });
 }
 
+function renderLinkedNCRs() {
+  const list = document.getElementById('relatedNCRList');
+  if (!list) return;
+  if (activeTemplateKey !== 'rfi') {
+    list.innerHTML = '';
+    return;
+  }
+  const rfiNo = document.getElementById('meta_rfiNo')?.value || '';
+  const rfiId = activeReportId || '';
+  let linked = [];
+  if (rfiNo) linked = getLinkedNCRsForRfi(rfiNo);
+  if (rfiId && rfiId !== rfiNo) {
+    const extra = getLinkedNCRsForRfi(rfiId);
+    linked = linked.concat(extra);
+  }
+  const seen = new Set();
+  linked = linked.filter(n => {
+    if (seen.has(n.id)) return false;
+    seen.add(n.id);
+    return true;
+  });
+  if (!linked.length) {
+    list.innerHTML = 'No linked NCR yet.';
+    return;
+  }
+  let html = '<ul style="list-style:none;padding:0;margin:0;">';
+  linked.forEach(n => {
+    const status = n.status || 'Draft';
+    const canEdit = canEditNCR(n);
+    const editBtn = canEdit ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">Open & Edit</button>` : `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">View</button>`;
+    html += `<li style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #eee;">
+      <span><b>${esc(n.meta?.ncrNo || n.id)}</b> – ${esc(status)}</span>
+      ${editBtn}
+    </li>`;
+  });
+  html += '</ul>';
+  list.innerHTML = html;
+}
+
 // ============================================================
-// 16. WORKFLOW ACTIONS
+// 16. WORKFLOW ACTIONS – updated to use async server sync
 // ============================================================
 async function approveForQA() {
   const rec = currentRecord();
@@ -2292,14 +2332,7 @@ async function raiseNCRFromRFI() {
     raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
   };
   try {
-    const siteName = getUserDefaultSite();
-    const payload = toApiPayload(newNCR, siteName);
-    await apiRequest('/api/reports', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-    savedReports.unshift(newNCR);
-    persistDb();
+    await syncReportToServer(newNCR, true);
     toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
     const contractorUser = users.find(u => u.username === rfi.createdBy);
     if (contractorUser) {
@@ -2524,7 +2557,7 @@ async function closeRecord() {
 }
 
 // ============================================================
-// 17. CHECKLIST LINKING
+// 17. CHECKLIST LINKING – unchanged
 // ============================================================
 function captureCurrentRfiPrefill() {
   return {
@@ -2574,7 +2607,7 @@ function applyPendingChecklistPrefill() {
 }
 
 // ============================================================
-// 18. OPEN TEMPLATE / RECORD
+// 18. OPEN TEMPLATE / RECORD – unchanged
 // ============================================================
 function openTemplate(key, reportId = null) {
   activeTemplateKey = key;
@@ -2608,7 +2641,7 @@ function openRecord(id) {
 }
 
 // ============================================================
-// 19. STATS & DASHBOARD
+// 19. STATS & DASHBOARD – unchanged
 // ============================================================
 function updateStats() {
   const rows = visibleReports();
@@ -2651,7 +2684,7 @@ function recordDateKey(rec) {
 function getHistoryFilteredRows() { return visibleReports(); }
 
 // ============================================================
-// 20. RENDER HISTORY – UPDATED: Contractors see linked NCRs
+// 20. RENDER HISTORY – unchanged (already shows linked NCRs)
 // ============================================================
 function renderHistory() {
   const body = document.getElementById('historyBody');
@@ -2712,7 +2745,6 @@ function renderHistory() {
 
   rfiRows.forEach(r => {
     const linkedKey = r.meta?.rfiNo || r.id;
-    // 🔹 ONLY show linked items that the user is allowed to see
     const linkedChecklists = (checklistMap.get(linkedKey) || []).filter(chk => canUserSeeRecord(chk, currentUser));
     const linkedNCRs = (ncrMap.get(linkedKey) || []).filter(chk => canUserSeeRecord(chk, currentUser));
     const allLinked = [...linkedChecklists, ...linkedNCRs];
@@ -2765,7 +2797,7 @@ function renderHistory() {
 }
 
 // ============================================================
-// 21. KPI FILTERING (unchanged)
+// 21. KPI FILTERING – unchanged
 // ============================================================
 function kpiLabel(type) {
   const map = {
@@ -2851,7 +2883,7 @@ function renderKPIResults(data, type, customTitle, customSub) {
 }
 
 // ============================================================
-// 22. PRINT FUNCTIONS (unchanged)
+// 22. PRINT FUNCTIONS – unchanged
 // ============================================================
 function buildPrintableRecordHtml(record) {
   if (!record) return '';
@@ -2946,7 +2978,7 @@ function printFilteredHistory() {
 }
 
 // ============================================================
-// 23. DATA EXPORT / IMPORT (unchanged)
+// 23. DATA EXPORT / IMPORT – unchanged
 // ============================================================
 function exportData() {
   const data = JSON.stringify(savedReports, null, 2);
@@ -2965,8 +2997,11 @@ function importData(event) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error('Invalid format');
-      savedReports = data; persistDb();
-      toast('📥 Data imported successfully');
+      savedReports = data; 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+      // Also push to server?
+      toast('📥 Data imported locally (use Refresh to sync)');
+      renderHistory(); updateStats();
     } catch (err) { toast('❌ Invalid file format'); }
   };
   reader.readAsText(file);
@@ -2992,11 +3027,11 @@ function secureDeleteAllData() {
   if (!confirm('Final confirmation?')) return;
   savedReports = []; notifications = [];
   localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(NOTIFICATION_KEY);
-  toast('🗑️ All data deleted');
+  toast('🗑️ All data deleted (local)');
   renderHistory(); updateStats(); updateNotificationUI();
 }
 function syncWithCloud() {
-  toast('☁️ Sync: Export/Import using the buttons above');
+  toast('☁️ Sync: Use Refresh button to load latest from server');
   document.getElementById('syncStatus').innerText = '💾 ' + (savedReports.length) + ' records';
 }
 
