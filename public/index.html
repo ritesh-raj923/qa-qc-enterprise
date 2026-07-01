@@ -710,6 +710,7 @@ let pendingLinkedRfiNo = null;
 let pendingParentMeta = null;
 let currentKpiFilter = 'total';
 let currentKpiRows = [];
+// ===== GLOBAL FILTER STATE (linked to Dashboard) =====
 let globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
 let notifications = [];
 let notificationPollInterval = null;
@@ -2698,7 +2699,40 @@ function recordDateKey(rec) {
   if (String(d) === 'Invalid Date') return '';
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function getHistoryFilteredRows() { return visibleReports(); }
+  function visibleReports() {
+  let rows = savedReports.slice();
+  if (globalFilterState.project) {
+    rows = rows.filter(r => String(r.meta?.project || r.titleLoc || '').toLowerCase().includes(globalFilterState.project.toLowerCase()));
+  }
+  if (globalFilterState.type) {
+    rows = rows.filter(r => r.templateKey === globalFilterState.type);
+  }
+  if (globalFilterState.contractor) {
+    rows = rows.filter(r => String(r.meta?.contractor || '').toLowerCase().includes(globalFilterState.contractor.toLowerCase()));
+  }
+  if (globalFilterState.discipline) {
+    rows = rows.filter(r => String(r.meta?.discipline || '').toLowerCase().includes(globalFilterState.discipline.toLowerCase()));
+  }
+  if (globalFilterState.status) {
+    rows = rows.filter(r => (r.status || 'Draft') === globalFilterState.status);
+  }
+  if (globalFilterState.fromDate) {
+    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') >= globalFilterState.fromDate);
+  }
+  if (globalFilterState.toDate) {
+    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') <= globalFilterState.toDate);
+  }
+  if (globalFilterState.owner) {
+    rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
+  }
+  if (!currentUser) return [];
+  rows = rows.filter(r => canUserSeeRecord(r, currentUser));
+  return rows;
+}
+
+function getHistoryFilteredRows() {
+  return visibleReports();
+}
 
 // ============================================================
 // 21. RENDER HISTORY – shows NCRs as child rows
