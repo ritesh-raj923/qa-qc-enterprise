@@ -1927,7 +1927,8 @@ function canEditNCR(rec) {
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy === currentUser.username) {
-        return (status === 'Open' || status === 'Rejected');
+        // Allow editing for Open, Rejected, AND Submitted
+        return (status === 'Open' || status === 'Rejected' || status === 'Submitted');
       }
     }
     return false;
