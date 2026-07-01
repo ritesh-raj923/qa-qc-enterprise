@@ -295,11 +295,29 @@ app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// NEW: GET /api/reports/by-rfi/:rfiNo - Fetch all linked checklists and NCRs for a given RFI number
+app.get('/api/reports/by-rfi/:rfiNo', authenticateToken, async (req, res) => {
+    try {
+        const { rfiNo } = req.params;
+        const allReports = await getReportsForUser(req.user);
+        const checklists = allReports.filter(r =>
+            r.templateKey !== 'rfi' &&
+            (r.meta?.linkedRfi === rfiNo || r.raisedFromRfi === rfiNo)
+        );
+        const ncrList = allReports.filter(r =>
+            r.templateKey === 'ncr' &&
+            (r.raisedFromRfi === rfiNo || r.meta?.raisedFromRfi === rfiNo)
+        );
+        res.json({ checklists, ncrList });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/reports/:id/children - Fetch a report with its linked checklists and NCRs
 app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        // Get the parent report
         const parentResult = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
         if (parentResult.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
         const parentRow = parentResult.rows[0];
@@ -307,7 +325,6 @@ app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Access denied to this site' });
         }
 
-        // Find linked checklists and NCRs
         const allReports = await getReportsForUser(req.user);
         const parent = parseReportRow(parentRow);
         const linkedKey = parent.meta?.rfiNo || parent.id;
@@ -316,17 +333,12 @@ app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
             r.templateKey !== 'rfi' &&
             (r.meta?.linkedRfi === linkedKey || r.raisedFromRfi === linkedKey)
         );
-
         const ncrList = allReports.filter(r =>
             r.templateKey === 'ncr' &&
             (r.raisedFromRfi === linkedKey || r.meta?.raisedFromRfi === linkedKey)
         );
 
-        res.json({
-            report: parent,
-            checklists,
-            ncrList
-        });
+        res.json({ report: parent, checklists, ncrList });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
