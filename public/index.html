@@ -526,7 +526,7 @@ header .sub { font-size: 13px; color: #555; }
       </div>
       <div class="kpi-table-wrap">
         <table class="kpi-table">
-          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Location</th><th>Status</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr></thead>
+          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Location</th><th>Status</th><th>Owner</th><th>Saved Date/Time</th><th>Action</th></tr></thead>
           <tbody id="kpiResultBody"><tr><td colspan="7" class="kpi-empty">No records found.</td></tr></tbody>
         </table>
       </div>
@@ -563,7 +563,7 @@ header .sub { font-size: 13px; color: #555; }
         <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Local storage</span>
       </div>
       <table>
-        <thead><tr><th>Saved Date</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
+        <thead><tr><th>Saved Date/Time</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
         <tbody id="historyBody"><tr><td colspan="8" style="text-align:center;color:#666;">No records found.</td></tr></tbody>
       </table>
     </div>
@@ -1066,6 +1066,19 @@ function fmtDate(v) {
   if (!v) return '';
   const d = new Date(v);
   return String(d) === 'Invalid Date' ? String(v) : d.toLocaleDateString('en-GB');
+}
+function fmtDateTime(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString('en-GB', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: true 
+  });
 }
 function fmtTimeAgo(dateStr) {
   const d = new Date(dateStr);
@@ -2544,7 +2557,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2561,7 +2574,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2582,7 +2595,7 @@ function renderHistory() {
     const tr = document.createElement('tr');
     tr.className = 'parent-rfi-row';
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span><br><span class="small">Linked: ${allLinked.length}</span></td>
@@ -2706,7 +2719,7 @@ function renderKPIResults(data, type, customTitle, customSub) {
       <td>${esc(r.meta?.project || r.titleLoc || '-')}</td>
       <td><span class="kpi-status ${kpiStatusClass(r.status || '')}">${esc(r.status || 'Draft')}</span></td>
       <td>${esc(r.createdByDisplay || '-')}</td>
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
       <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button></td>
     </tr>
   `}).join('');
@@ -2800,7 +2813,7 @@ function printFilteredHistory() {
   let tableHtml = `<table><thead><tr><th>Date</th><th>Format</th><th>Project</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th></tr></thead><tbody>`;
   rows.forEach(r => {
     const scoreBadge = typeof r.score === 'number' ? `${r.score}%` : 'N/A';
-    tableHtml += `<tr><td>${fmtDate(r.meta?.date || r.savedAt)}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
+    tableHtml += `<tr><td>${fmtDateTime(r.meta?.date || r.savedAt))}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
   });
   tableHtml += '</tbody></table>';
   pw.document.write(`<html><head><title>Saved Records</title><style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#f0f0f0;}@page{margin:12mm;}</style></head><body><h1>QA/QC Saved Records</h1><p>Generated: ${new Date().toLocaleString()}</p>${tableHtml}</body></html>`);
