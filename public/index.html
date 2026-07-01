@@ -2063,10 +2063,10 @@ function currentRecord() { return activeReportId ? savedReports.find(r => r.id =
 function canEditNCR(rec) {
   if (!rec) return false;
   const status = rec.status || 'Draft';
-  const isContractor = currentUser?.role === 'engineer';
-  const isQAExec = currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
-  if (status === 'Closed' || status === 'Approved') return false;
-  if (isContractor) {
+  const userRole = currentUser?.role;
+
+  // 1. Contractor: only if linked to their RFI and status is Open/Rejected/Submitted
+  if (userRole === 'engineer') {
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
@@ -2076,9 +2076,12 @@ function canEditNCR(rec) {
     }
     return false;
   }
-  if (isQAExec) {
+
+  // 2. QA Head, Execution Engineer, Admin: can edit Draft or Under Review NCRs
+  if (userRole === 'qa_head' || userRole === 'exec_engineer' || userRole === 'admin') {
     return (status === 'Draft' || status === 'Under Review');
   }
+
   return false;
 }
 
