@@ -1426,10 +1426,10 @@ function visibleReports() {
     rows = rows.filter(r => (r.status || 'Draft') === globalFilterState.status);
   }
   if (globalFilterState.fromDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') >= globalFilterState.fromDate);
+    rows = rows.filter(r => (r.savedAt || r.meta?.date|| '') >= globalFilterState.fromDate);
   }
   if (globalFilterState.toDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') <= globalFilterState.toDate);
+    rows = rows.filter(r => (r.savedAt || r.meta?.date|| '') <= globalFilterState.toDate);
   }
   if (globalFilterState.owner) {
     rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
@@ -2553,7 +2553,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2570,7 +2570,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2591,7 +2591,7 @@ function renderHistory() {
     const tr = document.createElement('tr');
     tr.className = 'parent-rfi-row';
     tr.innerHTML = `
-      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span><br><span class="small">Linked: ${allLinked.length}</span></td>
@@ -2715,7 +2715,7 @@ function renderKPIResults(data, type, customTitle, customSub) {
       <td>${esc(r.meta?.project || r.titleLoc || '-')}</td>
       <td><span class="kpi-status ${kpiStatusClass(r.status || '')}">${esc(r.status || 'Draft')}</span></td>
       <td>${esc(r.createdByDisplay || '-')}</td>
-      <td>${fmtDateTime(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button></td>
     </tr>
   `}).join('');
@@ -2809,7 +2809,7 @@ function printFilteredHistory() {
   let tableHtml = `<table><thead><tr><th>Date/Time</th><th>Format</th><th>Project</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th></tr></thead><tbody>`;
   rows.forEach(r => {
     const scoreBadge = typeof r.score === 'number' ? `${r.score}%` : 'N/A';
-    tableHtml += `<tr><td>${fmtDateTime(r.meta?.date || r.savedAt)}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
+    tableHtml += `<tr><td>${fmtDateTime(r.savedAt || r.meta?.date)}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
   });
   tableHtml += '</tbody></table>';
   pw.document.write(`<html><head><title>Saved Records</title><style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#f0f0f0;}@page{margin:12mm;}</style></head><body><h1>QA/QC Saved Records</h1><p>Generated: ${new Date().toLocaleString()}</p>${tableHtml}</body></html>`);
