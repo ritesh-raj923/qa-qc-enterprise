@@ -506,6 +506,22 @@ header .sub { font-size: 13px; color: #555; }
       <div class="stat ok" data-kpi="ncr_closed" onclick="filterKPI('ncr_closed')"><div class="label">🔒 NCR Closed</div><div class="value" id="ncrClosed">0</div></div>
       <div class="stat" data-kpi="ncr_closed_pct" onclick="filterKPI('ncr_closed_pct')"><div class="label">📊 NCR Closed %</div><div class="value" id="ncrClosedPct">0%</div></div>
     </div>
+    <div class="stat" data-kpi="imir_total" onclick="filterKPI('imir_total')">
+  <div class="label">📋 Total IMIR</div>
+  <div class="value" id="imirTotal">0</div>
+</div>
+<div class="stat ok" data-kpi="imir_approved" onclick="filterKPI('imir_approved')">
+  <div class="label">✅ IMIR Approved</div>
+  <div class="value" id="imirApproved">0</div>
+</div>
+<div class="stat alert" data-kpi="imir_rejected" onclick="filterKPI('imir_rejected')">
+  <div class="label">❌ IMIR Rejected</div>
+  <div class="value" id="imirRejected">0</div>
+</div>
+<div class="stat warn" data-kpi="imir_pending" onclick="filterKPI('imir_pending')">
+  <div class="label">⏳ IMIR Pending</div>
+  <div class="value" id="imirPending">0</div>
+</div>
     <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
     <div id="kpiResultSection" class="panel kpi-panel">
       <div class="kpi-panel-head">
@@ -2729,7 +2745,9 @@ function updateStats() {
   const rows = visibleReports();
   const rfis = rows.filter(r => r.templateKey === 'rfi');
   const ncrs = rows.filter(r => r.templateKey === 'ncr');
+  const imirs = rows.filter(r => r.templateKey === 'imir');
 
+  // --- RFI stats ---
   const approvedOnly = rfis.filter(r => r.status === 'Approved' || r.status === 'Closed').length;
   const approvedWithComment = rfis.filter(r => r.status === 'Approved with Comment').length;
   const allApproved = approvedOnly + approvedWithComment;
@@ -2742,6 +2760,7 @@ function updateStats() {
   document.getElementById('approvedCommentRfi').innerText = approvedWithComment;
   document.getElementById('rejectedRfi').innerText = rfis.filter(r => r.status === 'Rejected').length;
 
+  // --- NCR stats ---
   const ncrTotal = ncrs.length;
   const ncrClosed = ncrs.filter(r => r.status === 'Closed').length;
   const ncrOpen = ncrTotal - ncrClosed;
@@ -2750,6 +2769,16 @@ function updateStats() {
   document.getElementById('ncrOpen').innerText = ncrOpen;
   document.getElementById('ncrClosed').innerText = ncrClosed;
   document.getElementById('ncrClosedPct').innerText = ncrClosedPct + '%';
+
+  // --- IMIR stats ---
+  const imirTotal = imirs.length;
+  const imirApproved = imirs.filter(r => r.status === 'Approved').length;
+  const imirRejected = imirs.filter(r => r.status === 'Rejected').length;
+  const imirPending = imirs.filter(r => r.status !== 'Approved' && r.status !== 'Rejected').length;
+  document.getElementById('imirTotal').innerText = imirTotal;
+  document.getElementById('imirApproved').innerText = imirApproved;
+  document.getElementById('imirRejected').innerText = imirRejected;
+  document.getElementById('imirPending').innerText = imirPending;
 
   if (currentKpiFilter) filterKPI(currentKpiFilter);
   updateNotificationUI();
@@ -2913,11 +2942,21 @@ function renderHistory() {
 // ============================================================
 function kpiLabel(type) {
   const map = {
-    total: 'All RFI', approval: 'Approved RFI',
-    pending: 'Pending RFI', approved: 'Approved RFI',
-    approved_comment: 'RFI w/ Comment', rejected: 'Rejected RFI',
-    ncr_total: 'All NCR', ncr_open: 'Open NCR',
-    ncr_closed: 'Closed NCR', ncr_closed_pct: 'NCR Closed %'
+    total: 'All RFI',
+    approval: 'Approved RFI',
+    pending: 'Pending RFI',
+    approved: 'Approved RFI',
+    approved_comment: 'RFI w/ Comment',
+    rejected: 'Rejected RFI',
+    ncr_total: 'All NCR',
+    ncr_open: 'Open NCR',
+    ncr_closed: 'Closed NCR',
+    ncr_closed_pct: 'NCR Closed %',
+    // Add IMIR labels
+    imir_total: 'All IMIR',
+    imir_approved: 'Approved IMIR',
+    imir_rejected: 'Rejected IMIR',
+    imir_pending: 'Pending IMIR'
   };
   return map[type] || 'Filtered';
 }
@@ -2939,6 +2978,7 @@ function filterKPI(type) {
   let title = 'All Records';
   let sub = 'Showing all records.';
 
+  // --- RFI filters ---
   if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'approved_comment' || type === 'rejected') {
     const rfis = sourceRows.filter(r => r.templateKey === 'rfi');
     if (type === 'total') filtered = rfis;
@@ -2947,13 +2987,27 @@ function filterKPI(type) {
     else if (type === 'approved') filtered = rfis.filter(r => r.status === 'Approved' || r.status === 'Closed');
     else if (type === 'approved_comment') filtered = rfis.filter(r => r.status === 'Approved with Comment');
     else if (type === 'rejected') filtered = rfis.filter(r => r.status === 'Rejected');
-    title = 'RFI List'; sub = 'Showing RFI records.';
-  } else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct') {
+    title = 'RFI List';
+    sub = 'Showing RFI records.';
+  }
+  // --- NCR filters ---
+  else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct') {
     const ncrs = sourceRows.filter(r => r.templateKey === 'ncr');
     if (type === 'ncr_total') filtered = ncrs;
     else if (type === 'ncr_open') filtered = ncrs.filter(r => r.status !== 'Closed');
     else if (type === 'ncr_closed' || type === 'ncr_closed_pct') filtered = ncrs.filter(r => r.status === 'Closed');
-    title = 'NCR List'; sub = 'Showing NCR records.';
+    title = 'NCR List';
+    sub = 'Showing NCR records.';
+  }
+  // --- IMIR filters ---
+  else if (type === 'imir_total' || type === 'imir_approved' || type === 'imir_rejected' || type === 'imir_pending') {
+    const imirs = sourceRows.filter(r => r.templateKey === 'imir');
+    if (type === 'imir_total') filtered = imirs;
+    else if (type === 'imir_approved') filtered = imirs.filter(r => r.status === 'Approved');
+    else if (type === 'imir_rejected') filtered = imirs.filter(r => r.status === 'Rejected');
+    else if (type === 'imir_pending') filtered = imirs.filter(r => r.status !== 'Approved' && r.status !== 'Rejected');
+    title = 'IMIR List';
+    sub = 'Showing IMIR records.';
   }
 
   currentKpiFilter = type;
