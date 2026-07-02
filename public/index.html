@@ -1735,6 +1735,24 @@ function renderMetaRows(metaRows, metaData = {}) {
         type = 'select'; opts = getRfiOptions();
         if (!val && opts.length) val = opts[0] || '';
       }
+      // --- NEW: Agency dropdown for NCR (filtered by site) ---
+      if (cell.k === 'agency' && activeTemplateKey === 'ncr') {
+        type = 'select';
+        let engineers = users.filter(u => u.role === 'engineer');
+        const userSites = currentUser?.assigned_sites || ['*'];
+        if (!userSites.includes('*')) {
+          engineers = engineers.filter(e => {
+            if (!e.assigned_sites) return false;
+            return e.assigned_sites.some(s => userSites.includes(s));
+          });
+        }
+        opts = engineers.map(u => u.u);
+        if (val && !opts.includes(val)) {
+          opts.push(val);
+        }
+      }
+      // --- end of new code ---
+
       html += `<td class="label-cell">${esc(cell.l)}</td><td>${makeInput('meta_' + cell.k, val, type, opts)}</td>`;
     });
     if (row.length === 1) html += '<td colspan="2"></td>';
@@ -3239,16 +3257,16 @@ document.addEventListener('click', function(e) {
 
 // User mapping for notification routing (matches backend seeds)
 const users = [
-  { u: 'admin', role: 'admin', name: 'System Admin' },
-  { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A' },
-  { u: 'exec_siteB', role: 'exec_engineer', name: 'Execution Engineer Site B' },
-  { u: 'qa_siteA', role: 'qa_head', name: 'QA Head Site A' },
-  { u: 'qa_siteB', role: 'qa_head', name: 'QA Head Site B' },
-  { u: 'contractor1_siteA', role: 'engineer', name: 'Contractor 1 - Site A' },
-  { u: 'contractor2_siteA', role: 'engineer', name: 'Contractor 2 - Site A' },
-  { u: 'contractor1_siteB', role: 'engineer', name: 'Contractor 1 - Site B' },
-  { u: 'manager', role: 'manager', name: 'Project Manager' },
-  { u: 'consultant', role: 'consultant', name: 'Consultant' }
+  { u: 'admin', role: 'admin', name: 'System Admin', assigned_sites: ['*'] },
+  { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A', assigned_sites: ['Site-A'] },
+  { u: 'exec_siteB', role: 'exec_engineer', name: 'Execution Engineer Site B', assigned_sites: ['Site-B'] },
+  { u: 'qa_siteA', role: 'qa_head', name: 'QA Head Site A', assigned_sites: ['Site-A'] },
+  { u: 'qa_siteB', role: 'qa_head', name: 'QA Head Site B', assigned_sites: ['Site-B'] },
+  { u: 'contractor1_siteA', role: 'engineer', name: 'Contractor 1 - Site A', assigned_sites: ['Site-A'] },
+  { u: 'contractor2_siteA', role: 'engineer', name: 'Contractor 2 - Site A', assigned_sites: ['Site-A'] },
+  { u: 'contractor1_siteB', role: 'engineer', name: 'Contractor 1 - Site B', assigned_sites: ['Site-B'] },
+  { u: 'manager', role: 'manager', name: 'Project Manager', assigned_sites: ['*'] },
+  { u: 'consultant', role: 'consultant', name: 'Consultant', assigned_sites: ['*'] }
 ];
 </script>
 </body>
