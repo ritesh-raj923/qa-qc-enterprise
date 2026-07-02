@@ -462,36 +462,36 @@ header .sub { font-size: 13px; color: #555; }
 
   <div id="view-login" class="view">
     <div class="login-shell">
-      <div class="login-wrap">
-        <h2>🔐 Secure Sign In</h2>
-        <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
-        <div class="field">
-          <label>Username</label>
-          <input id="loginUser" placeholder="Enter username" value="Contractor 1">
+        <div class="login-wrap">
+            <h2>🔐 Secure Sign In</h2>
+            <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
+            <div class="field">
+                <label>Username</label>
+                <input id="loginUser" placeholder="Enter username" value="contractor1_siteA">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="loginPass" type="password" placeholder="Enter password" value="ContA123">
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-primary" type="button" onclick="login()">Login</button>
+            </div>
+            <div class="note" style="margin-top:14px; line-height:1.8; background:#f8fafc; padding:10px 14px; border-radius:8px; border:1px solid #e2e8f0;">
+                <b>👥 Demo Users (from database):</b><br>
+                <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site A): <code>contractor1_siteA</code> / <code>ContA123</code></span>
+                <span style="display:inline-block; width:48%;">👷 Contractor 2 (Site A): <code>contractor2_siteA</code> / <code>ContA456</code></span>
+                <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site A): <code>exec_siteA</code> / <code>ExecA123</code></span>
+                <span style="display:inline-block; width:48%;">👔 QA Head (Site A): <code>qa_siteA</code> / <code>QaA123</code></span>
+                <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site B): <code>exec_siteB</code> / <code>ExecB123</code></span>
+                <span style="display:inline-block; width:48%;">👔 QA Head (Site B): <code>qa_siteB</code> / <code>QaB123</code></span>
+                <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site B): <code>contractor1_siteB</code> / <code>ContB123</code></span>
+                <span style="display:inline-block; width:48%;">📊 Manager: <code>manager</code> / <code>Mgr123</code></span>
+                <span style="display:inline-block; width:48%;">🔧 Admin: <code>admin</code> / <code>Admin123</code></span>
+                <span style="display:inline-block; width:48%;">👀 Consultant: <code>consultant</code> / <code>View123</code></span>
+            </div>
         </div>
-        <div class="field">
-          <label>Password</label>
-          <input id="loginPass" type="password" placeholder="Enter password" value="Contractor_1@811">
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary" type="button" onclick="login()">Login</button>
-        </div>
-               <div class="note" style="margin-top:12px; line-height:1.8;">
-                  <b>Demo Users (from database):</b><br>
-                  👷 Contractor 1 (Site A): contractor1_siteA / ContA123<br>
-                  👷 Contractor 2 (Site A): contractor2_siteA / ContA456<br>
-                  🔧 Execution Engineer (Site A): exec_siteA / ExecA123<br>
-                  👔 QA Head (Site A): qa_siteA / QaA123<br>
-                  🔧 Execution Engineer (Site B): exec_siteB / ExecB123<br>
-                  👔 QA Head (Site B): qa_siteB / QaB123<br>
-                  👷 Contractor 1 (Site B): contractor1_siteB / ContB123<br>
-                  📊 Manager: manager / Mgr123<br>
-                  🔧 Admin: admin / Admin123<br>
-                  👀 Consultant: consultant / View123
-               </div>
-      </div>
     </div>
-  </div>
+</div>
 
   <div id="view-dashboard" class="view">
     <div class="dashboard-grid">
@@ -1874,6 +1874,7 @@ function renderSheet(t, report) {
   updateProgress();
   if (activeTemplateKey === 'rfi') {
     renderLinkedNCRs();
+    renderLinkedChecklists();
   }
 }
 
@@ -1918,7 +1919,50 @@ function renderLinkedNCRs() {
   html += '</ul>';
   list.innerHTML = html;
 }
-
+function renderLinkedChecklists() {
+  const list = document.getElementById('relatedChecklistList');
+  if (!list) return;
+  if (activeTemplateKey !== 'rfi') {
+    list.innerHTML = '';
+    return;
+  }
+  const rfiNo = document.getElementById('meta_rfiNo')?.value?.trim() || '';
+  const rfiId = activeReportId || '';
+  if (!rfiNo && !rfiId) {
+    list.innerHTML = 'Please save the RFI first to link checklists.';
+    return;
+  }
+  let linked = [];
+  if (rfiNo) linked = getLinkedChecklistsForRfi(rfiNo);
+  if (rfiId && rfiId !== rfiNo) {
+    const extra = getLinkedChecklistsForRfi(rfiId);
+    linked = linked.concat(extra);
+  }
+  // Deduplicate
+  const seen = new Set();
+  linked = linked.filter(chk => {
+    if (seen.has(chk.id)) return false;
+    seen.add(chk.id);
+    return true;
+  });
+  if (!linked.length) {
+    list.innerHTML = 'No linked checklist yet. Use the buttons above to add one.';
+    return;
+  }
+  let html = `<table class="kpi-table" style="font-size:12px;margin-top:6px;">
+    <thead><tr><th>Name</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>`;
+  linked.forEach(chk => {
+    const dateStr = fmtDateTime(chk.savedAt || chk.meta?.date || '');
+    html += `<tr>
+      <td><b>${esc(chk.templateName)}</b></td>
+      <td>${badgeForStatus(chk.status || 'Draft')}</td>
+      <td class="small">${dateStr}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="openRecord('${chk.id}')">Open</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
 // ============================================================
 // 15. DATA COLLECTION
 // ============================================================
@@ -2585,15 +2629,36 @@ function captureCurrentRfiPrefill() {
     date: document.getElementById('meta_date')?.value || ''
   };
 }
-function launchChecklistFromRfi(templateKey) {
-  if (activeTemplateKey !== 'rfi') { toast('⚠️ Open an RFI first'); return; }
+async function launchChecklistFromRfi(templateKey) {
+  if (activeTemplateKey !== 'rfi') {
+    toast('⚠️ Open an RFI first');
+    return;
+  }
   const rfiNoEl = document.getElementById('meta_rfiNo');
   const rfiNo = (rfiNoEl?.value || '').trim();
-  if (!rfiNo) { toast('⚠️ Enter RFI No first'); rfiNoEl?.focus(); return; }
-  saveReport({ preventDefault() {} });
+  if (!rfiNo) {
+    toast('⚠️ Enter RFI No first');
+    rfiNoEl?.focus();
+    return;
+  }
+  
+  // Save the RFI and wait for completion
+  try {
+    await saveReport({ preventDefault() {} });
+  } catch (e) {
+    toast('❌ Failed to save RFI: ' + e.message);
+    return;
+  }
+  
   const parent = currentRecord();
-  if (!parent || activeTemplateKey !== 'rfi') { toast('⚠️ Please save RFI first'); return; }
-  if (!canAddChecklistToRfi(parent)) { toast('⚠️ Cannot add checklist after approval/rejection'); return; }
+  if (!parent || activeTemplateKey !== 'rfi') {
+    toast('⚠️ Please save RFI first');
+    return;
+  }
+  if (!canAddChecklistToRfi(parent)) {
+    toast('⚠️ Cannot add checklist after approval/rejection');
+    return;
+  }
   pendingLinkedRfiNo = rfiNo;
   pendingReturnRfiId = parent.id;
   pendingParentMeta = captureCurrentRfiPrefill();
