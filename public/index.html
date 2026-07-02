@@ -1572,16 +1572,6 @@ function canUserSeeRecord(record, user) {
   return false;
 }
 
-// 5. Normal routing logic for RFI records
-// --- NEW: Allow manager and consultant to see all RFIs ---
-if (user.role === 'manager' || user.role === 'consultant') {
-  return true;
-}
-
- const routing = record.meta?.routing || 'Execution Engineer → QA Head';
- const status = record.status || 'Draft';
- ...
-
  function getSavedRecordFilterState() {
   return {
     project: document.getElementById('fltProject')?.value || '',
