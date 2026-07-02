@@ -864,7 +864,7 @@ const templates = {
     metaRows: [
       [{ l: 'NCR No.:', k: 'ncrNo' }, { l: 'Category:', k: 'category' }],
       [{ l: 'Project Name:', k: 'project', d: 'Project Name' }, { l: 'Entity Type:', k: 'entityType' }],
-      [{ l: 'Package:', k: 'package' }, { l: 'Agency:', k: 'agency' }],
+      [{ l: 'Package:', k: 'package' }, { l: 'Agency:', k: 'agency',t:'select',options:[] }],
       [{ l: 'WBS Code:', k: 'wbsCode' }, { l: 'Location:', k: 'location' }],
       [{ l: 'PO/SO Name:', k: 'poSoName' }, { l: 'Discipline:', k: 'discipline' }],
       [{ l: 'PO/SO No.:', k: 'poSoNo' }, { l: 'NCR Date:', k: 'ncrDate', t: 'date' }],
@@ -1096,6 +1096,14 @@ function toast(msg) {
   t.innerText = msg;
   t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', 2000);
+}
+  function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 function esc(v) {
   return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1857,16 +1865,21 @@ function renderSheet(t, report) {
   const body = document.getElementById('sheetBody');
   const meta = report?.meta || {};
   const sectionsData = report?.sections || [];
-  if (activeTemplateKey === 'ncr') {
+   if (activeTemplateKey === 'ncr') {
     body.innerHTML = renderNCRExact(report);
     updateProgress();
+    const attachmentsHtml = renderAttachments(report?.attachments || []);
+    body.innerHTML += attachmentsHtml;
     return;
-  }
-  if (activeTemplateKey === 'imir') {
+ }
+ if (activeTemplateKey === 'imir') {
     body.innerHTML = renderIMIRExact(report);
     updateProgress();
+    const attachmentsHtml = renderAttachments(report?.attachments || []);
+    body.innerHTML += attachmentsHtml;
     return;
-  }
+ }
+
   let html = renderMetaRows(t.metaRows, meta);
   let si = 0;
   t.sections.forEach((sec) => {
@@ -1895,6 +1908,8 @@ function renderSheet(t, report) {
     renderLinkedNCRs();
     renderLinkedChecklists();
   }
+  const attachmentsHtml = renderAttachments(report?.attachments || []);
+  body.innerHTML += attachmentsHtml;
 }
 
 // ============================================================
@@ -1981,6 +1996,28 @@ function renderLinkedChecklists() {
   });
   html += '</tbody></table>';
   list.innerHTML = html;
+}
+  function renderAttachments(attachments) {
+  if (!attachments || attachments.length === 0) return '';
+  let html = `<div style="margin-top:16px; border-top:2px solid var(--line); padding-top:12px;">
+    <div style="font-weight:700; font-size:14px; color:var(--blue); margin-bottom:8px;">📎 Attachments</div>
+    <div style="display:flex; flex-wrap:wrap; gap:12px;">`;
+  attachments.forEach(att => {
+    if (att.type && att.type.startsWith('image/')) {
+      html += `<div style="max-width:200px; border:1px solid var(--line); border-radius:8px; overflow:hidden; padding:4px; background:#fff;">
+        <img src="${att.data}" alt="${esc(att.name)}" style="width:100%; height:auto; display:block; object-fit:cover; max-height:150px;">
+        <div style="font-size:11px; text-align:center; padding:4px 0; color:#555;">${esc(att.name)}</div>
+      </div>`;
+    } else {
+      html += `<div style="padding:8px 12px; background:#f0f4fa; border-radius:6px; border:1px solid var(--line);">
+        <a href="${att.data}" download="${esc(att.name)}" style="color:var(--blue); text-decoration:none;">
+          📎 ${esc(att.name)}
+        </a>
+      </div>`;
+    }
+  });
+  html += `</div></div>`;
+  return html;
 }
 // ============================================================
 // 15. DATA COLLECTION
@@ -2171,18 +2208,50 @@ async function saveReport(ev) {
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
-  const titleLoc = meta.building || meta.structure || meta.location || meta.project || getProjectDisplay();
+    const titleLoc = meta.building || meta.structure || meta.location || meta.project || getProjectDisplay();
   const preparedBy = meta.preparedBy || meta.raisedBy || meta.contractor || meta.agency || meta.to || '';
+
+  // --- NEW: Handle file attachments (store base64 data) ---
   const attachmentInput = document.getElementById('wfAttachment');
-  const attachmentNames = attachmentInput ? Array.from(attachmentInput.files || []).map(f => f.name) : (existing?.attachments || []);
+  let attachmentData = [];
+
+  if (attachmentInput && attachmentInput.files.length > 0) {
+    const files = attachmentInput.files;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 2 * 1024 * 1024) {
+        toast('⚠️ File ' + file.name + ' exceeds 2MB limit – skipped.');
+        continue;
+      }
+      const data = await readFileAsBase64(file);
+      attachmentData.push({
+        name: file.name,
+        type: file.type,
+        data: data
+      });
+    }
+  }
+  // Merge with existing attachments (if any)
+  const existingAttachments = existing?.attachments || [];
+  const mergedAttachments = [...existingAttachments, ...attachmentData];
+  // --- End of new attachment handling ---
+
   const raisedFromRfi = meta.raisedFromRfi || existing?.raisedFromRfi || '';
+
   const row = {
-    id, templateKey: activeTemplateKey, templateName: t.title,
-    formatNo: t.formatNo || buildFormatNo('01'), meta, sections,
-    score: 0, defectsCount: 0, titleLoc, preparedBy,
+    id: id,
+    templateKey: activeTemplateKey,
+    templateName: t.title,
+    formatNo: t.formatNo || buildFormatNo('01'),
+    meta: meta,
+    sections: sections,
+    score: 0,
+    defectsCount: 0,
+    titleLoc: titleLoc,
+    preparedBy: preparedBy,
     status: existing?.status || 'Draft',
     comment: document.getElementById('wfComment')?.value.trim() || existing?.comment || '',
-    attachments: attachmentNames,
+    attachments: mergedAttachments,
     createdBy: existing?.createdBy || currentUser?.username || '',
     createdByDisplay: existing?.createdByDisplay || currentUser?.display || '',
     decisionBy: existing?.decisionBy || '',
