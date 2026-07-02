@@ -1527,14 +1527,12 @@ function canUserSeeRecord(record, user) {
   if (user.role === 'qa_head' && record.templateKey === 'rfi') {
     const rfiId = record.id;
     const rfiNo = record.meta?.rfiNo || '';
-    // Check if any NCR links to this RFI and was created by this QA Head
     const hasNcr = savedReports.some(r =>
       r.templateKey === 'ncr' &&
       r.createdBy === user.username &&
       (r.raisedFromRfi === rfiId || r.raisedFromRfi === rfiNo || r.meta?.raisedFromRfi === rfiId || r.meta?.raisedFromRfi === rfiNo)
     );
     if (hasNcr) return true;
-    // If no NCR, fall through to normal routing logic (below)
   }
 
   // 4. For non-RFI records (checklists, NCRs, IMIRs)
@@ -1546,27 +1544,26 @@ function canUserSeeRecord(record, user) {
         (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId)
       );
       if (parentRfi) {
-        // If current user is the owner of the parent RFI, they can see this child
         if (parentRfi.createdBy === user.username) return true;
-        // Otherwise, check if they can see the parent RFI recursively
         return canUserSeeRecord(parentRfi, user);
       }
     }
-    // For standalone non-RFI records, allow these roles
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
   }
 
-  // 5. Normal routing logic for RFI records (for exec_engineer, etc.)
+  // 5. Normal routing logic for RFI records
+  // --- NEW: Allow manager and consultant to see all RFIs ---
+  if (user.role === 'manager' || user.role === 'consultant') {
+    return true;
+  }
+
   const routing = record.meta?.routing || 'Execution Engineer → QA Head';
   const status = record.status || 'Draft';
 
   if (routing === 'Direct to QA Head') {
-    // Only QA Head can see these (if they passed the NCR exception, they already returned true)
     return user.role === 'qa_head';
   } else if (routing === 'Execution Engineer → QA Head') {
-    // Execution Engineer sees always
     if (user.role === 'exec_engineer') return true;
-    // QA Head sees only if status is 'Approved by Execution' (unless they had an NCR)
     if (user.role === 'qa_head' && status === 'Approved by Execution') return true;
     return false;
   } else if (routing === 'Both') {
