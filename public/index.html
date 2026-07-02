@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QA/QC Inspection Suite</title>
 <style>
-/* ===== ALL YOUR ORIGINAL CSS – UNCHANGED ===== */
+/* ALL YOUR ORIGINAL CSS – UNCHANGED */
 :root {
   --blue: #123a66;
   --blue2: #0a2540;
@@ -67,7 +67,6 @@ header .sub { font-size: 13px; color: #555; }
 .view { display: none; }
 .view.active { display: block; }
 
-/* ===== NOTIFICATION BELL ===== */
 .notif-container {
   position: relative;
   display: inline-block;
@@ -102,7 +101,6 @@ header .sub { font-size: 13px; color: #555; }
 }
 .notif-badge.hidden { display: none; }
 
-/* ===== NOTIFICATION DROPDOWN ===== */
 .notif-dropdown {
   position: absolute;
   top: 44px;
@@ -469,25 +467,28 @@ header .sub { font-size: 13px; color: #555; }
         <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
         <div class="field">
           <label>Username</label>
-          <input id="loginUser" placeholder="Enter username" value="contractor1_siteA">
+          <input id="loginUser" placeholder="Enter username" value="Contractor 1">
         </div>
         <div class="field">
           <label>Password</label>
-          <input id="loginPass" type="password" placeholder="Enter password" value="ContA123">
+          <input id="loginPass" type="password" placeholder="Enter password" value="Contractor_1@811">
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-primary" type="button" onclick="login()">Login</button>
         </div>
-        <div class="note" style="margin-top:12px; line-height:1.8;">
-          <b>Demo Users (from backend):</b><br>
-          👷 Contractor 1: contractor1_siteA / ContA123<br>
-          👷 Contractor 2: contractor2_siteA / ContA456<br>
-          🔧 Execution Engineer: exec_siteA / ExecA123<br>
-          👔 QA Head: qa_siteA / QaA123<br>
-          📊 Manager: manager / Mgr123<br>
-          🔧 Admin: admin / Admin123<br>
-          👀 Consultant: consultant / View123
-        </div>
+               <div class="note" style="margin-top:12px; line-height:1.8;">
+                  <b>Demo Users (from database):</b><br>
+                  👷 Contractor 1 (Site A): contractor1_siteA / ContA123<br>
+                  👷 Contractor 2 (Site A): contractor2_siteA / ContA456<br>
+                  🔧 Execution Engineer (Site A): exec_siteA / ExecA123<br>
+                  👔 QA Head (Site A): qa_siteA / QaA123<br>
+                  🔧 Execution Engineer (Site B): exec_siteB / ExecB123<br>
+                  👔 QA Head (Site B): qa_siteB / QaB123<br>
+                  👷 Contractor 1 (Site B): contractor1_siteB / ContB123<br>
+                  📊 Manager: manager / Mgr123<br>
+                  🔧 Admin: admin / Admin123<br>
+                  👀 Consultant: consultant / View123
+               </div>
       </div>
     </div>
   </div>
@@ -519,7 +520,7 @@ header .sub { font-size: 13px; color: #555; }
       </div>
       <div class="kpi-table-wrap">
         <table class="kpi-table">
-          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Location</th><th>Status</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr></thead>
+          <thead><tr><th>ID / No.</th><th>Type</th><th>Project / Location</th><th>Status</th><th>Owner</th><th>Saved Date/Time</th><th>Action</th></tr></thead>
           <tbody id="kpiResultBody"><tr><td colspan="7" class="kpi-empty">No records found.</td></tr></tbody>
         </table>
       </div>
@@ -549,14 +550,13 @@ header .sub { font-size: 13px; color: #555; }
         <div class="field"><label>&nbsp;</label><button class="btn btn-primary" type="button" onclick="printFilteredHistory()">🖨️ Print</button></div>
       </div>
       <div class="data-actions">
-        <button class="btn btn-primary" onclick="refreshHistory()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Server sync</span>
+        <span class="small" style="margin-left:auto;align-self:center;" id="syncStatus">💾 Local storage</span>
       </div>
       <table>
-        <thead><tr><th>Saved Date</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
+        <thead><tr><th>Saved Date/Time</th><th>Format</th><th>Project / Structure</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th><th>Action</th></tr></thead>
         <tbody id="historyBody"><tr><td colspan="8" style="text-align:center;color:#666;">No records found.</td></tr></tbody>
       </table>
     </div>
@@ -645,6 +645,7 @@ header .sub { font-size: 13px; color: #555; }
       <div id="relatedChecklistList" class="small">No linked checklist yet.</div>
     </div>
 
+    <!-- Linked NCRs Panel -->
     <div id="relatedNCRPanel" class="panel" style="margin-bottom:12px;">
       <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked NCRs</div>
       <div id="relatedNCRList" class="small">No linked NCR yet.</div>
@@ -683,9 +684,7 @@ async function apiRequest(url, options = {}) {
   const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    if (res.status === 401) {
-      throw new Error('401 Unauthorized');
-    }
+    if (res.status === 401) throw new Error('401 Unauthorized');
     throw new Error(err.error || 'API error');
   }
   return res.json();
@@ -752,7 +751,7 @@ function toApiPayload(row, siteName) {
 }
 
 // ============================================================
-// 4. TEMPLATES (your full template definitions – unchanged)
+// 4. TEMPLATES – COPY ALL YOUR ORIGINAL TEMPLATES HERE (unchanged)
 // ============================================================
 const templates = {
   rfi: {
@@ -852,7 +851,6 @@ const templates = {
       { type: 'signatures', title: 'Signatures', roles: ['Contractor Representative', 'Client Representative'] }
     ]
   },
-  // ===== NCR =====
   ncr: {
     formatNo: 'ADANI/Q/F-09 Rev 0',
     menuTitle: 'NCR',
@@ -888,7 +886,6 @@ const templates = {
       { type: 'signatures', title: 'Disposal Approved by', roles: ['Name', 'Signature', 'Date'] }
     ]
   },
-  // ===== IMIR =====
   imir: {
     formatNo: 'QA/QC/IMIR-01',
     menuTitle: 'IMIR',
@@ -912,7 +909,10 @@ const templates = {
 };
 
 // ============================================================
-// 5. EXACT EXCEL REPLICA RENDERING (fully written – same as before)
+// 5. EXACT EXCEL REPLICA RENDERING – COPY YOUR ORIGINAL CODE
+// (ev, secVal, rowVals, signEntries, inputExact, textExact,
+// renderNCRExact, renderIMIRExact, collectNCRSectionsExact,
+// collectIMIRSectionsExact – all unchanged)
 // ============================================================
 function ev(v) { return esc(v || ''); }
 function secVal(report, idx, fallbackKey) {
@@ -1085,7 +1085,7 @@ function collectIMIRSectionsExact() {
 }
 
 // ============================================================
-// 6. UTILITY FUNCTIONS (unchanged)
+// 6. UTILITY FUNCTIONS (with date/time fixes)
 // ============================================================
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -1100,6 +1100,20 @@ function fmtDate(v) {
   if (!v) return '';
   const d = new Date(v);
   return String(d) === 'Invalid Date' ? String(v) : d.toLocaleDateString('en-GB');
+}
+function fmtDateTime(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 }
 function fmtTimeAgo(dateStr) {
   const d = new Date(dateStr);
@@ -1172,7 +1186,6 @@ async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, 
         sender_name: senderName || currentUser?.display || 'System'
       })
     });
-    // Also update local cache
     const notif = {
       id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       recipient_username: recipientUsername,
@@ -1187,7 +1200,6 @@ async function sendNotification(recipientUsername, message, type, rfiId, rfiNo, 
     notifications.unshift(notif);
     if (notifications.length > 200) notifications = notifications.slice(0, 200);
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
-
     if (currentUser && currentUser.username === recipientUsername) {
       const iconMap = {
         'new_rfi': '🔔', 'approved': '✅', 'rejected': '❌', 'under_review': '🔍',
@@ -1295,7 +1307,6 @@ async function checkForNewNotifications() {
     }
     updateNotificationUI();
   } catch(e) {
-    // Fallback to cached if server fails
     try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) {}
     updateNotificationUI();
   }
@@ -1317,7 +1328,7 @@ function loadDb() {
   try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
 }
 
-// This function now updates both localStorage and the server
+// This function syncs a report to the server (POST or PUT)
 async function syncReportToServer(row, isNew) {
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
@@ -1326,7 +1337,7 @@ async function syncReportToServer(row, isNew) {
   } else {
     await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
-  // After successful server save, update local cache
+  // Update local cache
   const idx = savedReports.findIndex(r => r.id === row.id);
   if (idx >= 0) savedReports[idx] = row;
   else savedReports.unshift(row);
@@ -1344,7 +1355,6 @@ async function deleteReportFromServer(id) {
 async function loadFromServer() {
   try {
     const data = await apiRequest('/api/data');
-    // Transform snake_case to camelCase
     savedReports = (data.reports || []).map(r => ({
       id: r.id,
       templateKey: r.template_key,
@@ -1383,7 +1393,7 @@ async function loadFromServer() {
 }
 
 // ============================================================
-// 9. CONFIG / MASTERS (localStorage only – server not needed)
+// 9. CONFIG / MASTERS (localStorage only – no server needed)
 // ============================================================
 function loadConfig() {
   try { appConfig = { ...appConfig, ...JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') }; } catch(e) {}
@@ -1421,6 +1431,8 @@ function resetMasters() {
   localStorage.setItem(MASTER_KEY, JSON.stringify(masters));
   populateMastersForm(); toast('↩️ Master data reset');
 }
+function loadSession() { try { currentUser = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { currentUser = null; } }
+function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); }
 
 // ============================================================
 // 10. AUTH (API) – unchanged
@@ -1494,78 +1506,69 @@ function canSeeAll() { return currentUser && (currentUser.role === 'qa_head' || 
 function canDeleteRecord(rec) { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'qa_head' || rec?.createdBy === currentUser.username); }
 
 // ============================================================
-// 11. VISIBILITY – unchanged
+// 11. VISIBILITY LOGIC (FIXED NCR MATCHING)
 // ============================================================
 function canUserSeeRecord(record, user) {
   if (!user) return false;
   if (!record) return false;
+
+  // 1. Owner always sees their own records
   if (record.createdBy === user.username) return true;
+
+  // 2. Admin sees everything
   if (user.role === 'admin') return true;
-  if (record.templateKey === 'ncr') {
-    if (user.role === 'engineer') {
-      const linkedId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
-      if (linkedId) {
-        const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedId || r.meta?.rfiNo === linkedId));
-        if (parentRfi && parentRfi.createdBy === user.username) return true;
-      }
-      if (record.createdBy === user.username) return true;
-      return false;
-    }
-    if (user.role === 'qa_head' || user.role === 'exec_engineer' || user.role === 'manager' || user.role === 'consultant') return true;
-    return false;
+
+  // 3. For RFI records, give QA Head an extra exception:
+  //    If they have raised any NCR against this RFI, they can see it.
+  if (user.role === 'qa_head' && record.templateKey === 'rfi') {
+    const rfiId = record.id;
+    const rfiNo = record.meta?.rfiNo || '';
+    // Check if any NCR links to this RFI and was created by this QA Head
+    const hasNcr = savedReports.some(r =>
+      r.templateKey === 'ncr' &&
+      r.createdBy === user.username &&
+      (r.raisedFromRfi === rfiId || r.raisedFromRfi === rfiNo || r.meta?.raisedFromRfi === rfiId || r.meta?.raisedFromRfi === rfiNo)
+    );
+    if (hasNcr) return true;
+    // If no NCR, fall through to normal routing logic (below)
   }
+
+  // 4. For non-RFI records (checklists, NCRs, IMIRs)
   if (record.templateKey !== 'rfi') {
     let linkedRfiId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
     if (linkedRfiId) {
-      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
+      const parentRfi = savedReports.find(r =>
+        r.templateKey === 'rfi' &&
+        (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId)
+      );
       if (parentRfi) {
+        // If current user is the owner of the parent RFI, they can see this child
         if (parentRfi.createdBy === user.username) return true;
+        // Otherwise, check if they can see the parent RFI recursively
         return canUserSeeRecord(parentRfi, user);
       }
     }
+    // For standalone non-RFI records, allow these roles
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
   }
+
+  // 5. Normal routing logic for RFI records (for exec_engineer, etc.)
   const routing = record.meta?.routing || 'Execution Engineer → QA Head';
   const status = record.status || 'Draft';
-  if (routing === 'Direct to QA Head') return user.role === 'qa_head';
-  if (routing === 'Execution Engineer → QA Head') {
+
+  if (routing === 'Direct to QA Head') {
+    // Only QA Head can see these (if they passed the NCR exception, they already returned true)
+    return user.role === 'qa_head';
+  } else if (routing === 'Execution Engineer → QA Head') {
+    // Execution Engineer sees always
     if (user.role === 'exec_engineer') return true;
+    // QA Head sees only if status is 'Approved by Execution' (unless they had an NCR)
     if (user.role === 'qa_head' && status === 'Approved by Execution') return true;
     return false;
+  } else if (routing === 'Both') {
+    return user.role === 'qa_head' || user.role === 'exec_engineer';
   }
-  if (routing === 'Both') return user.role === 'qa_head' || user.role === 'exec_engineer';
   return false;
-}
-
-function visibleReports() {
-  let rows = savedReports.slice();
-  if (globalFilterState.project) {
-    rows = rows.filter(r => String(r.meta?.project || r.titleLoc || '').toLowerCase().includes(globalFilterState.project.toLowerCase()));
-  }
-  if (globalFilterState.type) {
-    rows = rows.filter(r => r.templateKey === globalFilterState.type);
-  }
-  if (globalFilterState.contractor) {
-    rows = rows.filter(r => String(r.meta?.contractor || '').toLowerCase().includes(globalFilterState.contractor.toLowerCase()));
-  }
-  if (globalFilterState.discipline) {
-    rows = rows.filter(r => String(r.meta?.discipline || '').toLowerCase().includes(globalFilterState.discipline.toLowerCase()));
-  }
-  if (globalFilterState.status) {
-    rows = rows.filter(r => (r.status || 'Draft') === globalFilterState.status);
-  }
-  if (globalFilterState.fromDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') >= globalFilterState.fromDate);
-  }
-  if (globalFilterState.toDate) {
-    rows = rows.filter(r => (r.meta?.date || r.savedAt || '') <= globalFilterState.toDate);
-  }
-  if (globalFilterState.owner) {
-    rows = rows.filter(r => String(r.createdByDisplay || '').toLowerCase().includes(globalFilterState.owner.toLowerCase()));
-  }
-  if (!currentUser) return [];
-  rows = rows.filter(r => canUserSeeRecord(r, currentUser));
-  return rows;
 }
 
 function getSavedRecordFilterState() {
@@ -1594,7 +1597,7 @@ function updateAdminToolsVisibility() {
 }
 
 // ============================================================
-// 12. REFRESH – now loads from server
+// 12. REFRESH FUNCTION
 // ============================================================
 function refreshHistory() {
   globalFilterState = {
@@ -1869,11 +1872,55 @@ function renderSheet(t, report) {
     radios.forEach(r => r.checked = (r.value === routingVal));
   }
   updateProgress();
-  if (activeTemplateKey === 'rfi') renderLinkedNCRs();
+  if (activeTemplateKey === 'rfi') {
+    renderLinkedNCRs();
+  }
 }
 
 // ============================================================
-// 14. DATA COLLECTION – unchanged
+// 14. RENDER LINKED NCRs
+// ============================================================
+function renderLinkedNCRs() {
+  const list = document.getElementById('relatedNCRList');
+  if (!list) return;
+  if (activeTemplateKey !== 'rfi') {
+    list.innerHTML = '';
+    return;
+  }
+  const rfiNo = document.getElementById('meta_rfiNo')?.value || '';
+  const rfiId = activeReportId || '';
+  let linked = [];
+  if (rfiNo) linked = getLinkedNCRsForRfi(rfiNo);
+  if (rfiId && rfiId !== rfiNo) {
+    const extra = getLinkedNCRsForRfi(rfiId);
+    linked = linked.concat(extra);
+  }
+  const seen = new Set();
+  linked = linked.filter(n => {
+    if (seen.has(n.id)) return false;
+    seen.add(n.id);
+    return true;
+  });
+  if (!linked.length) {
+    list.innerHTML = 'No linked NCR yet.';
+    return;
+  }
+  let html = '<ul style="list-style:none;padding:0;margin:0;">';
+  linked.forEach(n => {
+    const status = n.status || 'Draft';
+    const canEdit = canEditNCR(n);
+    const editBtn = canEdit ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">Open & Edit</button>` : `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">View</button>`;
+    html += `<li style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #eee;">
+      <span><b>${esc(n.meta?.ncrNo || n.id)}</b> – ${esc(status)}</span>
+      ${editBtn}
+    </li>`;
+  });
+  html += '</ul>';
+  list.innerHTML = html;
+}
+
+// ============================================================
+// 15. DATA COLLECTION
 // ============================================================
 function collectMeta(t) {
   const meta = {};
@@ -1978,7 +2025,7 @@ function updateProgress() {
 }
 
 // ============================================================
-// 15. SAVE & WORKFLOW – now uses server sync
+// 16. SAVE & WORKFLOW (with server sync)
 // ============================================================
 function validateForm(meta) {
   const req = [];
@@ -2011,6 +2058,7 @@ function getAuditNow(action, comment) {
 }
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
 
+// ===== canEditNCR – allows contractors to edit Submitted, Open, Rejected =====
 function canEditNCR(rec) {
   if (!rec) return false;
   const status = rec.status || 'Draft';
@@ -2022,7 +2070,7 @@ function canEditNCR(rec) {
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy === currentUser.username) {
-        return (status === 'Open' || status === 'Rejected');
+        return (status === 'Open' || status === 'Rejected' || status === 'Submitted');
       }
     }
     return false;
@@ -2049,7 +2097,7 @@ async function saveReport(ev) {
   if (activeTemplateKey === 'ncr') {
     const rec = currentRecord();
     if (!canEditNCR(rec)) {
-      toast('⛔ You cannot edit this NCR in current state');
+      toast('⛔ You cannot edit this NCR in its current state');
       return;
     }
     if (!meta.ncrNo || meta.ncrNo.trim() === '') {
@@ -2107,7 +2155,6 @@ async function saveReport(ev) {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-    // Refresh from server after save to reflect latest data
     setTimeout(() => loadFromServer(), 500);
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
@@ -2218,47 +2265,8 @@ function setChecklistButtonsState(rec) {
   });
 }
 
-function renderLinkedNCRs() {
-  const list = document.getElementById('relatedNCRList');
-  if (!list) return;
-  if (activeTemplateKey !== 'rfi') {
-    list.innerHTML = '';
-    return;
-  }
-  const rfiNo = document.getElementById('meta_rfiNo')?.value || '';
-  const rfiId = activeReportId || '';
-  let linked = [];
-  if (rfiNo) linked = getLinkedNCRsForRfi(rfiNo);
-  if (rfiId && rfiId !== rfiNo) {
-    const extra = getLinkedNCRsForRfi(rfiId);
-    linked = linked.concat(extra);
-  }
-  const seen = new Set();
-  linked = linked.filter(n => {
-    if (seen.has(n.id)) return false;
-    seen.add(n.id);
-    return true;
-  });
-  if (!linked.length) {
-    list.innerHTML = 'No linked NCR yet.';
-    return;
-  }
-  let html = '<ul style="list-style:none;padding:0;margin:0;">';
-  linked.forEach(n => {
-    const status = n.status || 'Draft';
-    const canEdit = canEditNCR(n);
-    const editBtn = canEdit ? `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">Open & Edit</button>` : `<button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;margin-left:6px;" onclick="openRecord('${n.id}')">View</button>`;
-    html += `<li style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #eee;">
-      <span><b>${esc(n.meta?.ncrNo || n.id)}</b> – ${esc(status)}</span>
-      ${editBtn}
-    </li>`;
-  });
-  html += '</ul>';
-  list.innerHTML = html;
-}
-
 // ============================================================
-// 16. WORKFLOW ACTIONS – updated to use async server sync
+// 17. WORKFLOW ACTIONS (with server sync)
 // ============================================================
 async function approveForQA() {
   const rec = currentRecord();
@@ -2400,7 +2408,14 @@ async function markUnderReview() {
   if (!rec) { toast('⚠️ Open record first'); return; }
 
   if (isNcr()) {
-    if (rec.status !== 'Open' && rec.status !== 'Rejected') { toast('⚠️ Cannot submit this NCR'); return; }
+    if (currentUser?.role !== 'engineer') {
+      toast('⛔ Only contractor can submit NCR response');
+      return;
+    }
+    if (rec.status !== 'Open' && rec.status !== 'Rejected') {
+      toast('⚠️ Cannot submit this NCR');
+      return;
+    }
     rec.status = 'Under Review';
     rec.comment = document.getElementById('wfComment').value.trim() || 'Contractor submitted response for review';
     rec.savedAt = new Date().toISOString();
@@ -2434,6 +2449,7 @@ async function approveRecord() {
   if (!rec) { toast('⚠️ Open record first'); return; }
 
   if (isNcr()) {
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can approve NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
     rec.status = 'Closed';
     rec.comment = document.getElementById('wfComment').value.trim() || 'NCR Approved and Closed';
@@ -2497,10 +2513,11 @@ async function rejectRecord() {
   if (!rec) { toast('⚠️ Open record first'); return; }
 
   if (isNcr()) {
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can reject NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
     const c = document.getElementById('wfComment').value.trim();
     if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
-    rec.status = 'Open';
+    rec.status = 'Rejected';
     rec.comment = 'Returned for rework: ' + c;
     rec.decisionBy = currentUser.username;
     rec.decisionByDisplay = currentUser.display;
@@ -2515,7 +2532,7 @@ async function rejectRecord() {
       if (parentRfi && parentRfi.createdBy) {
         const contractorUser = users.find(u => u.username === parentRfi.createdBy);
         if (contractorUser) {
-          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'ncr_open', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
+          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
         }
       }
     }
@@ -2543,7 +2560,7 @@ async function closeRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
   if (isNcr()) {
-    if (!(isExecEngineer() || canApprove())) { toast('⛔ Only Execution Engineer, QA Head or Admin can close NCR'); return; }
+    if (!(canApprove() || isExecEngineer())) { toast('⛔ Only Execution Engineer, QA Head or Admin can close NCR'); return; }
     rec.status = 'Closed';
     rec.comment = document.getElementById('wfComment').value.trim() || 'Closed manually';
     rec.audit.push(getAuditNow('Closed', rec.comment));
@@ -2557,7 +2574,7 @@ async function closeRecord() {
 }
 
 // ============================================================
-// 17. CHECKLIST LINKING – unchanged
+// 18. CHECKLIST LINKING (unchanged)
 // ============================================================
 function captureCurrentRfiPrefill() {
   return {
@@ -2607,7 +2624,7 @@ function applyPendingChecklistPrefill() {
 }
 
 // ============================================================
-// 18. OPEN TEMPLATE / RECORD – unchanged
+// 19. OPEN TEMPLATE / RECORD
 // ============================================================
 function openTemplate(key, reportId = null) {
   activeTemplateKey = key;
@@ -2641,7 +2658,7 @@ function openRecord(id) {
 }
 
 // ============================================================
-// 19. STATS & DASHBOARD – unchanged
+// 20. STATS & DASHBOARD
 // ============================================================
 function updateStats() {
   const rows = visibleReports();
@@ -2684,7 +2701,7 @@ function recordDateKey(rec) {
 function getHistoryFilteredRows() { return visibleReports(); }
 
 // ============================================================
-// 20. RENDER HISTORY – unchanged (already shows linked NCRs)
+// 21. RENDER HISTORY – shows NCRs as child rows
 // ============================================================
 function renderHistory() {
   const body = document.getElementById('historyBody');
@@ -2716,7 +2733,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2732,7 +2749,7 @@ function renderHistory() {
     const scoreBadge = typeof r.score === 'number' ? `<span class="badge ${r.score < 60 ? 'bad' : r.score < 85 ? 'mid' : 'ok'}">${r.score}%</span>` : '<span class="badge mid">N/A</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span></td>
@@ -2752,7 +2769,7 @@ function renderHistory() {
     const tr = document.createElement('tr');
     tr.className = 'parent-rfi-row';
     tr.innerHTML = `
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><b>${esc(r.templateName)}</b><br><span class="small">${esc(r.formatNo)}</span></td>
       <td>${esc(r.titleLoc || '-')}</td>
       <td>${esc(r.preparedBy || '-')}<br><span class="small">Owner: ${esc(r.createdByDisplay || '-')}</span><br><span class="small">Linked: ${allLinked.length}</span></td>
@@ -2767,7 +2784,7 @@ function renderHistory() {
       const child = document.createElement('tr');
       child.className = 'child-row';
       child.innerHTML = `
-        <td>${fmtDate(chk.meta?.date || chk.savedAt)}</td>
+        <td>${fmtDateTime(chk.savedAt || chk.meta?.date)}</td>
         <td style="padding-left:28px;"><span class="small">↳ Linked Checklist</span><br><b>${esc(chk.templateName)}</b><br><span class="small">${esc(chk.formatNo)}</span></td>
         <td>${esc(chk.titleLoc || '-')}<br><span class="small">Linked to: ${esc(chk.meta?.linkedRfi || '-')}</span></td>
         <td>${esc(chk.preparedBy || '-')}<br><span class="small">Owner: ${esc(chk.createdByDisplay || '-')}</span></td>
@@ -2783,7 +2800,7 @@ function renderHistory() {
       const child = document.createElement('tr');
       child.className = 'child-row';
       child.innerHTML = `
-        <td>${fmtDate(chk.meta?.date || chk.savedAt)}</td>
+        <td>${fmtDateTime(chk.savedAt || chk.meta?.date)}</td>
         <td style="padding-left:28px;"><span class="small">↳ Linked NCR</span><br><b>${esc(chk.templateName)}</b><br><span class="small">${esc(chk.formatNo)}</span></td>
         <td>${esc(chk.titleLoc || '-')}<br><span class="small">Raised from RFI: ${esc(chk.raisedFromRfi || chk.meta?.raisedFromRfi || '-')}</span></td>
         <td>${esc(chk.preparedBy || '-')}<br><span class="small">Owner: ${esc(chk.createdByDisplay || '-')}</span></td>
@@ -2797,7 +2814,7 @@ function renderHistory() {
 }
 
 // ============================================================
-// 21. KPI FILTERING – unchanged
+// 22. KPI FILTERING
 // ============================================================
 function kpiLabel(type) {
   const map = {
@@ -2876,14 +2893,14 @@ function renderKPIResults(data, type, customTitle, customSub) {
       <td>${esc(r.meta?.project || r.titleLoc || '-')}</td>
       <td><span class="kpi-status ${kpiStatusClass(r.status || '')}">${esc(r.status || 'Draft')}</span></td>
       <td>${esc(r.createdByDisplay || '-')}</td>
-      <td>${fmtDate(r.meta?.date || r.savedAt)}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.date)}</td>
       <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button></td>
     </tr>
   `}).join('');
 }
 
 // ============================================================
-// 22. PRINT FUNCTIONS – unchanged
+// 23. PRINT FUNCTIONS
 // ============================================================
 function buildPrintableRecordHtml(record) {
   if (!record) return '';
@@ -2967,10 +2984,10 @@ function printFilteredHistory() {
   if (!rows.length) { toast('No records to print'); return; }
   const pw = window.open('', '_blank');
   if (!pw) { toast('Allow pop-up to print'); return; }
-  let tableHtml = `<table><thead><tr><th>Date</th><th>Format</th><th>Project</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th></tr></thead><tbody>`;
+  let tableHtml = `<table><thead><tr><th>Date/Time</th><th>Format</th><th>Project</th><th>Prepared By</th><th>Status</th><th>Defects</th><th>Compliance</th></tr></thead><tbody>`;
   rows.forEach(r => {
     const scoreBadge = typeof r.score === 'number' ? `${r.score}%` : 'N/A';
-    tableHtml += `<tr><td>${fmtDate(r.meta?.date || r.savedAt)}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
+    tableHtml += `<tr><td>${fmtDateTime(r.savedAt || r.meta?.date)}</td><td>${esc(r.templateName)}</td><td>${esc(r.titleLoc || '-')}</td><td>${esc(r.preparedBy || '-')}</td><td>${r.status || 'Draft'}</td><td>${r.defectsCount || 0}</td><td>${scoreBadge}</td></tr>`;
   });
   tableHtml += '</tbody></table>';
   pw.document.write(`<html><head><title>Saved Records</title><style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#f0f0f0;}@page{margin:12mm;}</style></head><body><h1>QA/QC Saved Records</h1><p>Generated: ${new Date().toLocaleString()}</p>${tableHtml}</body></html>`);
@@ -2978,7 +2995,7 @@ function printFilteredHistory() {
 }
 
 // ============================================================
-// 23. DATA EXPORT / IMPORT – unchanged
+// 24. DATA EXPORT / IMPORT
 // ============================================================
 function exportData() {
   const data = JSON.stringify(savedReports, null, 2);
@@ -2997,9 +3014,8 @@ function importData(event) {
     try {
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data)) throw new Error('Invalid format');
-      savedReports = data; 
+      savedReports = data;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-      // Also push to server?
       toast('📥 Data imported locally (use Refresh to sync)');
       renderHistory(); updateStats();
     } catch (err) { toast('❌ Invalid file format'); }
@@ -3036,7 +3052,7 @@ function syncWithCloud() {
 }
 
 // ============================================================
-// 24. INITIALIZATION
+// 25. INITIALIZATION
 // ============================================================
 async function init() {
   document.getElementById('todayDate').innerText = todayText();
