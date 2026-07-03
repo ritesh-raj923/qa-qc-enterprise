@@ -422,6 +422,17 @@ header .sub { font-size: 13px; color: #555; }
   .exact-format table.exact-table th { border: 1px solid #000 !important; }
   .exact-input, .exact-textarea, .exact-select { border: none !important; }
 }
+  .exact-radio-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exact-radio-line label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
 </style>
 </head>
 <body>
@@ -961,7 +972,32 @@ function renderNCRExact(report) {
       <tr><th colspan="4" class="exact-sub-title">(Issued by QA/FQA to respective agency)</th></tr>
       <tr><td class="exact-label">NCR No.:</td><td>${inputExact('meta_ncrNo', m.ncrNo)}</td><td class="exact-label">Category:</td><td>${inputExact('meta_category', m.category)}</td></tr>
       <tr><td class="exact-label">Project Name:</td><td>${inputExact('meta_project', m.project || appConfig.projectName)}</td><td class="exact-label">Entity Type:</td><td>${inputExact('meta_entityType', m.entityType)}</td></tr>
-      <tr><td class="exact-label">Package:</td><td>${inputExact('meta_package', m.package)}</td><td class="exact-label">Agency:</td><td>${inputExact('meta_agency', m.agency)}</td></tr>
+      <tr>
+  <td class="exact-label">Package:</td>
+  <td>${inputExact('meta_package', m.package)}</td>
+  <td class="exact-label">Agency:</td>
+  <td>
+    <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${(() => {
+        let engineers = users.filter(u => u.role === 'engineer');
+        const userSites = currentUser?.assigned_sites || ['*'];
+        if (!userSites.includes('*')) {
+          engineers = engineers.filter(e => {
+            if (!e.assigned_sites) return false;
+            return e.assigned_sites.some(s => userSites.includes(s));
+          });
+        }
+        if (engineers.length === 0) engineers = users.filter(u => u.role === 'engineer');
+        return engineers.map(e => {
+          const checked = (m.agency === e.u) ? 'checked' : '';
+          return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
+                    <input type="radio" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
+                  </label>`;
+        }).join('');
+      })()}
+    </div>
+  </td>
+</tr>
       <tr><td class="exact-label">WBS Code:</td><td>${inputExact('meta_wbsCode', m.wbsCode)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location || appConfig.location)}</td></tr>
       <tr><td class="exact-label">PO/SO Name:</td><td>${inputExact('meta_poSoName', m.poSoName)}</td><td class="exact-label">Discipline:</td><td>${inputExact('meta_discipline', m.discipline)}</td></tr>
       <tr><td class="exact-label">PO/SO No.:</td><td>${inputExact('meta_poSoNo', m.poSoNo)}</td><td class="exact-label">NCR Date:</td><td>${inputExact('meta_ncrDate', m.ncrDate, 'date')}</td></tr>
@@ -2051,12 +2087,12 @@ function collectMeta(t) {
   const meta = {};
   t.metaRows.flat().forEach(cell => {
     if (cell.t === 'radio') {
-      const checked = document.querySelector('input[name="meta_routing"]:checked');
-      meta[cell.k] = checked ? checked.value : 'Execution Engineer → QA Head';
-    } else {
-      const el = document.getElementById('meta_' + cell.k);
-      if (el) meta[cell.k] = el.value || '';
-    }
+    const checked = document.querySelector(`input[name="meta_${cell.k}"]:checked`);
+    meta[cell.k] = checked ? checked.value : '';
+  } else {
+    const el = document.getElementById('meta_' + cell.k);
+    if (el) meta[cell.k] = el.value || '';
+  }
   });
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2535,8 +2571,7 @@ async function raiseNCRFromRFI() {
 async function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
-  
-  if (isNcr()) {
+ if (isNcr()) {
     if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
     rec.status = 'Open';
     rec.comment = document.getElementById('wfComment').value.trim() || 'NCR raised and sent to contractor';
@@ -2545,6 +2580,24 @@ async function submitRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📤 NCR sent to contractor');
+
+    // --- NEW: Send notification to the selected Agency (independent NCR) ---
+    const agencyUsername = rec.meta?.agency;
+    if (agencyUsername) {
+      const contractorUser = users.find(u => u.u === agencyUsername);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
+          'ncr_open',
+          rec.id,
+          rec.meta?.ncrNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+
+    // Existing linked‑RFI logic (for RFI‑raised NCRs)
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
