@@ -1641,13 +1641,15 @@ function canUserSeeRecord(record, user) {
         return canUserSeeRecord(parentRfi, user);
       }
     }
-        // --- NEW: Allow contractor to see an NCR if they are the selected Agency ---
+    // Allow contractor to see an NCR if they are the selected Agency
     if (record.templateKey === 'ncr' && user.role === 'engineer' && record.meta?.agency === user.username) {
       return true;
     }
-    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer'; 
+    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
+  } // ← CLOSING BRACE ADDED HERE
+
   // 5. Normal routing logic for RFI records
-  // --- NEW: Allow manager and consultant to see all RFIs ---
+  // Allow manager and consultant to see all RFIs
   if (user.role === 'manager' || user.role === 'consultant') {
     return true;
   }
@@ -1666,7 +1668,6 @@ function canUserSeeRecord(record, user) {
   }
   return false;
 }
-
  function getSavedRecordFilterState() {
   return {
     project: document.getElementById('fltProject')?.value || '',
