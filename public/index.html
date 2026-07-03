@@ -1410,13 +1410,13 @@ async function syncReportToServer(row, isNew) {
     await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
 
-  // --- NEW: Create a "light" copy for localStorage (strip image data) ---
+  // --- Create a "light" copy for localStorage (strip image data) ---
   const lightRow = JSON.parse(JSON.stringify(row));
   if (lightRow.attachments) {
     lightRow.attachments = lightRow.attachments.map(att => ({
       name: att.name,
-      type: att.type,
-      // data field removed – only store metadata
+      type: att.type
+      // data field removed – only metadata
     }));
   }
 
@@ -1428,7 +1428,6 @@ async function syncReportToServer(row, isNew) {
 
   updateStats(); renderHistory(); updateNotificationUI();
 }
-
 async function deleteReportFromServer(id) {
   await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
   savedReports = savedReports.filter(r => r.id !== id);
@@ -2950,7 +2949,7 @@ async function openRecord(id) {
       raisedFromRfi: full.raised_from_rfi || '',
       siteName: full.site_name || ''
     };
-    // The local cache remains light (without image data); we only keep the full version in memory for rendering.
+    // The local cache remains light; we keep full version only in memory for rendering.
   } catch (e) {
     // If offline, fall back to cached version (images missing, but at least you see text)
     toast('⚠️ Using cached version – images may not be shown');
