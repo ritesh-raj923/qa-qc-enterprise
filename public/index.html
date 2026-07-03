@@ -1409,11 +1409,23 @@ async function syncReportToServer(row, isNew) {
   } else {
     await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
-  // Update local cache
+
+  // --- NEW: Create a "light" copy for localStorage (strip image data) ---
+  const lightRow = JSON.parse(JSON.stringify(row));
+  if (lightRow.attachments) {
+    lightRow.attachments = lightRow.attachments.map(att => ({
+      name: att.name,
+      type: att.type,
+      // data field removed – only store metadata
+    }));
+  }
+
+  // Update local cache with the light version
   const idx = savedReports.findIndex(r => r.id === row.id);
-  if (idx >= 0) savedReports[idx] = row;
-  else savedReports.unshift(row);
+  if (idx >= 0) savedReports[idx] = lightRow;
+  else savedReports.unshift(lightRow);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+
   updateStats(); renderHistory(); updateNotificationUI();
 }
 
@@ -2906,14 +2918,52 @@ function openTemplate(key, reportId = null) {
   switchView('form');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-function openRecord(id) {
-  const r = savedReports.find(x => x.id === id);
-  if (!r) return;
+async function openRecord(id) {
+  // First, try to get the record from local cache
+  let r = savedReports.find(x => x.id === id);
+  if (!r) { toast('Record not found'); return; }
+
+  // If online, fetch the full record from server to get image data
+  try {
+    const full = await apiRequest(`/api/reports/${id}`);
+    // Convert server fields to match client structure
+    r = {
+      id: full.id,
+      templateKey: full.template_key,
+      templateName: full.template_name,
+      formatNo: full.format_no,
+      meta: full.meta || {},
+      sections: full.sections || [],
+      score: full.score || 0,
+      defectsCount: full.defects_count || 0,
+      titleLoc: full.title_loc || '',
+      preparedBy: full.prepared_by || '',
+      status: full.status || 'Draft',
+      comment: full.comment || '',
+      attachments: full.attachments || [],   // full data is here
+      createdBy: full.created_by || '',
+      createdByDisplay: full.created_by_display || '',
+      decisionBy: full.decision_by || '',
+      decisionByDisplay: full.decision_by_display || '',
+      savedAt: full.saved_at || '',
+      audit: full.audit || [],
+      raisedFromRfi: full.raised_from_rfi || '',
+      siteName: full.site_name || ''
+    };
+    // The local cache remains light (without image data); we only keep the full version in memory for rendering.
+  } catch (e) {
+    // If offline, fall back to cached version (images missing, but at least you see text)
+    toast('⚠️ Using cached version – images may not be shown');
+  }
+
+  // Check permissions
   if (!canUserSeeRecord(r, currentUser)) {
     toast('⛔ Access denied');
     return;
   }
+
   openTemplate(r.templateKey, r.id);
+  // openTemplate will render the sheet using the 'r' object (which now has full attachments)
 }
 
 // ============================================================
