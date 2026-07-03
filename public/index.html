@@ -1395,9 +1395,18 @@ function startNotificationPolling() {
 // ============================================================
 // 8. STORAGE & SYNC – SERVER AS PRIMARY
 // ============================================================
+
 function loadDb() {
-  try { savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { savedReports = []; }
-  try { notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]'); } catch(e) { notifications = []; }
+  try {
+    savedReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch (e) {
+    savedReports = [];
+  }
+  try {
+    notifications = JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]');
+  } catch (e) {
+    notifications = [];
+  }
 }
 
 // This function syncs a report to the server (POST or PUT)
@@ -1428,39 +1437,43 @@ async function syncReportToServer(row, isNew) {
 
   updateStats(); renderHistory(); updateNotificationUI();
 }
-async function deleteReportFromServer(id) {
-  await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
-  savedReports = savedReports.filter(r => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-  updateStats(); renderHistory(); updateNotificationUI();
-}
 
+// ★★★★★  INSERT loadFromServer HERE (right after syncReportToServer)  ★★★★★
 async function loadFromServer() {
   try {
     const data = await apiRequest('/api/data');
-    savedReports = (data.reports || []).map(r => ({
-      id: r.id,
-      templateKey: r.template_key,
-      templateName: r.template_name,
-      formatNo: r.format_no,
-      meta: r.meta || {},
-      sections: r.sections || [],
-      score: r.score || 0,
-      defectsCount: r.defects_count || 0,
-      titleLoc: r.title_loc || '',
-      preparedBy: r.prepared_by || '',
-      status: r.status || 'Draft',
-      comment: r.comment || '',
-      attachments: r.attachments || [],
-      createdBy: r.created_by || '',
-      createdByDisplay: r.created_by_display || '',
-      decisionBy: r.decision_by || '',
-      decisionByDisplay: r.decision_by_display || '',
-      savedAt: r.saved_at || '',
-      audit: r.audit || [],
-      raisedFromRfi: r.raised_from_rfi || '',
-      siteName: r.site_name || ''
-    }));
+    savedReports = (data.reports || []).map(r => {
+      // Strip image data from attachments before storing in localStorage
+      let attachments = (r.attachments || []).map(att => ({
+        name: att.name,
+        type: att.type
+        // data field is removed – only metadata
+      }));
+
+      return {
+        id: r.id,
+        templateKey: r.template_key,
+        templateName: r.template_name,
+        formatNo: r.format_no,
+        meta: r.meta || {},
+        sections: r.sections || [],
+        score: r.score || 0,
+        defectsCount: r.defects_count || 0,
+        titleLoc: r.title_loc || '',
+        preparedBy: r.prepared_by || '',
+        status: r.status || 'Draft',
+        comment: r.comment || '',
+        attachments: attachments,
+        createdBy: r.created_by || '',
+        createdByDisplay: r.created_by_display || '',
+        decisionBy: r.decision_by || '',
+        decisionByDisplay: r.decision_by_display || '',
+        savedAt: r.saved_at || '',
+        audit: r.audit || [],
+        raisedFromRfi: r.raised_from_rfi || '',
+        siteName: r.site_name || ''
+      };
+    });
     notifications = data.notifications || [];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
@@ -1474,6 +1487,7 @@ async function loadFromServer() {
     toast('⚠️ Using cached data (server unavailable)');
   }
 }
+
 
 // ============================================================
 // 9. CONFIG / MASTERS (localStorage only – no server needed)
