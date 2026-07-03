@@ -2928,11 +2928,12 @@ function applyPendingChecklistPrefill() {
 // ============================================================
 // 19. OPEN TEMPLATE / RECORD
 // ============================================================
-function openTemplate(key, reportId = null) {
+function openTemplate(key, reportId = null, reportObj = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
   const t = templates[key];
-  const report = reportId ? savedReports.find(r => r.id === reportId) : null;
+  // Use reportObj if provided, otherwise look up in savedReports
+  const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
 
   document.getElementById('sheetOrg').innerText = appConfig.companyName || 'QA/QC Suite';
   document.getElementById('sheetDept').innerText = t.dept || 'QA / QC RECORDS';
@@ -2981,22 +2982,22 @@ async function openRecord(id) {
       raisedFromRfi: full.raised_from_rfi || '',
       siteName: full.site_name || ''
     };
-    // The local cache remains light; we keep full version only in memory for rendering.
+    // ★ PASS the full report directly to openTemplate
+    openTemplate(r.templateKey, r.id, r);
+    return;
   } catch (e) {
-    // If offline, fall back to cached version (images missing, but at least you see text)
+    // If offline, fall back to cached version
     toast('⚠️ Using cached version – images may not be shown');
   }
 
-  // Check permissions
+  // Check permissions for cached version
   if (!canUserSeeRecord(r, currentUser)) {
     toast('⛔ Access denied');
     return;
   }
 
   openTemplate(r.templateKey, r.id);
-  // openTemplate will render the sheet using the 'r' object (which now has full attachments)
 }
-
 // ============================================================
 // 20. STATS & DASHBOARD
 // ============================================================
