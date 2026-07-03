@@ -2100,19 +2100,36 @@ function renderLinkedChecklists() {
 // ============================================================
 function collectMeta(t) {
   const meta = {};
+  
+  // 1. Collect from metaRows (the top part of the form)
   t.metaRows.flat().forEach(cell => {
     if (cell.t === 'radio') {
-    const checked = document.querySelector(`input[name="meta_${cell.k}"]:checked`);
-    meta[cell.k] = checked ? checked.value : '';
-  } else {
-    const el = document.getElementById('meta_' + cell.k);
-    if (el) meta[cell.k] = el.value || '';
-  }
+      const checked = document.querySelector(`input[name="meta_${cell.k}"]:checked`);
+      meta[cell.k] = checked ? checked.value : '';
+    } else {
+      const el = document.getElementById('meta_' + cell.k);
+      if (el) meta[cell.k] = el.value || '';
+    }
   });
+
+  // ★ NEW: For NCR, read the agency from radio buttons
+  if (activeTemplateKey === 'ncr') {
+    const checkedAgency = document.querySelector('input[name="meta_agency"]:checked');
+    if (checkedAgency) {
+      meta.agency = checkedAgency.value;
+    } else {
+      meta.agency = ''; // ensure it's empty if none selected
+    }
+  }
+
+  // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
+    // Don't override agency if we already got it from radio
+    if (key === 'agency' && meta.agency) return;
     meta[key] = el.value || '';
   });
+
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
   return meta;
 }
@@ -2215,6 +2232,7 @@ function validateForm(meta) {
   } else if (activeTemplateKey === 'ncr') {
     if (!meta.project) req.push('Project');
     if (!meta.ncrNo) req.push('NCR No.');
+    if (!meta.agency) req.push('Agency');   // ← add this back
     if (!meta.ncrDate) req.push('NCR Date');
   } else if (activeTemplateKey === 'imir') {
     if (!meta.client) req.push('Client');
