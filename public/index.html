@@ -1646,9 +1646,6 @@ function canUserSeeRecord(record, user) {
       return true;
     }
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer'; 
-    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
-  }
-
   // 5. Normal routing logic for RFI records
   // --- NEW: Allow manager and consultant to see all RFIs ---
   if (user.role === 'manager' || user.role === 'consultant') {
@@ -2982,6 +2979,12 @@ async function openRecord(id) {
       raisedFromRfi: full.raised_from_rfi || '',
       siteName: full.site_name || ''
     };
+
+    // ★★★ CRUCIAL: Check permission before opening ★★★
+    if (!canUserSeeRecord(r, currentUser)) {
+      toast('⛔ Access denied');
+      return;
+    }
     // ★ PASS the full report directly to openTemplate
     openTemplate(r.templateKey, r.id, r);
     return;
