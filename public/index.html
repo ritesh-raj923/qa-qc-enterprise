@@ -875,7 +875,7 @@ const templates = {
     metaRows: [
       [{ l: 'NCR No.:', k: 'ncrNo' }, { l: 'Category:', k: 'category' }],
       [{ l: 'Project Name:', k: 'project', d: 'Project Name' }, { l: 'Entity Type:', k: 'entityType' }],
-      [{ l: 'Package:', k: 'package' }, { l: 'Agency:', k: 'agency',t:'select',options:[] }],
+      [{ l: 'Package:', k: 'package' }, { l: 'Agency:', k: 'agency' }],
       [{ l: 'WBS Code:', k: 'wbsCode' }, { l: 'Location:', k: 'location' }],
       [{ l: 'PO/SO Name:', k: 'poSoName' }, { l: 'Discipline:', k: 'discipline' }],
       [{ l: 'PO/SO No.:', k: 'poSoNo' }, { l: 'NCR Date:', k: 'ncrDate', t: 'date' }],
@@ -972,32 +972,7 @@ function renderNCRExact(report) {
       <tr><th colspan="4" class="exact-sub-title">(Issued by QA/FQA to respective agency)</th></tr>
       <tr><td class="exact-label">NCR No.:</td><td>${inputExact('meta_ncrNo', m.ncrNo)}</td><td class="exact-label">Category:</td><td>${inputExact('meta_category', m.category)}</td></tr>
       <tr><td class="exact-label">Project Name:</td><td>${inputExact('meta_project', m.project || appConfig.projectName)}</td><td class="exact-label">Entity Type:</td><td>${inputExact('meta_entityType', m.entityType)}</td></tr>
-      <tr>
-  <td class="exact-label">Package:</td>
-  <td>${inputExact('meta_package', m.package)}</td>
-  <td class="exact-label">Agency:</td>
-  <td>
-    <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${(() => {
-        let engineers = users.filter(u => u.role === 'engineer');
-        const userSites = currentUser?.assigned_sites || ['*'];
-        if (!userSites.includes('*')) {
-          engineers = engineers.filter(e => {
-            if (!e.assigned_sites) return false;
-            return e.assigned_sites.some(s => userSites.includes(s));
-          });
-        }
-        if (engineers.length === 0) engineers = users.filter(u => u.role === 'engineer');
-        return engineers.map(e => {
-          const checked = (m.agency === e.u) ? 'checked' : '';
-          return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
-                    <input type="radio" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
-                  </label>`;
-        }).join('');
-      })()}
-    </div>
-  </td>
-</tr>
+      <tr><td class="exact-label">Package:</td><td>${inputExact('meta_package', m.package)}</td><td class="exact-label">Agency:</td><td>${inputExact('meta_agency', m.agency)}</td></tr>
       <tr><td class="exact-label">WBS Code:</td><td>${inputExact('meta_wbsCode', m.wbsCode)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location || appConfig.location)}</td></tr>
       <tr><td class="exact-label">PO/SO Name:</td><td>${inputExact('meta_poSoName', m.poSoName)}</td><td class="exact-label">Discipline:</td><td>${inputExact('meta_discipline', m.discipline)}</td></tr>
       <tr><td class="exact-label">PO/SO No.:</td><td>${inputExact('meta_poSoNo', m.poSoNo)}</td><td class="exact-label">NCR Date:</td><td>${inputExact('meta_ncrDate', m.ncrDate, 'date')}</td></tr>
@@ -2200,7 +2175,6 @@ function validateForm(meta) {
   } else if (activeTemplateKey === 'ncr') {
     if (!meta.project) req.push('Project');
     if (!meta.ncrNo) req.push('NCR No.');
-    if (!meta.agency) req.push('Agency');
     if (!meta.ncrDate) req.push('NCR Date');
   } else if (activeTemplateKey === 'imir') {
     if (!meta.client) req.push('Client');
