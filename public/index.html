@@ -2204,7 +2204,6 @@ function validateForm(meta) {
   } else if (activeTemplateKey === 'ncr') {
     if (!meta.project) req.push('Project');
     if (!meta.ncrNo) req.push('NCR No.');
-    if (!meta.agency) req.push('Agency');
     if (!meta.ncrDate) req.push('NCR Date');
   } else if (activeTemplateKey === 'imir') {
     if (!meta.client) req.push('Client');
