@@ -2985,6 +2985,7 @@ async function openRecord(id) {
       toast('⛔ Access denied');
       return;
     }
+
     // ★ PASS the full report directly to openTemplate
     openTemplate(r.templateKey, r.id, r);
     return;
@@ -2993,7 +2994,7 @@ async function openRecord(id) {
     toast('⚠️ Using cached version – images may not be shown');
   }
 
-  // Check permissions for cached version
+  // Check permissions for cached version (fallback)
   if (!canUserSeeRecord(r, currentUser)) {
     toast('⛔ Access denied');
     return;
