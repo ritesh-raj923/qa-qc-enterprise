@@ -2225,7 +2225,10 @@ function currentRecord() { return activeReportId ? savedReports.find(r => r.id =
 
 // ===== canEditNCR – allows contractors to edit Submitted, Open, Rejected =====
 function canEditNCR(rec) {
-  if (!rec) return false;
+  if (!rec) {
+    // New NCR: allow creation if user is QA/Exec/Admin
+    return currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
+  }
   const status = rec.status || 'Draft';
   const isContractor = currentUser?.role === 'engineer';
   const isQAExec = currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
