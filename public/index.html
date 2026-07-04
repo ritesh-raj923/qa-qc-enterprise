@@ -2344,7 +2344,6 @@ async function saveReport(ev) {
     console.log('Reading file:', file.name, file.size);
 const data = await readFileAsBase64(blobToEncode);
 console.log('File data length:', data.length);
-    const data = await readFileAsBase64(blobToEncode);
     attachmentData.push({
       name: file.name,
       type: file.type,
