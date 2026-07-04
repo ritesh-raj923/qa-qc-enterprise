@@ -20,6 +20,72 @@
   --card: #ffffff;
   --accent: #edf4ff;
 }
+  /* ---- Dark Mode Variables ---- */
+body.dark-mode {
+  --blue: #1a3a6a;
+  --blue2: #0d1f3c;
+  --gold: #f2b441;
+  --line: #3a4a5a;
+  --soft: #2a3a4a;
+  --bg: #1a2a3a;
+  --card: #2a3a4a;
+  --muted: #aabbcc;
+  --accent: #2a4a6a;
+  --text: #eef4fa;
+  color: #eef4fa;
+}
+  /* ---- Dark Mode Styles for Main Elements ---- */
+body.dark-mode .stat,
+body.dark-mode .history-wrap,
+body.dark-mode .sheet-shell,
+body.dark-mode .card,
+body.dark-mode .login-wrap,
+body.dark-mode .panel {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+body.dark-mode .sheet-table td,
+body.dark-mode .sheet-table th {
+  border-color: var(--line);
+}
+
+body.dark-mode .sheet-head {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+body.dark-mode .badge.info {
+  background: #2a4a6a;
+  color: #eef4fa;
+}
+
+body.dark-mode .label-cell {
+  background: #1a2a3a;
+  color: #eef4fa;
+}
+
+body.dark-mode .sheet-table th {
+  background: #1a2a3a;
+  color: #eef4fa;
+}
+
+body.dark-mode .exact-format .sheet-table td,
+body.dark-mode .exact-format table.exact-table td {
+  border-color: #3a4a5a;
+  color: #eef4fa;
+}
+
+body.dark-mode .exact-format th,
+body.dark-mode .exact-title-cell {
+  background: #1a2a3a !important;
+  color: #eef4fa;
+}
+
+body.dark-mode .exact-label {
+  background: #1a2a3a !important;
+  color: #eef4fa;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
 body { background: linear-gradient(180deg, #f6f9fc 0%, #eef4fa 100%); color: #111; display: flex; min-height: 100vh; }
 
@@ -433,6 +499,71 @@ header .sub { font-size: 13px; color: #555; }
   gap: 4px;
   font-size: 12px;
 }
+  /* ---- Dark Mode Input/Select/Textarea Styles ---- */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #1a2a3a;
+  color: #eef4fa;
+  border-color: #3a4a5a;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  border-color: #8ab6ff;
+  box-shadow: 0 0 0 3px rgba(102,153,255,0.3);
+}
+
+body.dark-mode .value-input,
+body.dark-mode .table-input,
+body.dark-mode .table-textarea,
+body.dark-mode .status-select,
+body.dark-mode .plain-textarea,
+body.dark-mode .sig-input,
+body.dark-mode .exact-input,
+body.dark-mode .exact-textarea,
+body.dark-mode .exact-select {
+  background: #1a2a3a;
+  color: #eef4fa;
+}
+
+body.dark-mode .status-select option {
+  background: #1a2a3a;
+  color: #eef4fa;
+}
+
+body.dark-mode .exact-radio-line label {
+  color: #eef4fa;
+}
+
+/* Notification dropdown dark mode */
+body.dark-mode .notif-dropdown {
+  background: #1a2a3a;
+  border-color: #3a4a5a;
+}
+
+body.dark-mode .notif-dropdown-header {
+  background: #1a2a3a;
+  color: #eef4fa;
+  border-color: #3a4a5a;
+}
+
+body.dark-mode .notif-item {
+  border-color: #3a4a5a;
+}
+
+body.dark-mode .notif-item:hover {
+  background: #2a3a4a;
+}
+
+body.dark-mode .notif-item.unread {
+  background: #1a3a6a;
+}
+
+body.dark-mode .notif-empty {
+  color: #aabbcc;
+}
 </style>
 </head>
 <body>
@@ -467,6 +598,7 @@ header .sub { font-size: 13px; color: #555; }
           <div id="notifList"></div>
         </div>
       </div>
+      <button id="darkModeToggle" class="btn btn-secondary" style="font-size:16px; padding:4px 10px; border-radius:50%;">🌙</button>
       <div class="small" id="todayDate"></div>
     </div>
   </header>
@@ -3532,6 +3664,27 @@ const users = [
   { u: 'manager', role: 'manager', name: 'Project Manager', assigned_sites: ['*'] },
   { u: 'consultant', role: 'consultant', name: 'Consultant', assigned_sites: ['*'] }
 ];
+  // ============================================================
+// DARK MODE TOGGLE  ← PASTE THIS BLOCK HERE
+// ============================================================
+const darkModeToggle = document.getElementById('darkModeToggle');
+const DARK_MODE_KEY = 'qaqc_dark_mode';
+
+// Load saved preference
+if (localStorage.getItem(DARK_MODE_KEY) === 'true') {
+  document.body.classList.add('dark-mode');
+  if (darkModeToggle) darkModeToggle.textContent = '☀️';
+}
+
+// Toggle on click
+if (darkModeToggle) {
+  darkModeToggle.addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem(DARK_MODE_KEY, isDark);
+    darkModeToggle.textContent = isDark ? '☀️' : '🌙';
+  });
+}
 </script>
 </body>
 </html>
