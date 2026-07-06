@@ -1781,11 +1781,23 @@ function renderIMIRExact(report) {
 }
 function renderAuditExact(report) {
   const m = report?.meta || {};
-  const auditRows = (report?.sections?.[0]?.rows) || [];
   
+  // Get rows from report, or from template if new
+  let auditRows = report?.sections?.[0]?.rows || [];
+  if (!auditRows.length) {
+    // Use template rows (strings) and convert to objects
+    const templateRows = templates.audit.sections[0].rows;
+    auditRows = templateRows.map(task => ({
+      task: task,
+      available: '',
+      documents: '',
+      satisfactory: '',
+      remarks: ''
+    }));
+  }
+
   let html = `
   <div class="exact-format audit-exact">
-    <!-- FULL HEADER – MATCHES EXCEL EXACTLY -->
     <table class="exact-table" style="border-bottom: none;">
       <tr><td colspan="6" style="text-align:center; border-bottom: none; font-size:20px; font-weight:700; padding:8px 4px 2px 4px;">QA/QC SUITE</td></tr>
       <tr><td colspan="6" style="text-align:center; border-top: none; border-bottom: none; font-size:14px; font-weight:700; padding:2px 4px;">QA / QC AUDIT RECORDS</td></tr>
@@ -1793,7 +1805,6 @@ function renderAuditExact(report) {
       <tr><td colspan="6" style="text-align:center; border-top: none; font-size:18px; font-weight:700; padding:8px 4px 12px 4px;">PROJECT AUDIT REPORT</td></tr>
     </table>
     
-    <!-- META FIELDS TABLE -->
     <table class="exact-table">
       <tr><td class="exact-label" style="width:16%;">Report No:</td><td colspan="5">${inputExact('meta_reportNo', m.reportNo)}</td></tr>
       <tr><td class="exact-label">Project:</td><td colspan="2">${inputExact('meta_project', m.project)}</td><td class="exact-label" style="width:14%;">Audit Date  :</td><td colspan="2">${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
@@ -1804,7 +1815,6 @@ function renderAuditExact(report) {
       <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
     </table>
 
-    <!-- CHECKLIST TABLE -->
     <table class="exact-table audit-checklist">
       <tr>
         <th style="width:6%;">sr no</th>
@@ -1826,16 +1836,10 @@ function renderAuditExact(report) {
       `).join('')}
     </table>
 
-    <!-- PROJECT DESCRIPTION -->
     <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Project Description</th></tr><tr><td>${textExact('audit_description', secVal(report, 1))}</td></tr></table>
-
-    <!-- AREAS OF APPRECIATION -->
     <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Areas of Appreciation:</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 2))}</td></tr></table>
-
-    <!-- NON-COMPLIANCE VS COMPLIANCE -->
     <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Non-Compliance VS Compliance</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 3))}</td></tr></table>
 
-    <!-- SIGNATURE BLOCK -->
     <table class="exact-table">
       <tr><th style="width:33%;">Auditor</th><th style="width:33%;">Project Manager</th><th style="width:34%;">QA Head</th></tr>
       <tr>
