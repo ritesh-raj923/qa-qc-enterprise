@@ -3061,10 +3061,20 @@ function renderLinkedHallmarks(auditReport) {
 }
   function renderAttachments(attachments) {
   if (!attachments || attachments.length === 0) return '';
+  
   let html = `<div style="margin-top:16px; border-top:2px solid var(--line); padding-top:12px;">
     <div style="font-weight:700; font-size:14px; color:var(--blue); margin-bottom:8px;">📎 Attachments</div>
     <div style="display:flex; flex-wrap:wrap; gap:12px;">`;
+
   attachments.forEach(att => {
+    // --- Safety: skip if data is missing ---
+    if (!att.data) {
+      html += `<div style="padding:8px 12px; background:#f0f4fa; border-radius:6px; border:1px solid var(--line);">
+        <span style="color:#888;">⚠️ ${esc(att.name)} (data missing)</span>
+      </div>`;
+      return;
+    }
+
     if (att.type && att.type.startsWith('image/')) {
       html += `<div style="max-width:200px; border:1px solid var(--line); border-radius:8px; overflow:hidden; padding:4px; background:#fff;">
         <img src="${att.data}" alt="${esc(att.name)}" style="width:100%; height:auto; display:block; object-fit:cover; max-height:150px;">
@@ -3078,10 +3088,11 @@ function renderLinkedHallmarks(auditReport) {
       </div>`;
     }
   });
+
   html += `</div></div>`;
   return html;
 }
-// ============================================================
+ // ============================================================
 // 15. DATA COLLECTION
 // ============================================================
 function collectMeta(t) {
@@ -3418,6 +3429,8 @@ async function saveReport(ev) {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
+    // Re-render the current sheet to show newly uploaded attachments
+renderSheet(t, row);
     updateStats();
     renderHistory();
     updateNotificationUI();
