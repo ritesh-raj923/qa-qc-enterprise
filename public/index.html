@@ -20,7 +20,9 @@
   --card: #ffffff;
   --accent: #edf4ff;
 }
-  /* ---- Dark Mode Variables ---- */
+  /* ============================================================ */
+/*               COMPLETE DARK MODE – ALL ELEMENTS               */
+/* ============================================================ */
 body.dark-mode {
   --blue: #1a3a6a;
   --blue2: #0d1f3c;
@@ -33,58 +35,318 @@ body.dark-mode {
   --accent: #2a4a6a;
   --text: #eef4fa;
   color: #eef4fa;
+  background: var(--bg);
 }
-  /* ---- Dark Mode Styles for Main Elements ---- */
+
+/* ---- Sidebar ---- */
+body.dark-mode .sidebar {
+  background: linear-gradient(180deg, #0a1a2a 0%, #0d1f3c 100%);
+}
+body.dark-mode .brand small {
+  color: var(--gold);
+}
+body.dark-mode .menu-item {
+  color: #b0c4de;
+}
+body.dark-mode .menu-item:hover,
+body.dark-mode .menu-item.active {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+/* ---- Header & Badges ---- */
+body.dark-mode header {
+  border-bottom-color: var(--line);
+}
+body.dark-mode .badge.info {
+  background: #2a4a6a;
+  color: #eef4fa;
+}
+body.dark-mode .badge.ok {
+  background: #1a5a3a;
+  color: #b0e0c0;
+}
+body.dark-mode .badge.mid {
+  background: #5a4a2a;
+  color: #f0d080;
+}
+body.dark-mode .badge.bad {
+  background: #5a2a2a;
+  color: #f0a0a0;
+}
+
+/* ---- Cards, Panels, Stats ---- */
 body.dark-mode .stat,
 body.dark-mode .history-wrap,
 body.dark-mode .sheet-shell,
 body.dark-mode .card,
 body.dark-mode .login-wrap,
-body.dark-mode .panel {
+body.dark-mode .panel,
+body.dark-mode .kpi-panel,
+body.dark-mode .kpi-table-wrap {
   background: var(--card);
   border-color: var(--line);
 }
-
-body.dark-mode .sheet-table td,
-body.dark-mode .sheet-table th {
-  border-color: var(--line);
+body.dark-mode .stat .value {
+  color: #eef4fa;
+}
+body.dark-mode .stat .label {
+  color: #aabbcc;
+}
+body.dark-mode .stat:before {
+  background: linear-gradient(90deg, var(--blue), var(--gold));
+}
+body.dark-mode .stat.active-kpi {
+  background: linear-gradient(180deg, #1a3a5a 0%, #2a4a6a 100%);
+  border-color: var(--gold);
+}
+body.dark-mode .stat.active-kpi .value {
+  color: var(--gold);
 }
 
-body.dark-mode .sheet-head {
+/* ---- Tables (History, KPI, Sheet) ---- */
+body.dark-mode .history-wrap th,
+body.dark-mode .kpi-table th,
+body.dark-mode .sheet-table th {
+  background: #1a2a3a;
+  color: #eef4fa;
+  border-color: var(--line);
+}
+body.dark-mode .history-wrap td,
+body.dark-mode .kpi-table td,
+body.dark-mode .sheet-table td {
   background: var(--card);
+  color: #eef4fa;
   border-color: var(--line);
 }
-
-body.dark-mode .badge.info {
-  background: #2a4a6a;
+body.dark-mode .child-row td {
+  background: #1a2a3a !important;
+}
+body.dark-mode .parent-rfi-row td {
+  background: #2a3a4a !important;
+}
+body.dark-mode .check-section-row td {
+  background: #1a2a3a !important;
   color: #eef4fa;
 }
 
-body.dark-mode .label-cell {
+/* ---- Exact Format (NCR, IMIR) ---- */
+body.dark-mode .exact-format .sheet-table,
+body.dark-mode .exact-format table.exact-table {
   background: #1a2a3a;
-  color: #eef4fa;
+  border-color: #3a4a5a;
 }
-
-body.dark-mode .sheet-table th {
-  background: #1a2a3a;
-  color: #eef4fa;
-}
-
 body.dark-mode .exact-format .sheet-table td,
-body.dark-mode .exact-format table.exact-table td {
+body.dark-mode .exact-format table.exact-table td,
+body.dark-mode .exact-format .sheet-table th,
+body.dark-mode .exact-format table.exact-table th {
   border-color: #3a4a5a;
   color: #eef4fa;
+  background: #1a2a3a;
 }
-
 body.dark-mode .exact-format th,
 body.dark-mode .exact-title-cell {
   background: #1a2a3a !important;
+  color: #eef4fa !important;
+}
+body.dark-mode .exact-label {
+  background: #1a2a3a !important;
+  color: #eef4fa !important;
+}
+body.dark-mode .exact-internal {
+  background: #0d1f3c !important;
+  color: #eef4fa !important;
+}
+body.dark-mode .exact-small {
+  color: #aabbcc !important;
+}
+
+/* ---- Inputs, Selects, Textareas ---- */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .value-input,
+body.dark-mode .table-input,
+body.dark-mode .table-textarea,
+body.dark-mode .status-select,
+body.dark-mode .plain-textarea,
+body.dark-mode .sig-input,
+body.dark-mode .exact-input,
+body.dark-mode .exact-textarea,
+body.dark-mode .exact-select {
+  background: #0d1f3c;
+  color: #eef4fa;
+  border-color: #3a4a5a;
+}
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus,
+body.dark-mode .value-input:focus,
+body.dark-mode .table-input:focus,
+body.dark-mode .status-select:focus,
+body.dark-mode .exact-input:focus,
+body.dark-mode .exact-textarea:focus,
+body.dark-mode .exact-select:focus {
+  border-color: #8ab6ff;
+  box-shadow: 0 0 0 3px rgba(102,153,255,0.3);
+  background: #1a2a3a;
+}
+body.dark-mode .status-select option {
+  background: #0d1f3c;
+  color: #eef4fa;
+}
+body.dark-mode .status-select.select-yes {
+  color: #4caf50;
+}
+body.dark-mode .status-select.select-no {
+  color: #f44336;
+}
+body.dark-mode .status-select.select-na {
+  color: #aaa;
+}
+
+/* ---- Radio & Checkbox Labels ---- */
+body.dark-mode .radio-line label,
+body.dark-mode .exact-radio-line label {
   color: #eef4fa;
 }
 
-body.dark-mode .exact-label {
-  background: #1a2a3a !important;
+/* ---- Buttons ---- */
+body.dark-mode .btn-primary {
+  background: #1a3a6a;
+  color: #fff;
+}
+body.dark-mode .btn-primary:hover {
+  background: #2a4a7a;
+}
+body.dark-mode .btn-secondary {
+  background: #3a4a5a;
   color: #eef4fa;
+}
+body.dark-mode .btn-secondary:hover {
+  background: #4a5a6a;
+}
+body.dark-mode .btn-outline {
+  background: transparent;
+  border-color: #4a5a6a;
+  color: #eef4fa;
+}
+body.dark-mode .btn-danger {
+  background: #6a2a2a;
+  color: #fff;
+}
+body.dark-mode .btn-danger:hover {
+  background: #8a2a2a;
+}
+body.dark-mode .btn-ok {
+  background: #2a6a3a;
+  color: #fff;
+}
+body.dark-mode .btn-warn {
+  background: #6a5a2a;
+  color: #fff;
+}
+
+/* ---- Notifications ---- */
+body.dark-mode .notif-container .notif-bell {
+  color: #eef4fa;
+}
+body.dark-mode .notif-dropdown {
+  background: #1a2a3a;
+  border-color: #3a4a5a;
+}
+body.dark-mode .notif-dropdown-header {
+  background: #1a2a3a;
+  color: #eef4fa;
+  border-color: #3a4a5a;
+}
+body.dark-mode .notif-item {
+  border-color: #3a4a5a;
+}
+body.dark-mode .notif-item:hover {
+  background: #2a3a4a;
+}
+body.dark-mode .notif-item.unread {
+  background: #1a3a6a;
+}
+body.dark-mode .notif-empty {
+  color: #aabbcc;
+}
+body.dark-mode .notif-mark-read {
+  color: #8ab6ff;
+}
+
+/* ---- Toast ---- */
+body.dark-mode .toast {
+  background: #1a3a6a;
+  color: #eef4fa;
+}
+
+/* ---- Login ---- */
+body.dark-mode .login-wrap {
+  background: var(--card);
+  border-color: var(--line);
+}
+body.dark-mode .login-wrap h2,
+body.dark-mode .login-wrap p {
+  color: #eef4fa;
+}
+body.dark-mode .note {
+  background: #1a2a3a !important;
+  border-color: #3a4a5a !important;
+  color: #eef4fa !important;
+}
+body.dark-mode .note code {
+  color: #8ab6ff;
+}
+
+/* ---- Progress & Misc ---- */
+body.dark-mode .progressline {
+  background: #2a3a4a;
+}
+body.dark-mode .progressline > div {
+  background: var(--ok);
+}
+body.dark-mode .small {
+  color: #aabbcc;
+}
+body.dark-mode .kpi-chip {
+  background: #1a3a5a;
+  border-color: #3a4a5a;
+  color: #eef4fa;
+}
+body.dark-mode .kpi-count {
+  color: #aabbcc;
+}
+body.dark-mode .kpi-empty {
+  color: #aabbcc;
+}
+body.dark-mode .kpi-status {
+  color: #eef4fa;
+}
+body.dark-mode .kpi-status.approved {
+  background: #1a5a3a;
+  color: #b0e0c0;
+}
+body.dark-mode .kpi-status.comment {
+  background: #5a4a2a;
+  color: #f0d080;
+}
+body.dark-mode .kpi-status.pending {
+  background: #2a4a6a;
+  color: #b0c0d0;
+}
+body.dark-mode .kpi-status.rejected {
+  background: #5a2a2a;
+  color: #f0a0a0;
+}
+body.dark-mode .kpi-status.closed {
+  background: #1a4a6a;
+  color: #b0d0e0;
+}
+body.dark-mode .kpi-status.exec_approved {
+  background: #1a5a5a;
+  color: #b0e0e0;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
 body { background: linear-gradient(180deg, #f6f9fc 0%, #eef4fa 100%); color: #111; display: flex; min-height: 100vh; }
@@ -1114,6 +1376,115 @@ const templates = {
     ]
   }
 };
+  audit: {
+  formatNo: 'AUDIT / QA / 001',
+  menuTitle: 'Project Audit',
+  title: 'PROJECT AUDIT REPORT & HALLMARK CHECKLIST',
+  dept: 'QA / QC AUDIT RECORDS',
+  summary: 'Comprehensive audit checklist with Hallmark rating.',
+  metaRows: [
+    [{ l: 'Report No.:', k: 'reportNo' }, { l: 'Audit Date:', k: 'auditDate', t: 'date' }],
+    [{ l: 'Project:', k: 'project', d: 'Project Name' }, { l: 'Auditor:', k: 'auditor' }],
+    [{ l: 'Client:', k: 'client' }, { l: 'Nature of Contractor:', k: 'contractorNature' }],
+    [{ l: 'Consultant:', k: 'consultant' }, { l: 'Assessment Dates:', k: 'assessmentDates' }],
+    [{ l: 'Project Value:', k: 'projectValue' }, { l: 'Reporting Dates:', k: 'reportingDates' }],
+    [{ l: 'Client Address:', k: 'clientAddress' }, { l: 'Assessment Criteria:', k: 'assessmentCriteria' }],
+    [{ l: 'Assessment Team:', k: 'assessmentTeam' }]
+  ],
+  sections: [
+    // Section 1: Project Audit Report (56 items)
+    { 
+      type: 'audit_table',
+      title: 'Project Audit Checklist',
+      columns: ['Sr No', 'Tasks', 'Available (Y/N)', 'Documents (Y/N)', 'Satisfactory/Unsatisfactory', 'Remarks'],
+      rows: [
+        'Tender’s Technical Documents, LOA, LOI & Kick off Meeting agenda & MOM.',
+        'Management Objectives / Quality Objectives. if any.',
+        'Project Quality Plan & Master List of Document / Record',
+        'Project Organogram.',
+        'Project Construction schedule & Milestone details',
+        'Drawing Control System and as built Drawing, if any.',
+        'Materials / Equipment / Items Source Approval Record',
+        'Approved Vendor List, Approved Subcontractor List, Approved Materials / item list.',
+        'Procurement Tracker',
+        'Vender & Sub-Contractors Evaluation / Appraisal Record',
+        'Client / EPC Correspondence Inward & Outward record system',
+        'Relevant IS Codes, Technical Specification, Approved Drawing, Relevant Standards & Standard operating procedures (SOPs), if any.',
+        'Approved Standard Quality Plan, Manufacturing Quality Plan, Field Quality Plan, Inspection and Test Plan, Technical Specification, Method Statement - Activity Wise, Checklists & related Formats etc, & Awareness about the same.',
+        'Check whether approved Work method statement depicts the process of construction/activity',
+        'Check / Review on calibration of all weight & measures, laboratory’s apparatus, Plant’s (Batching plant, Wet mix plant, Hot mix plant, if any), Equipment etc and maintaining related Assurance documents as well calibration log.',
+        'Material receival Record & Incoming materials register.',
+        'Request for Inspection (RFI) for Materials, Equipment, Semi Product & Finished Product etc & their log.',
+        'Materials sampling Register & their reports.',
+        'Perishable item register & FIFO (first in first out) system.',
+        'Material Traceability / identification tags',
+        'Approved Materials / Equipment / Item (Category Wise): IR / MDCC / IMIR Certificate / MTC and other relevant assurance documents.',
+        'Check whether site engineer is aware about the resources required for activity as well availability of the same at work site.',
+        'Raw materials, Semi & Finished Product Check as per Approved QAP/ITP, Procedure, Standards etc & Inspection Report of the same (Inhouse or & Third-Party Test Report).',
+        'Check the frequency of tests conducted as per the approved ITP, QAP and specifications.',
+        'For Special Tests, which cannot be performed at site/ field lab, shall be carried out at mutually agreed laboratory.',
+        'TBM periodic level checking records as well check other survey documents like level sheet etc.',
+        'Bar Bending Schedule',
+        'Approved Mix Design / Job Mix Formula Report & moisture correction sheet',
+        'Plant Production report - Planned Vs Actual.',
+        'Welder Qualification procedure & List of Qualified Welder & Certified NDT Technician.',
+        'Approved SOP / Protocol for NDT test (Refer ASME Sec V, VIII & IX)',
+        'Approved WPS (Welder Procedure Specification), PQR and WPQ shall be reviewed.',
+        'Welder Certificate I card shall be reviewed.',
+        'Structural welding details to be checked as per approved drawing.',
+        'Filled weld thickness to be verified randomly.',
+        'Painting DFT must be cross verified at site.',
+        'Mock-up/workshop conducted before start of activity. If yes, review the mock-up report.',
+        'Checking all the Stage Passes with all the QA documents as per specification i.e., for structures like reinforcement checking, pre, during & post concrete check, compressive strength check at 7 & 28 days and for roads layer like Embankment top, Subgrade top, GSB top, WMM top, DBM top, wearing course and for structural work: Materials receival, Traceability Report, Storage /Handling condition, Cutting, fit up check, Welding & fabrication, shot blasting, Painting.',
+        'Curing tank temperature register & Weather Report Register',
+        'Mechanical & Electrical Equipment / items must be check thoroughly as per Approved SQP/FQP/ MQP/ITP/Approved Drawing.',
+        'Product Quality Checks as per approved standard & specification',
+        'RFI Details Status Summary: Approved / Approved with Deviation / Rejected RFI with Supporting Documents',
+        'Does Project site team periodically analyse the results obtained from post construction inspection. If yes, Check the action taken based on the analysis.',
+        'Non-Compliance, Observations & Punch Point records as well Compliance Report.',
+        'Customer Complaints Record, Repair & Rework Record',
+        'Monthly Quality Review Report, Customer Satisfaction Report',
+        'Project Progress Report – Daily, Weekly & Monthly and Delay analysis report, if any',
+        'Periodic Maintenance record of construction equipment / Machine etc & Breakdown report, if any',
+        'Rejected & surplus material / items detail Record.',
+        'Physical v/s System stock, Monthly stock statement & Materials reconciliation statement.',
+        'Machine / Equipment / Items Handling & Storage as per Requirement.',
+        'Risk Review Assessment Record, Statutory compliance',
+        'Training calendar & records, evaluation sheet & Effectiveness of the training',
+        'Best Practices Initiated / Value Engineering done, if any, Identified Area for Improvement',
+        'Previous Audit Closure Report.',
+        'Structure Handing over Record & Final Project Dossiers, if any.'
+      ]
+    },
+    // Section 2: Hallmark Checklist (simplified – you can add more items)
+    {
+      type: 'audit_checklist',
+      title: 'Hallmark Quality Checklist',
+      groups: [
+        {
+          name: 'Documentation',
+          items: ['Availability of approved ITP', 'Method statements', 'Checklists', 'Mock-up approvals']
+        },
+        {
+          name: 'Material',
+          items: ['Test reports compliance', 'Storage as per guidelines', 'Material approval sheets', 'MTC reviewed']
+        },
+        {
+          name: 'Supervision',
+          items: ['Adherence to sequence', 'Use of proper tools', 'Protection of finished work', 'Training records']
+        },
+        {
+          name: 'Workmanship',
+          items: ['Line, level and plumb', 'Right angles', 'Surface defects', 'Curing and protection']
+        }
+      ]
+    },
+    { type: 'textarea', title: 'Project Description / Remarks' },
+    { type: 'textarea', title: 'Areas of Appreciation' },
+    { type: 'textarea', title: 'Non-Compliance vs Compliance Summary' },
+    { type: 'signatures', title: 'Audit Signatures', roles: ['Auditor', 'Project Manager', 'QA Head'] }
+  ]
+}
 
 // ============================================================
 // 5. EXACT EXCEL REPLICA RENDERING – COPY YOUR ORIGINAL CODE
@@ -1257,6 +1628,62 @@ function renderIMIRExact(report) {
     </table>
   </div>`;
 }
+function renderAuditExact(report) {
+  const m = report?.meta || {};
+  const auditRows = (report?.sections?.[0]?.rows) || [];
+  const checklistGroups = (report?.sections?.[1]?.groups) || [];
+  let html = `
+  <div class="exact-format audit-exact">
+    <table class="exact-table">
+      <tr><th colspan="6" class="exact-main-title">PROJECT AUDIT REPORT</th></tr>
+      <tr><td class="exact-label">Report No.:</td><td>${inputExact('meta_reportNo', m.reportNo)}</td><td class="exact-label">Audit Date:</td><td>${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
+      <tr><td class="exact-label">Project:</td><td>${inputExact('meta_project', m.project)}</td><td class="exact-label">Auditor:</td><td>${inputExact('meta_auditor', m.auditor)}</td></tr>
+      <tr><td class="exact-label">Client:</td><td>${inputExact('meta_client', m.client)}</td><td class="exact-label">Nature of Contractor:</td><td>${inputExact('meta_contractorNature', m.contractorNature)}</td></tr>
+      <tr><td class="exact-label">Consultant:</td><td>${inputExact('meta_consultant', m.consultant)}</td><td class="exact-label">Assessment Dates:</td><td>${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
+      <tr><td class="exact-label">Project Value:</td><td>${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Reporting Dates:</td><td>${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
+      <tr><td class="exact-label">Client Address:</td><td>${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Assessment Criteria:</td><td>${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
+      <tr><td class="exact-label" colspan="1">Assessment Team:</td><td colspan="5">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td></tr>
+    </table>
+
+    <table class="exact-table audit-checklist">
+      <tr><th>Sr No</th><th>Tasks</th><th>Available (Y/N)</th><th>Documents (Y/N)</th><th>Satisfactory/Unsatisfactory</th><th>Remarks</th></tr>
+      ${auditRows.map((row, idx) => `
+        <tr>
+          <td>${idx+1}</td>
+          <td>${esc(row.task || '')}</td>
+          <td>${inputExact('', row.available, 'select', ['', 'Y', 'N'])}</td>
+          <td>${inputExact('', row.documents, 'select', ['', 'Y', 'N'])}</td>
+          <td>${inputExact('', row.satisfactory, 'select', ['', 'Satisfactory', 'Unsatisfactory'])}</td>
+          <td>${inputExact('', row.remarks)}</td>
+        </tr>
+      `).join('')}
+    </table>
+
+    <table class="exact-table">
+      <tr><th colspan="4" class="exact-main-title">HALLMARK QUALITY CHECKLIST</th></tr>
+      ${checklistGroups.map(g => `
+        <tr><th colspan="4">${esc(g.name)}</th></tr>
+        ${(g.items || []).map(item => `
+          <tr>
+            <td>${esc(item)}</td>
+            <td>${inputExact('', '', 'select', ['', 'Yes', 'No', 'NA'])}</td>
+            <td>${inputExact('', '', 'text')}</td>
+            <td>${inputExact('', '', 'text')}</td>
+          </tr>
+        `).join('')}
+      `).join('')}
+    </table>
+
+    <table class="exact-table"><tr><th>Project Description / Remarks</th></tr><tr><td>${textExact('audit_remarks', secVal(report, 2))}</td></tr></table>
+    <table class="exact-table"><tr><th>Areas of Appreciation</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 3))}</td></tr></table>
+    <table class="exact-table"><tr><th>Non-Compliance vs Compliance Summary</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 4))}</td></tr></table>
+    <table class="exact-table">
+      <tr><th>Auditor</th><th>Project Manager</th><th>QA Head</th></tr>
+      <tr>${['auditor', 'pm', 'qa'].map(role => `<td><b>Name:</b> <input class="exact-input" data-sign-name-${role}><br><b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}></td>`).join('')}</tr>
+    </table>
+  </div>`;
+  return html;
+}  
 function collectNCRSectionsExact() {
   const root = document.querySelector('.ncr-exact');
   if (!root) return [];
@@ -1312,6 +1739,59 @@ function collectIMIRSectionsExact() {
     { type:'textarea', value: root.querySelector('[data-exact-text="imir_relevant_spec"]')?.value || '' },
     { type:'textarea', value: root.querySelector('[data-exact-text="imir_remarks"]')?.value || '' },
     { type:'signatures', entries }
+  ];
+}
+function collectAuditSectionsExact() {
+  const root = document.querySelector('.audit-exact');
+  if (!root) return [];
+
+  // Collect audit table rows
+  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr')).map(tr => {
+    const inputs = tr.querySelectorAll('input, select');
+    const task = tr.cells[1]?.textContent.trim() || '';
+    return {
+      task: task,
+      available: inputs[0]?.value || '',
+      documents: inputs[1]?.value || '',
+      satisfactory: inputs[2]?.value || '',
+      remarks: inputs[3]?.value || ''
+    };
+  });
+
+  // Collect Hallmark checklist groups (simplified – we'll read from the report object)
+  // Since the report object already has the groups structure, we can use it directly.
+  // We'll return the sections array with the collected table rows and groups.
+  // We'll handle this in collectSections by reading the report object.
+  return [
+    { type: 'audit_table', rows: tableRows },
+    { type: 'audit_checklist', groups: [] }, // will be populated from the report
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_remarks"]')?.value || '' },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
+    { type: 'signatures', entries: [
+      { role: 'Auditor', name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
+      { role: 'Project Manager', name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
+      { role: 'QA Head', name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
+    ]}
+  ];
+}
+  
+
+  // Collect Hallmark checklist groups (simplified – we'll read from the report object)
+  // Since the report object already has the groups structure, we can use it directly.
+  // We'll return the sections array with the collected table rows and groups.
+  // We'll handle this in collectSections by reading the report object.
+  return [
+    { type: 'audit_table', rows: tableRows },
+    { type: 'audit_checklist', groups: [] }, // will be populated from the report
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_remarks"]')?.value || '' },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
+    { type: 'signatures', entries: [
+      { role: 'Auditor', name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
+      { role: 'Project Manager', name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
+      { role: 'QA Head', name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
+    ]}
   ];
 }
 
@@ -2159,7 +2639,14 @@ function renderSheet(t, report) {
     body.innerHTML += attachmentsHtml;
     return;
  }
-
+  // ★ ADD THIS:
+if (activeTemplateKey === 'audit') {
+  body.innerHTML = renderAuditExact(report);
+  updateProgress();
+  const attachmentsHtml = renderAttachments(report?.attachments || []);
+  body.innerHTML += attachmentsHtml;
+  return;
+}
   let html = renderMetaRows(t.metaRows, meta);
   let si = 0;
   t.sections.forEach((sec) => {
@@ -2340,6 +2827,7 @@ function collectMeta(t) {
 function collectSections(t) {
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
   if (activeTemplateKey === 'imir') return collectIMIRSectionsExact();
+  if (activeTemplateKey === 'audit') return collectAuditSectionsExact();
   const shell = document.getElementById('sheetBody');
   if (!shell) return [];
   const sectionTables = Array.from(shell.children).slice(1);
@@ -2442,7 +2930,14 @@ function validateForm(meta) {
     if (!meta.client) req.push('Client');
     if (!meta.package) req.push('Package/System');
     if (!meta.date) req.push('Date');
-  } else {
+  } 
+    else if (activeTemplateKey === 'audit') {
+  if (!meta.project) req.push('Project');
+  if (!meta.reportNo) req.push('Report No.');
+  if (!meta.auditor) req.push('Auditor');
+  if (!meta.auditDate) req.push('Audit Date');
+}
+ else {
     if (!meta.project) req.push('Project');
     if (!meta.contractor) req.push('Contractor');
     if (!meta.date) req.push('Date');
