@@ -1172,11 +1172,7 @@ body.dark-mode .exact-small {
     <!-- Linked Hallmark Checklists Panel -->
 <div id="relatedHallmarkPanel" class="panel" style="margin-bottom:12px;">
   <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked Hallmark Checklists</div>
-  <div id="hallmarkChecklistButtons" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    ${hallmarkChecklists.map(hc => `
-      <button type="button" class="btn btn-secondary" onclick="launchHallmarkChecklist('${hc.key}')">📋 ${hc.title}</button>
-    `).join('')}
-  </div>
+ <div id="hallmarkChecklistButtons" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;"></div>
   <div id="relatedHallmarkList" class="small">No linked Hallmark checklist yet.</div>
 </div>
     <form id="recordForm" onsubmit="saveReport(event)">
@@ -1245,6 +1241,7 @@ let notificationPollInterval = null;
 function isNcr() { return activeTemplateKey === 'ncr'; }
 function isRfi() { return activeTemplateKey === 'rfi'; }
 function isImir() { return activeTemplateKey === 'imir'; }
+function isAudit() { return activeTemplateKey === 'audit'; }  
 
 // ============================================================
 // 3. FIELD MAPPING HELPERS
@@ -1782,10 +1779,8 @@ function renderIMIRExact(report) {
 function renderAuditExact(report) {
   const m = report?.meta || {};
   
-  // Get rows from report, or from template if new
   let auditRows = report?.sections?.[0]?.rows || [];
   if (!auditRows.length) {
-    // Use template rows (strings) and convert to objects
     const templateRows = templates.audit.sections[0].rows;
     auditRows = templateRows.map(task => ({
       task: task,
@@ -1813,6 +1808,7 @@ function renderAuditExact(report) {
       <tr><td class="exact-label">Project Value:</td><td colspan="2">${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Assessment dates:</td><td colspan="2">${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
       <tr><td class="exact-label">Client address:</td><td colspan="2">${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Reporting dates:</td><td colspan="2">${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
       <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
+      <!-- Agency row removed – now placed outside the format -->
     </table>
 
     <table class="exact-table audit-checklist">
@@ -2092,6 +2088,23 @@ function getAuditOptions() {
   const options = audits.map(r => r.meta?.reportNo || r.id || '');
   return [...new Set(options)];
 }
+ function generateAgencyRadios(currentValue) {
+    let engineers = users.filter(u => u.role === 'engineer');
+    const userSites = currentUser?.assigned_sites || ['*'];
+    if (!userSites.includes('*')) {
+        engineers = engineers.filter(e => {
+            if (!e.assigned_sites) return false;
+            return e.assigned_sites.some(s => userSites.includes(s));
+        });
+    }
+    if (engineers.length === 0) engineers = users.filter(u => u.role === 'engineer');
+    return engineers.map(e => {
+        const checked = (currentValue === e.u) ? 'checked' : '';
+        return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
+                  <input type="radio" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
+                </label>`;
+    }).join('');
+} 
 // ============================================================
 // POPULATE HALLMARK CHECKLIST BUTTONS
 // ============================================================
@@ -2894,12 +2907,20 @@ function renderSheet(t, report) {
  }
   // ★ ADD THIS:
 if (activeTemplateKey === 'audit') {
-  body.innerHTML = renderAuditExact(report);
+  const agencyHtml = `
+    <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
+      <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
+      <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${generateAgencyRadios(report?.meta?.agency || '')}
+      </div>
+    </div>
+  `;
+  body.innerHTML = agencyHtml + renderAuditExact(report);
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
   renderLinkedHallmarks(report);
-   populateHallmarkButtons();   // ← ADD THIS
+  populateHallmarkButtons();
   return;
 }
   else if (activeTemplateKey && activeTemplateKey.startsWith('hallmark_')) {
@@ -3118,6 +3139,14 @@ function collectMeta(t) {
       meta.agency = ''; // ensure it's empty if none selected
     }
   }
+  if (activeTemplateKey === 'audit') {
+    const checkedAgency = document.querySelector('input[name="meta_agency"]:checked');
+    if (checkedAgency) {
+        meta.agency = checkedAgency.value;
+    } else {
+        meta.agency = '';
+    }
+}
 
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
@@ -3265,6 +3294,7 @@ function validateForm(meta) {
   if (!meta.reportNo) req.push('Report No.');
   if (!meta.auditor) req.push('Auditor');
   if (!meta.auditDate) req.push('Audit Date');
+   if (!meta.agency) req.push('Agency');   // <-- add this    
 }
  else {
     if (!meta.project) req.push('Project');
@@ -3410,11 +3440,10 @@ async function saveReport(ev) {
   row.defectsCount = no;
 
   // --- Validate linked RFI for checklists ---
-  if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && !row.meta.linkedRfi) {
+ if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && activeTemplateKey !== 'audit' && !row.meta.linkedRfi) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
-  }
-
+}
   // --- Save to server ---
   try {
     const isNew = !savedReports.find(r => r.id === id);
@@ -3445,14 +3474,12 @@ async function deleteReport(id) {
   if (!canDeleteRecord(r)) { toast('⛔ Delete not allowed'); return; }
   if (!confirm('Delete this saved report?')) return;
   try {
-    await deleteReportFromServer(id);
+    await apiRequest(`/api/reports/${id}`, { method: 'DELETE' });
     toast('🗑️ Deleted');
     if (activeReportId === id) backFromForm();
-    // Update only the local UI – no full server reload
-updateStats();
-renderHistory();
-updateNotificationUI();
-toast('✅ Saved successfully');   // toast already exists, you can keep it
+    updateStats();
+    renderHistory();
+    updateNotificationUI();
   } catch(e) {
     toast('❌ Delete failed: ' + e.message);
   }
@@ -3508,7 +3535,32 @@ function updateWorkflowButtons(rec) {
     document.getElementById('btnRaiseNCR').classList.toggle('hidden', true);
     return;
   }
+   // ★★★★★ PASTE THE AUDIT BLOCK HERE ★★★★★
+  // === AUDIT WORKFLOW ===
+  else if (isAudit()) {
+    const status = rec?.status || 'Draft';
+    const isAllowedSubmitter = currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'exec_engineer' || currentUser.role === 'manager' || currentUser.role === 'admin');
+    const isContractor = currentUser?.role === 'engineer';
+    
+    const showSubmit = isAllowedSubmitter && (status === 'Draft');
+    const showContractorSubmit = isContractor && (status === 'Open' || status === 'Rejected');
+    const showApprove = isAllowedSubmitter && (status === 'Under Review');
+    const showReject = isAllowedSubmitter && (status === 'Under Review');
+    const showClose = isAllowedSubmitter && (status === 'Under Review');
 
+    document.getElementById('btnSubmit').classList.toggle('hidden', !showSubmit);
+    document.getElementById('btnReview').classList.toggle('hidden', !showContractorSubmit);
+    document.getElementById('btnApprove').classList.toggle('hidden', !showApprove);
+    document.getElementById('btnReject').classList.toggle('hidden', !showReject);
+    document.getElementById('btnClose').classList.toggle('hidden', !showClose);
+    
+    document.getElementById('btnApproveComment').classList.toggle('hidden', true);
+    document.getElementById('btnApproveQA').classList.toggle('hidden', true);
+    document.getElementById('btnRaiseNCR').classList.toggle('hidden', true);
+    return;
+  }
+
+  // ===== RFI WORKFLOW (comes after) =====
   const routing = meta.routing || 'Execution Engineer → QA Head';
   const isDirect = routing === 'Direct to QA Head';
   const isBoth = routing === 'Both';
@@ -3642,7 +3694,9 @@ async function raiseNCRFromRFI() {
 async function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
- if (isNcr()) {
+
+  // === NCR SUBMIT ===
+  if (isNcr()) {
     if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
     rec.status = 'Open';
     rec.comment = document.getElementById('wfComment').value.trim() || 'NCR raised and sent to contractor';
@@ -3652,7 +3706,6 @@ async function submitRecord() {
     updateWorkflowButtons(rec);
     toast('📤 NCR sent to contractor');
 
-    // --- NEW: Send notification to the selected Agency (independent NCR) ---
     const agencyUsername = rec.meta?.agency;
     if (agencyUsername) {
       const contractorUser = users.find(u => u.u === agencyUsername);
@@ -3667,8 +3720,7 @@ async function submitRecord() {
         );
       }
     }
-
-    // Existing linked‑RFI logic (for RFI‑raised NCRs)
+    // Existing linked‑RFI logic
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
@@ -3682,6 +3734,37 @@ async function submitRecord() {
     return;
   }
 
+  // === AUDIT SUBMIT ===
+  else if (isAudit()) {
+    if (rec.status !== 'Draft') { toast('⚠️ Audit is not in Draft state'); return; }
+    if (!rec.meta?.agency) { toast('⚠️ Please select an Agency before submitting'); return; }
+    
+    rec.status = 'Open';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Audit sent to contractor';
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Sent to Contractor', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('📤 Audit sent to contractor');
+    
+    const agencyUsername = rec.meta?.agency;
+    if (agencyUsername) {
+      const contractorUser = users.find(u => u.u === agencyUsername);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `📋 Audit #${rec.meta?.reportNo || rec.id} is assigned to you. Please review and respond.`,
+          'ncr_open',
+          rec.id,
+          rec.meta?.reportNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+    return;
+  }
+
+  // === RFI SUBMIT ===
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
   rec.status = 'Submitted';
   rec.comment = document.getElementById('wfComment').value.trim();
@@ -3702,7 +3785,8 @@ async function submitRecord() {
     if (execUser) await sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
     if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
   }
-  updateWorkflowButtons(rec); setChecklistButtonsState(rec);
+  updateWorkflowButtons(rec);
+  setChecklistButtonsState(rec);
   toast('📤 Submitted');
 }
 
@@ -3710,6 +3794,7 @@ async function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
+  // === NCR ===
   if (isNcr()) {
     if (currentUser?.role !== 'engineer') {
       toast('⛔ Only contractor can submit NCR response');
@@ -3734,6 +3819,40 @@ async function markUnderReview() {
     return;
   }
 
+  // === AUDIT CONTRACTOR RESPONSE ===
+  else if (isAudit()) {
+    if (currentUser?.role !== 'engineer') {
+      toast('⛔ Only contractor can submit audit response');
+      return;
+    }
+    if (rec.status !== 'Open' && rec.status !== 'Rejected') {
+      toast('⚠️ Cannot submit this audit');
+      return;
+    }
+    rec.status = 'Under Review';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Contractor submitted response for review';
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Submitted by Contractor', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('📩 Audit response submitted for review');
+    
+    const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
+    const docNo = rec.meta?.reportNo || rec.id || 'Unknown';
+    for (const approver of approvers) {
+      await sendNotification(
+        approver.u,
+        `📋 Audit #${docNo} response submitted by Contractor for review`,
+        'ncr_submitted',
+        rec.id,
+        docNo,
+        currentUser.display
+      );
+    }
+    return;
+  }
+
+  // === RFI ===
   rec.status = 'Under Review';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Marked Under Review', rec.comment));
@@ -3751,6 +3870,7 @@ async function approveRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
+  // === NCR ===
   if (isNcr()) {
     if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can approve NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
@@ -3776,6 +3896,41 @@ async function approveRecord() {
     return;
   }
 
+  // === AUDIT APPROVE ===
+  else if (isAudit()) {
+    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+      toast('⛔ Only QA/Exec/Manager can approve audit');
+      return;
+    }
+    if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
+    rec.status = 'Closed';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Audit Approved and Closed';
+    rec.decisionBy = currentUser.username;
+    rec.decisionByDisplay = currentUser.display;
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Approved & Closed', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('✅ Audit Closed');
+    
+    const agencyUsername = rec.meta?.agency;
+    if (agencyUsername) {
+      const contractorUser = users.find(u => u.u === agencyUsername);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `✅ Audit #${rec.meta?.reportNo || rec.id} has been Approved & Closed by ${currentUser.display}`,
+          'closed_ncr',
+          rec.id,
+          rec.meta?.reportNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+    return;
+  }
+
+  // === RFI ===
   rec.status = 'Approved';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.decisionBy = currentUser.username;
@@ -3815,6 +3970,7 @@ async function rejectRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
 
+  // === NCR ===
   if (isNcr()) {
     if (!(canApprove() || isExecEngineer())) { toast('⛔ Only QA/Exec can reject NCR'); return; }
     if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
@@ -3842,6 +3998,43 @@ async function rejectRecord() {
     return;
   }
 
+  // === AUDIT REJECT ===
+  else if (isAudit()) {
+    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+      toast('⛔ Only QA/Exec/Manager can reject audit');
+      return;
+    }
+    if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
+    const c = document.getElementById('wfComment').value.trim();
+    if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
+    rec.status = 'Rejected';
+    rec.comment = 'Returned for rework: ' + c;
+    rec.decisionBy = currentUser.username;
+    rec.decisionByDisplay = currentUser.display;
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('↩️ Audit returned to contractor');
+    
+    const agencyUsername = rec.meta?.agency;
+    if (agencyUsername) {
+      const contractorUser = users.find(u => u.u === agencyUsername);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`,
+          'rejected',
+          rec.id,
+          rec.meta?.reportNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+    return;
+  }
+
+  // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
   rec.status = 'Rejected';
@@ -3858,7 +4051,6 @@ async function rejectRecord() {
     await sendNotification(rec.createdBy, `Your ${rec.templateKey === 'imir' ? 'IMIR' : 'RFI'} #${docNo} has been Rejected by ${currentUser.display}`, 'rejected', rec.id, docNo, currentUser.display);
   }
 }
-
 async function closeRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
@@ -3873,9 +4065,25 @@ async function closeRecord() {
     toast('🔒 Closed');
     return;
   }
+
+  // === AUDIT CLOSE ===
+  else if (isAudit()) {
+    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+      toast('⛔ Only QA/Exec/Manager can close audit');
+      return;
+    }
+    rec.status = 'Closed';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Closed manually';
+    rec.audit.push(getAuditNow('Closed', rec.comment));
+    rec.savedAt = new Date().toISOString();
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('🔒 Audit Closed');
+    return;
+  }
+
   toast('⚠️ Not applicable');
 }
-
 // ============================================================
 // 18. CHECKLIST LINKING (unchanged)
 // ============================================================
