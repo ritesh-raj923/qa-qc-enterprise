@@ -1421,7 +1421,6 @@ const templates = {
       { type: 'signatures', title: 'Signatory', roles: ['Merit Execution', 'Merit QA/QC', 'Adani Execution', 'Adani FQA', 'Adani QA/QC'] }
     ]
   }
-};
   audit: {
   formatNo: 'AUDIT / QA / 001',
   menuTitle: 'Project Audit',
@@ -1531,7 +1530,7 @@ const templates = {
     { type: 'signatures', title: 'Audit Signatures', roles: ['Auditor', 'Project Manager', 'QA Head'] }
   ]
 }
-
+  };
 // ============================================================
 // 5. EXACT EXCEL REPLICA RENDERING – COPY YOUR ORIGINAL CODE
 // (ev, secVal, rowVals, signEntries, inputExact, textExact,
@@ -1821,26 +1820,6 @@ function collectAuditSectionsExact() {
     ]}
   ];
 }
-  
-
-  // Collect Hallmark checklist groups (simplified – we'll read from the report object)
-  // Since the report object already has the groups structure, we can use it directly.
-  // We'll return the sections array with the collected table rows and groups.
-  // We'll handle this in collectSections by reading the report object.
-  return [
-    { type: 'audit_table', rows: tableRows },
-    { type: 'audit_checklist', groups: [] }, // will be populated from the report
-    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_remarks"]')?.value || '' },
-    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
-    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
-    { type: 'signatures', entries: [
-      { role: 'Auditor', name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
-      { role: 'Project Manager', name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
-      { role: 'QA Head', name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
-    ]}
-  ];
-}
-
 // ============================================================
 // 6. UTILITY FUNCTIONS (with date/time fixes)
 // ============================================================
