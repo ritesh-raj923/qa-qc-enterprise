@@ -1782,13 +1782,21 @@ function renderIMIRExact(report) {
 function renderAuditExact(report) {
   const m = report?.meta || {};
   const auditRows = (report?.sections?.[0]?.rows) || [];
-  // Build the HTML for the audit form – exact Excel replica
+  
   let html = `
   <div class="exact-format audit-exact">
+    <!-- FULL HEADER – MATCHES EXCEL EXACTLY -->
+    <table class="exact-table" style="border-bottom: none;">
+      <tr><td colspan="6" style="text-align:center; border-bottom: none; font-size:20px; font-weight:700; padding:8px 4px 2px 4px;">QA/QC SUITE</td></tr>
+      <tr><td colspan="6" style="text-align:center; border-top: none; border-bottom: none; font-size:14px; font-weight:700; padding:2px 4px;">QA / QC AUDIT RECORDS</td></tr>
+      <tr><td colspan="6" style="text-align:center; border-top: none; border-bottom: none; font-size:12px; font-weight:700; padding:2px 4px 6px 4px;">Format No. - AUDIT / QA / 001</td></tr>
+      <tr><td colspan="6" style="text-align:center; border-top: none; font-size:18px; font-weight:700; padding:8px 4px 12px 4px;">PROJECT AUDIT REPORT</td></tr>
+    </table>
+    
+    <!-- META FIELDS TABLE -->
     <table class="exact-table">
-      <tr><th colspan="6" class="exact-main-title">Project Audit Report</th></tr>
-      <tr><td class="exact-label">Report No:</td><td colspan="5">${inputExact('meta_reportNo', m.reportNo)}</td></tr>
-      <tr><td class="exact-label">Project:</td><td colspan="2">${inputExact('meta_project', m.project)}</td><td class="exact-label">Audit Date  :</td><td colspan="2">${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
+      <tr><td class="exact-label" style="width:16%;">Report No:</td><td colspan="5">${inputExact('meta_reportNo', m.reportNo)}</td></tr>
+      <tr><td class="exact-label">Project:</td><td colspan="2">${inputExact('meta_project', m.project)}</td><td class="exact-label" style="width:14%;">Audit Date  :</td><td colspan="2">${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
       <tr><td class="exact-label">Client:</td><td colspan="2">${inputExact('meta_client', m.client)}</td><td class="exact-label">Auditor:</td><td colspan="2">${inputExact('meta_auditor', m.auditor)}</td></tr>
       <tr><td class="exact-label">Consultant:</td><td colspan="2">${inputExact('meta_consultant', m.consultant)}</td><td class="exact-label">Nature Of Contractor:</td><td colspan="2">${inputExact('meta_contractorNature', m.contractorNature)}</td></tr>
       <tr><td class="exact-label">Project Value:</td><td colspan="2">${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Assessment dates:</td><td colspan="2">${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
@@ -1796,18 +1804,19 @@ function renderAuditExact(report) {
       <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
     </table>
 
+    <!-- CHECKLIST TABLE -->
     <table class="exact-table audit-checklist">
       <tr>
-        <th>sr no</th>
-        <th>Tasks</th>
-        <th>Available (Y/N)</th>
-        <th>Documents(Y/N)</th>
-        <th>satisfactory/ Unsatisfactory</th>
-        <th>Remarks</th>
+        <th style="width:6%;">sr no</th>
+        <th style="width:38%;">Tasks</th>
+        <th style="width:12%;">Available (Y/N)</th>
+        <th style="width:12%;">Documents(Y/N)</th>
+        <th style="width:16%;">satisfactory/ Unsatisfactory</th>
+        <th style="width:16%;">Remarks</th>
       </tr>
       ${auditRows.map((row, idx) => `
         <tr>
-          <td>${idx+1}</td>
+          <td style="text-align:center;">${idx+1}</td>
           <td>${esc(row.task || '')}</td>
           <td>${inputExact('', row.available, 'select', ['', 'Y', 'N'])}</td>
           <td>${inputExact('', row.documents, 'select', ['', 'Y', 'N'])}</td>
@@ -1817,12 +1826,23 @@ function renderAuditExact(report) {
       `).join('')}
     </table>
 
-    <table class="exact-table"><tr><th>Project Description</th></tr><tr><td>${textExact('audit_description', secVal(report, 1))}</td></tr></table>
-    <table class="exact-table"><tr><th>Areas of Appreciation:</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 2))}</td></tr></table>
-    <table class="exact-table"><tr><th>Non-Compliance VS Compliance</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 3))}</td></tr></table>
+    <!-- PROJECT DESCRIPTION -->
+    <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Project Description</th></tr><tr><td>${textExact('audit_description', secVal(report, 1))}</td></tr></table>
+
+    <!-- AREAS OF APPRECIATION -->
+    <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Areas of Appreciation:</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 2))}</td></tr></table>
+
+    <!-- NON-COMPLIANCE VS COMPLIANCE -->
+    <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Non-Compliance VS Compliance</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 3))}</td></tr></table>
+
+    <!-- SIGNATURE BLOCK -->
     <table class="exact-table">
-      <tr><th>Auditor</th><th>Project Manager</th><th>QA Head</th></tr>
-      <tr>${['auditor', 'pm', 'qa'].map(role => `<td><b>Name:</b> <input class="exact-input" data-sign-name-${role}><br><b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}></td>`).join('')}</tr>
+      <tr><th style="width:33%;">Auditor</th><th style="width:33%;">Project Manager</th><th style="width:34%;">QA Head</th></tr>
+      <tr>
+        <td><b>Name:</b> <input class="exact-input" data-sign-name-auditor><br><b>Signature:</b> <input class="exact-input" data-sign-sign-auditor><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-auditor></td>
+        <td><b>Name:</b> <input class="exact-input" data-sign-name-pm><br><b>Signature:</b> <input class="exact-input" data-sign-sign-pm><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-pm></td>
+        <td><b>Name:</b> <input class="exact-input" data-sign-name-qa><br><b>Signature:</b> <input class="exact-input" data-sign-sign-qa><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-qa></td>
+      </tr>
     </table>
   </div>`;
   return html;
@@ -1925,12 +1945,11 @@ function collectAuditSectionsExact() {
   const root = document.querySelector('.audit-exact');
   if (!root) return [];
 
-  // Collect audit table rows
+  // Collect audit table rows (checklist)
   const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr')).map(tr => {
     const inputs = tr.querySelectorAll('input, select');
-    const task = tr.cells[1]?.textContent.trim() || '';
     return {
-      task: task,
+      task: tr.cells[1]?.textContent.trim() || '',
       available: inputs[0]?.value || '',
       documents: inputs[1]?.value || '',
       satisfactory: inputs[2]?.value || '',
@@ -1938,15 +1957,22 @@ function collectAuditSectionsExact() {
     };
   });
 
+  // Collect signatures
+  const sigs = {
+    auditor: { name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
+    pm: { name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
+    qa: { name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
+  };
+
   return [
     { type: 'audit_table', rows: tableRows },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_description"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
     { type: 'signatures', entries: [
-      { role: 'Auditor', name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
-      { role: 'Project Manager', name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
-      { role: 'QA Head', name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
+      { role: 'Auditor', name: sigs.auditor.name, sign: sigs.auditor.sign, date: sigs.auditor.date },
+      { role: 'Project Manager', name: sigs.pm.name, sign: sigs.pm.sign, date: sigs.pm.date },
+      { role: 'QA Head', name: sigs.qa.name, sign: sigs.qa.sign, date: sigs.qa.date }
     ]}
   ];
 }
@@ -2821,6 +2847,31 @@ function stylizeStatus(sel) {
 }
 function renderSheet(t, report) {
   const body = document.getElementById('sheetBody');
+   // --- ADD THIS BLOCK ---
+  const sheetHead = document.querySelector('.sheet-head');
+  const sheetShell = document.querySelector('.sheet-shell');
+  
+  const exactFormats = ['audit', 'ncr', 'imir'];
+  if (exactFormats.includes(activeTemplateKey)) {
+    if (sheetHead) sheetHead.style.display = 'none';
+    if (sheetShell) {
+      sheetShell.style.borderRadius = '0';
+      sheetShell.style.padding = '0';
+      sheetShell.style.background = 'transparent';
+      sheetShell.style.border = 'none';
+      sheetShell.style.boxShadow = 'none';
+    }
+  } else {
+    if (sheetHead) sheetHead.style.display = 'block';
+    if (sheetShell) {
+      sheetShell.style.borderRadius = '14px';
+      sheetShell.style.padding = '18px';
+      sheetShell.style.background = 'var(--card)';
+      sheetShell.style.border = '1px solid var(--line)';
+      sheetShell.style.boxShadow = '0 8px 22px rgba(18,58,102,.08)';
+    }
+  }
+  // --- END OF ADDED BLOCK ---
   const meta = report?.meta || {};
   const sectionsData = report?.sections || [];
    if (activeTemplateKey === 'ncr') {
