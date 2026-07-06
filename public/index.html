@@ -999,6 +999,10 @@ body.dark-mode .exact-small {
   </div>
  <!-- ===== AUDIT DASHBOARD ===== -->
 <div id="view-auditdashboard" class="view">
+   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2 style="color:var(--blue); font-size:20px;">📋 Audit Dashboard</h2>
+    <button class="btn btn-primary" onclick="openTemplate('audit')">➕ New Project Audit</button>
+  </div>
   <div class="dashboard-grid" id="auditStatsGrid">
     <div class="stat active-kpi" data-audit-kpi="audit_total" onclick="filterAuditKPI('audit_total')">
       <div class="label">📋 Total Audits</div>
@@ -1165,7 +1169,16 @@ body.dark-mode .exact-small {
       <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked NCRs</div>
       <div id="relatedNCRList" class="small">No linked NCR yet.</div>
     </div>
-
+    <!-- Linked Hallmark Checklists Panel -->
+<div id="relatedHallmarkPanel" class="panel" style="margin-bottom:12px;">
+  <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:6px;">📋 Linked Hallmark Checklists</div>
+  <div id="hallmarkChecklistButtons" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+    ${hallmarkChecklists.map(hc => `
+      <button type="button" class="btn btn-secondary" onclick="launchHallmarkChecklist('${hc.key}')">📋 ${hc.title}</button>
+    `).join('')}
+  </div>
+  <div id="relatedHallmarkList" class="small">No linked Hallmark checklist yet.</div>
+</div>
     <form id="recordForm" onsubmit="saveReport(event)">
       <div class="sheet-shell">
         <div class="sheet-head">
@@ -1421,27 +1434,26 @@ const templates = {
       { type: 'signatures', title: 'Signatory', roles: ['Merit Execution', 'Merit QA/QC', 'Adani Execution', 'Adani FQA', 'Adani QA/QC'] }
     ]
   },
-  audit: {
+ audit: {
   formatNo: 'AUDIT / QA / 001',
   menuTitle: 'Project Audit',
-  title: 'PROJECT AUDIT REPORT & HALLMARK CHECKLIST',
+  title: 'PROJECT AUDIT REPORT',
   dept: 'QA / QC AUDIT RECORDS',
-  summary: 'Comprehensive audit checklist with Hallmark rating.',
+  summary: 'Project Audit Report with 56 checkpoints.',
   metaRows: [
-    [{ l: 'Report No.:', k: 'reportNo' }, { l: 'Audit Date:', k: 'auditDate', t: 'date' }],
-    [{ l: 'Project:', k: 'project', d: 'Project Name' }, { l: 'Auditor:', k: 'auditor' }],
-    [{ l: 'Client:', k: 'client' }, { l: 'Nature of Contractor:', k: 'contractorNature' }],
-    [{ l: 'Consultant:', k: 'consultant' }, { l: 'Assessment Dates:', k: 'assessmentDates' }],
-    [{ l: 'Project Value:', k: 'projectValue' }, { l: 'Reporting Dates:', k: 'reportingDates' }],
-    [{ l: 'Client Address:', k: 'clientAddress' }, { l: 'Assessment Criteria:', k: 'assessmentCriteria' }],
-    [{ l: 'Assessment Team:', k: 'assessmentTeam' }]
+    [{ l: 'Report No:', k: 'reportNo' }],
+    [{ l: 'Project:', k: 'project' }, { l: 'Audit Date :', k: 'auditDate', t: 'date' }],
+    [{ l: 'Client:', k: 'client' }, { l: 'Auditor:', k: 'auditor' }],
+    [{ l: 'Consultant:', k: 'consultant' }, { l: 'Nature Of Contractor:', k: 'contractorNature' }],
+    [{ l: 'Project Value:', k: 'projectValue' }, { l: 'Assessment dates:', k: 'assessmentDates' }],
+    [{ l: 'Client address:', k: 'clientAddress' }, { l: 'Reporting dates:', k: 'reportingDates' }],
+    [{ l: 'Assessment team:', k: 'assessmentTeam' }, { l: 'Assessment criteria:', k: 'assessmentCriteria' }]
   ],
   sections: [
-    // Section 1: Project Audit Report (56 items)
-    { 
+    {
       type: 'audit_table',
       title: 'Project Audit Checklist',
-      columns: ['Sr No', 'Tasks', 'Available (Y/N)', 'Documents (Y/N)', 'Satisfactory/Unsatisfactory', 'Remarks'],
+      columns: ['sr no', 'Tasks', 'Available (Y/N)', 'Documents(Y/N)', 'satisfactory/ Unsatisfactory', 'Remarks'],
       rows: [
         'Tender’s Technical Documents, LOA, LOI & Kick off Meeting agenda & MOM.',
         'Management Objectives / Quality Objectives. if any.',
@@ -1501,36 +1513,129 @@ const templates = {
         'Structure Handing over Record & Final Project Dossiers, if any.'
       ]
     },
-    // Section 2: Hallmark Checklist (simplified – you can add more items)
-    {
-      type: 'audit_checklist',
-      title: 'Hallmark Quality Checklist',
-      groups: [
-        {
-          name: 'Documentation',
-          items: ['Availability of approved ITP', 'Method statements', 'Checklists', 'Mock-up approvals']
-        },
-        {
-          name: 'Material',
-          items: ['Test reports compliance', 'Storage as per guidelines', 'Material approval sheets', 'MTC reviewed']
-        },
-        {
-          name: 'Supervision',
-          items: ['Adherence to sequence', 'Use of proper tools', 'Protection of finished work', 'Training records']
-        },
-        {
-          name: 'Workmanship',
-          items: ['Line, level and plumb', 'Right angles', 'Surface defects', 'Curing and protection']
-        }
-      ]
-    },
-    { type: 'textarea', title: 'Project Description / Remarks' },
-    { type: 'textarea', title: 'Areas of Appreciation' },
-    { type: 'textarea', title: 'Non-Compliance vs Compliance Summary' },
+    { type: 'textarea', title: 'Project Description' },
+    { type: 'textarea', title: 'Areas of Appreciation:' },
+    { type: 'textarea', title: 'Non-Compliance VS Compliance' },
     { type: 'signatures', title: 'Audit Signatures', roles: ['Auditor', 'Project Manager', 'QA Head'] }
   ]
 }
+  // ============================================================
+// HALLMARK CHECKLIST DATA (from "Total Number of checks" sheet)
+// ============================================================
+const hallmarkChecklists = [
+  {
+    key: 'hallmark_painting',
+    title: 'Painting Checklist',
+    formatNo: 'HALLMARK / PAINT / 01',
+    items: [
+      'Walls & Ceilings - 7 checks',
+      'Tilling - 39 checks',
+      'Door & Windows - 26 checks',
+      'Lofts - 7 checks',
+      'Plumbing & Sanitation - 26 checks',
+      'Electrification - 18 checks',
+      'Painting - 7 checks',
+      'Rolling shutter - 13 checks',
+      'Total A - 143 checks',
+      'Development work of building - 16 checks',
+      'Terrace or Roof - 16 checks',
+      'Building Exterior & General - 34 checks',
+      'Structural steel - 4 checks',
+      'Total B - 54 checks'
+    ]
+  },
+  {
+    key: 'hallmark_door_frames',
+    title: 'Door Frames & Shutters',
+    formatNo: 'HALLMARK / DOOR / 02',
+    items: [
+      'Architectural drawings & section details',
+      'Approved work method statement',
+      'Checklist for activity',
+      'Inspection test plan for materials',
+      'Mock-up approval sheet with hardware',
+      'Compliance to test results as per ITP',
+      'Material storage as per guidelines',
+      'Material approval sheet duly signed',
+      'Reliability test reports',
+      'MTC reviewed & signed by QC manager',
+      'Adherence to sequence of activities',
+      'Adequate tools for checking workmanship',
+      'Adequate protection of finish product',
+      'Dimensions (L, B, H) as per drawings',
+      'Plumb maintained for side jambs',
+      'Frame is in right angles',
+      'Uniformity of Paint / Polish work',
+      'Gap along frame & opening sealed',
+      'Architrave fixed & finished properly',
+      'Location of shutter fittings as per sample',
+      'Proper orientation of hinges',
+      'Functionality & rigidity of fittings',
+      'Surface defects (dents, scratches, stains)'
+    ]
+  },
+  {
+    key: 'hallmark_tiling',
+    title: 'Tiling Works (Wall & Dado)',
+    formatNo: 'HALLMARK / TILE / 03',
+    items: [
+      'Architectural drawings showing tile layout',
+      'Approved shop drawings for each typology',
+      'Approved method statement for tiling works',
+      'Checklist for tiling works',
+      'Activity covered under QEP',
+      'Mock-up approval sheet duly signed',
+      'Field, Physical, Chemical test for tiles',
+      'MTC and Lab. test reports reviewed',
+      'Tiles stored as per guidelines',
+      'Material approval sheet for tiles & adhesive',
+      'Approved tile base samples stored',
+      'Dry laying done for checking layout',
+      'Soaking of tiles in water (except vitrified)',
+      'Adherence to sequence of activities',
+      'Tools for working & inspection available',
+      'Protection done using bubble wrap sheet',
+      'Extra tiles kept for future replacement (min 5%)',
+      'Line, level & Slope of finished surface',
+      'Flatness & Evenness',
+      'Lippage in between two tiles',
+      'Right angle to adjacent wall',
+      'Thickness of skirting at edges & corners',
+      'Hollowness in tiles (no hollowness at centre)',
+      'Matching of joints in dado / skirting & floor',
+      'Joints and grouting uniform & clean',
+      'Silicon sealant applied in wet areas',
+      'Pull-off test satisfactory for wall tiles'
+    ]
+  }
+  // ★ You can add the remaining 13 checklists here later (I'll give them in Step 2)
+];
+ // ============================================================
+// GENERATE HALLMARK CHECKLIST TEMPLATES DYNAMICALLY
+// ============================================================
+hallmarkChecklists.forEach(hc => {
+  templates[hc.key] = {
+    formatNo: hc.formatNo,
+    menuTitle: hc.title,
+    title: hc.title.toUpperCase(),
+    dept: 'HALLMARK QUALITY CHECKLIST',
+    summary: 'Hallmark quality checklist for ' + hc.title,
+    metaRows: [
+      [{ l: 'Linked Audit Report:', k: 'linkedAudit', t: 'select', options: [] }],
+      [{ l: 'Project:', k: 'project', d: 'Project Name' }, { l: 'Audit Date:', k: 'date', t: 'date' }],
+      [{ l: 'Contractor:', k: 'contractor' }, { l: 'Location:', k: 'location' }]
+    ],
+    sections: [
+      {
+        type: 'hallmark_checklist',
+        title: hc.title + ' Checklist',
+        items: hc.items
+      },
+      { type: 'textarea', title: 'Remarks / Comments' },
+      { type: 'signatures', title: 'Signatures', roles: ['Contractor QA/QC', 'Company QA/QC', 'QA Head'] }
+    ]
   };
+}); 
 // ============================================================
 // 5. EXACT EXCEL REPLICA RENDERING – COPY YOUR ORIGINAL CODE
 // (ev, secVal, rowVals, signEntries, inputExact, textExact,
@@ -1676,22 +1781,29 @@ function renderIMIRExact(report) {
 function renderAuditExact(report) {
   const m = report?.meta || {};
   const auditRows = (report?.sections?.[0]?.rows) || [];
-  const checklistGroups = (report?.sections?.[1]?.groups) || [];
+  // Build the HTML for the audit form – exact Excel replica
   let html = `
   <div class="exact-format audit-exact">
     <table class="exact-table">
-      <tr><th colspan="6" class="exact-main-title">PROJECT AUDIT REPORT</th></tr>
-      <tr><td class="exact-label">Report No.:</td><td>${inputExact('meta_reportNo', m.reportNo)}</td><td class="exact-label">Audit Date:</td><td>${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
-      <tr><td class="exact-label">Project:</td><td>${inputExact('meta_project', m.project)}</td><td class="exact-label">Auditor:</td><td>${inputExact('meta_auditor', m.auditor)}</td></tr>
-      <tr><td class="exact-label">Client:</td><td>${inputExact('meta_client', m.client)}</td><td class="exact-label">Nature of Contractor:</td><td>${inputExact('meta_contractorNature', m.contractorNature)}</td></tr>
-      <tr><td class="exact-label">Consultant:</td><td>${inputExact('meta_consultant', m.consultant)}</td><td class="exact-label">Assessment Dates:</td><td>${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
-      <tr><td class="exact-label">Project Value:</td><td>${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Reporting Dates:</td><td>${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
-      <tr><td class="exact-label">Client Address:</td><td>${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Assessment Criteria:</td><td>${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
-      <tr><td class="exact-label" colspan="1">Assessment Team:</td><td colspan="5">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td></tr>
+      <tr><th colspan="6" class="exact-main-title">Project Audit Report</th></tr>
+      <tr><td class="exact-label">Report No:</td><td colspan="5">${inputExact('meta_reportNo', m.reportNo)}</td></tr>
+      <tr><td class="exact-label">Project:</td><td colspan="2">${inputExact('meta_project', m.project)}</td><td class="exact-label">Audit Date  :</td><td colspan="2">${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
+      <tr><td class="exact-label">Client:</td><td colspan="2">${inputExact('meta_client', m.client)}</td><td class="exact-label">Auditor:</td><td colspan="2">${inputExact('meta_auditor', m.auditor)}</td></tr>
+      <tr><td class="exact-label">Consultant:</td><td colspan="2">${inputExact('meta_consultant', m.consultant)}</td><td class="exact-label">Nature Of Contractor:</td><td colspan="2">${inputExact('meta_contractorNature', m.contractorNature)}</td></tr>
+      <tr><td class="exact-label">Project Value:</td><td colspan="2">${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Assessment dates:</td><td colspan="2">${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
+      <tr><td class="exact-label">Client address:</td><td colspan="2">${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Reporting dates:</td><td colspan="2">${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
+      <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
     </table>
 
     <table class="exact-table audit-checklist">
-      <tr><th>Sr No</th><th>Tasks</th><th>Available (Y/N)</th><th>Documents (Y/N)</th><th>Satisfactory/Unsatisfactory</th><th>Remarks</th></tr>
+      <tr>
+        <th>sr no</th>
+        <th>Tasks</th>
+        <th>Available (Y/N)</th>
+        <th>Documents(Y/N)</th>
+        <th>satisfactory/ Unsatisfactory</th>
+        <th>Remarks</th>
+      </tr>
       ${auditRows.map((row, idx) => `
         <tr>
           <td>${idx+1}</td>
@@ -1704,31 +1816,53 @@ function renderAuditExact(report) {
       `).join('')}
     </table>
 
-    <table class="exact-table">
-      <tr><th colspan="4" class="exact-main-title">HALLMARK QUALITY CHECKLIST</th></tr>
-      ${checklistGroups.map(g => `
-        <tr><th colspan="4">${esc(g.name)}</th></tr>
-        ${(g.items || []).map(item => `
-          <tr>
-            <td>${esc(item)}</td>
-            <td>${inputExact('', '', 'select', ['', 'Yes', 'No', 'NA'])}</td>
-            <td>${inputExact('', '', 'text')}</td>
-            <td>${inputExact('', '', 'text')}</td>
-          </tr>
-        `).join('')}
-      `).join('')}
-    </table>
-
-    <table class="exact-table"><tr><th>Project Description / Remarks</th></tr><tr><td>${textExact('audit_remarks', secVal(report, 2))}</td></tr></table>
-    <table class="exact-table"><tr><th>Areas of Appreciation</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 3))}</td></tr></table>
-    <table class="exact-table"><tr><th>Non-Compliance vs Compliance Summary</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 4))}</td></tr></table>
+    <table class="exact-table"><tr><th>Project Description</th></tr><tr><td>${textExact('audit_description', secVal(report, 1))}</td></tr></table>
+    <table class="exact-table"><tr><th>Areas of Appreciation:</th></tr><tr><td>${textExact('audit_appreciation', secVal(report, 2))}</td></tr></table>
+    <table class="exact-table"><tr><th>Non-Compliance VS Compliance</th></tr><tr><td>${textExact('audit_compliance', secVal(report, 3))}</td></tr></table>
     <table class="exact-table">
       <tr><th>Auditor</th><th>Project Manager</th><th>QA Head</th></tr>
       <tr>${['auditor', 'pm', 'qa'].map(role => `<td><b>Name:</b> <input class="exact-input" data-sign-name-${role}><br><b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}></td>`).join('')}</tr>
     </table>
   </div>`;
   return html;
-}  
+}
+ // ============================================================
+// RENDER HALLMARK CHECKLIST
+// ============================================================
+function renderHallmarkExact(report) {
+  const m = report?.meta || {};
+  const section = report?.sections?.[0] || {};
+  const items = section.items || [];
+  
+  let html = `
+  <div class="exact-format hallmark-exact">
+    <table class="exact-table">
+      <tr><th colspan="4" class="exact-main-title">${esc(report?.templateName || 'HALLMARK CHECKLIST')}</th></tr>
+      <tr><td class="exact-label">Linked Audit Report:</td><td colspan="3">${inputExact('meta_linkedAudit', m.linkedAudit, 'select', getAuditOptions())}</td></tr>
+      <tr><td class="exact-label">Project:</td><td>${inputExact('meta_project', m.project)}</td><td class="exact-label">Audit Date:</td><td>${inputExact('meta_date', m.date, 'date')}</td></tr>
+      <tr><td class="exact-label">Contractor:</td><td>${inputExact('meta_contractor', m.contractor)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location)}</td></tr>
+    </table>
+
+    <table class="exact-table hallmark-checklist">
+      <tr><th>Sr No</th><th>Check Point</th><th>Status</th><th>Remarks</th></tr>
+      ${items.map((item, idx) => `
+        <tr>
+          <td style="text-align:center; width:8%;">${idx+1}</td>
+          <td>${esc(item)}</td>
+          <td style="width:15%;">${inputExact('', '', 'select', ['', 'Yes', 'No', 'NA'])}</td>
+          <td style="width:25%;">${inputExact('', '')}</td>
+        </tr>
+      `).join('')}
+    </table>
+
+    <table class="exact-table"><tr><th>Remarks / Comments</th></tr><tr><td>${textExact('hallmark_remarks', secVal(report, 1))}</td></tr></table>
+    <table class="exact-table">
+      <tr><th>Contractor QA/QC</th><th>Company QA/QC</th><th>QA Head</th></tr>
+      <tr>${['contractor', 'company', 'qa'].map(role => `<td><b>Name:</b> <input class="exact-input" data-sign-name-${role}><br><b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}></td>`).join('')}</tr>
+    </table>
+  </div>`;
+  return html;
+} 
 function collectNCRSectionsExact() {
   const root = document.querySelector('.ncr-exact');
   if (!root) return [];
@@ -1803,14 +1937,9 @@ function collectAuditSectionsExact() {
     };
   });
 
-  // Collect Hallmark checklist groups (simplified – we'll read from the report object)
-  // Since the report object already has the groups structure, we can use it directly.
-  // We'll return the sections array with the collected table rows and groups.
-  // We'll handle this in collectSections by reading the report object.
   return [
     { type: 'audit_table', rows: tableRows },
-    { type: 'audit_checklist', groups: [] }, // will be populated from the report
-    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_remarks"]')?.value || '' },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="audit_description"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
     { type: 'signatures', entries: [
@@ -1820,6 +1949,31 @@ function collectAuditSectionsExact() {
     ]}
   ];
 }
+ function collectHallmarkSectionsExact() {
+  const root = document.querySelector('.hallmark-exact');
+  if (!root) return [];
+
+  // Collect checklist rows
+  const items = Array.from(root.querySelectorAll('.hallmark-checklist tbody tr')).map(tr => {
+    const inputs = tr.querySelectorAll('input, select');
+    return {
+      item: tr.cells[1]?.textContent.trim() || '',
+      status: inputs[0]?.value || '',
+      remarks: inputs[1]?.value || ''
+    };
+  });
+
+  return [
+    { type: 'hallmark_checklist', items: items },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="hallmark_remarks"]')?.value || '' },
+    { type: 'signatures', entries: [
+      { role: 'Contractor QA/QC', name: root.querySelector('[data-sign-name-contractor]')?.value || '', sign: root.querySelector('[data-sign-sign-contractor]')?.value || '', date: root.querySelector('[data-sign-date-contractor]')?.value || '' },
+      { role: 'Company QA/QC', name: root.querySelector('[data-sign-name-company]')?.value || '', sign: root.querySelector('[data-sign-sign-company]')?.value || '', date: root.querySelector('[data-sign-date-company]')?.value || '' },
+      { role: 'QA Head', name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
+    ]}
+  ];
+} 
+
 // ============================================================
 // 6. UTILITY FUNCTIONS (with date/time fixes)
 // ============================================================
@@ -1902,6 +2056,21 @@ function getRfiOptions() {
   const vals = getRfiRecords().map(r => r.meta?.rfiNo || r.id).filter(Boolean);
   return [...new Set(vals)];
 }
+function getAuditOptions() {
+  const audits = savedReports.filter(r => r.templateKey === 'audit');
+  const options = audits.map(r => r.meta?.reportNo || r.id || '');
+  return [...new Set(options)];
+}
+// ============================================================
+// POPULATE HALLMARK CHECKLIST BUTTONS
+// ============================================================
+function populateHallmarkButtons() {
+  const container = document.getElementById('hallmarkChecklistButtons');
+  if (!container) return;
+  container.innerHTML = hallmarkChecklists.map(hc => `
+    <button type="button" class="btn btn-secondary" onclick="launchHallmarkChecklist('${hc.key}')">📋 ${hc.title}</button>
+  `).join('');
+}  
 function getLinkedChecklistsForRfi(rfiNo) {
   return savedReports.filter(r => r.templateKey !== 'rfi' && (r.meta?.linkedRfi || '') === rfiNo);
 }
@@ -2488,6 +2657,8 @@ function renderCards() {
   const isExec = isExecEngineer();
   Object.entries(templates).forEach(([k, t]) => {
     if (isExec && k === 'rfi') return;
+    if (k === 'audit') return;   // ← hide Project Audit from main Dashboard
+     if (k.startsWith('hallmark_')) return;   // ← ADD THIS
     const c = document.createElement('div');
     c.className = 'card';
     c.innerHTML = `
@@ -2671,8 +2842,17 @@ if (activeTemplateKey === 'audit') {
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
+  renderLinkedHallmarks(report);
+   populateHallmarkButtons();   // ← ADD THIS
   return;
 }
+  else if (activeTemplateKey && activeTemplateKey.startsWith('hallmark_')) {
+  body.innerHTML = renderHallmarkExact(report);
+  updateProgress();
+  const attachmentsHtml = renderAttachments(report?.attachments || []);
+  body.innerHTML += attachmentsHtml;
+  return;
+} 
   let html = renderMetaRows(t.metaRows, meta);
   let si = 0;
   t.sections.forEach((sec) => {
@@ -2790,6 +2970,39 @@ function renderLinkedChecklists() {
   html += '</tbody></table>';
   list.innerHTML = html;
 }
+  // ============================================================
+// RENDER LINKED HALLMARK CHECKLISTS (for Audit Reports)
+// ============================================================
+function renderLinkedHallmarks(auditReport) {
+  const list = document.getElementById('relatedHallmarkList');
+  if (!list) return;
+  if (!auditReport) {
+    list.innerHTML = 'No linked Hallmark checklist yet.';
+    return;
+  }
+  const auditNo = auditReport.meta?.reportNo || auditReport.id || '';
+  const linked = savedReports.filter(r => 
+    r.templateKey?.startsWith('hallmark_') && 
+    (r.meta?.linkedAudit === auditNo || r.meta?.linkedAudit === auditReport.id)
+  );
+  if (!linked.length) {
+    list.innerHTML = 'No linked Hallmark checklist yet. Use the buttons above to add one.';
+    return;
+  }
+  let html = `<table class="kpi-table" style="font-size:12px;margin-top:6px;">
+    <thead><tr><th>Name</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>`;
+  linked.forEach(chk => {
+    const dateStr = fmtDateTime(chk.savedAt || chk.meta?.date || '');
+    html += `<tr>
+      <td><b>${esc(chk.templateName)}</b></td>
+      <td>${badgeForStatus(chk.status || 'Draft')}</td>
+      <td class="small">${dateStr}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="openRecord('${chk.id}')">Open</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
   function renderAttachments(attachments) {
   if (!attachments || attachments.length === 0) return '';
   let html = `<div style="margin-top:16px; border-top:2px solid var(--line); padding-top:12px;">
@@ -2851,69 +3064,92 @@ function collectMeta(t) {
   return meta;
 }
 function collectSections(t) {
+  // Early returns for special template types
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
   if (activeTemplateKey === 'imir') return collectIMIRSectionsExact();
   if (activeTemplateKey === 'audit') return collectAuditSectionsExact();
+  if (activeTemplateKey && activeTemplateKey.startsWith('hallmark_')) {
+    return collectHallmarkSectionsExact();
+  }
+
+  // For all other templates (rfi, brick, plaster, concrete, etc.)
   const shell = document.getElementById('sheetBody');
   if (!shell) return [];
   const sectionTables = Array.from(shell.children).slice(1);
   const sections = [];
+
   sectionTables.forEach((tbl, idx) => {
     const sec = t.sections[idx];
     if (!sec) return;
+
     if (sec.type === 'simple_check') {
       const rows = Array.from(tbl.querySelectorAll('tr')).slice(2);
-      sections.push({ type: 'simple_check', items: rows.map(r => ({
-        contractor: r.cells[1]?.querySelector('input')?.value || '',
-        company: r.cells[2]?.querySelector('input')?.value || '',
-        remarks: r.cells[3]?.querySelector('input')?.value || '',
-        status: r.cells[4]?.querySelector('select')?.value || ''
-      })) });
+      sections.push({
+        type: 'simple_check',
+        items: rows.map(r => ({
+          contractor: r.cells[1]?.querySelector('input')?.value || '',
+          company: r.cells[2]?.querySelector('input')?.value || '',
+          remarks: r.cells[3]?.querySelector('input')?.value || '',
+          status: r.cells[4]?.querySelector('select')?.value || ''
+        }))
+      });
     }
-    if (sec.type === 'checklist') {
+    else if (sec.type === 'checklist') {
       const items = [];
       Array.from(tbl.querySelectorAll('tr')).slice(1).forEach(r => {
         if (r.classList.contains('check-section-row')) return;
-        items.push({ status: r.cells[2]?.querySelector('select')?.value || '', remarks: r.cells[3]?.querySelector('textarea')?.value || '' });
+        items.push({
+          status: r.cells[2]?.querySelector('select')?.value || '',
+          remarks: r.cells[3]?.querySelector('textarea')?.value || ''
+        });
       });
       sections.push({ type: 'checklist', items });
     }
-    if (sec.type === 'table') {
-      const rows = Array.from(tbl.querySelectorAll('tr')).slice(2).map(r => Array.from(r.querySelectorAll('input')).map(i => i.value));
+    else if (sec.type === 'table') {
+      const rows = Array.from(tbl.querySelectorAll('tr')).slice(2).map(r =>
+        Array.from(r.querySelectorAll('input')).map(i => i.value)
+      );
       sections.push({ type: 'table', rows });
     }
-    if (sec.type === 'accepted') {
-      sections.push({ type: 'accepted', rows: Array.from(tbl.querySelectorAll('tr')).slice(2).map(r => ({
-        name: r.cells[1]?.querySelector('input')?.value || '',
-        sign: r.cells[2]?.querySelector('input')?.value || '',
-        date: r.cells[3]?.querySelector('input')?.value || ''
-      })) });
+    else if (sec.type === 'accepted') {
+      sections.push({
+        type: 'accepted',
+        rows: Array.from(tbl.querySelectorAll('tr')).slice(2).map(r => ({
+          name: r.cells[1]?.querySelector('input')?.value || '',
+          sign: r.cells[2]?.querySelector('input')?.value || '',
+          date: r.cells[3]?.querySelector('input')?.value || ''
+        }))
+      });
     }
-    if (sec.type === 'status') {
+    else if (sec.type === 'status') {
       const checked = tbl.querySelector('input[type="radio"]:checked');
       sections.push({ type: 'status', value: checked ? checked.value : '' });
     }
-    if (sec.type === 'textarea') {
+    else if (sec.type === 'textarea') {
       sections.push({ type: 'textarea', value: tbl.querySelector('textarea')?.value || '' });
     }
-    if (sec.type === 'signatures') {
+    else if (sec.type === 'signatures') {
       const cells = tbl.querySelectorAll('tr')[1]?.cells || [];
-      sections.push({ type: 'signatures', entries: Array.from(cells).map((cell, ci) => ({
-        role: sec.roles[ci] || '',
-        name: cell.querySelectorAll('input')[0]?.value || '',
-        sign: cell.querySelectorAll('input')[1]?.value || '',
-        date: cell.querySelectorAll('input')[2]?.value || ''
-      })) });
+      sections.push({
+        type: 'signatures',
+        entries: Array.from(cells).map((cell, ci) => ({
+          role: sec.roles[ci] || '',
+          name: cell.querySelectorAll('input')[0]?.value || '',
+          sign: cell.querySelectorAll('input')[1]?.value || '',
+          date: cell.querySelectorAll('input')[2]?.value || ''
+        }))
+      });
     }
-    if (sec.type === 'date') {
+    else if (sec.type === 'date') {
       const el = tbl.querySelector('input');
       sections.push({ type: 'date', [sec.k]: el ? el.value : '' });
     }
-    if (sec.type === 'text') {
+    else if (sec.type === 'text') {
       const el = tbl.querySelector('input');
       sections.push({ type: 'text', [sec.k]: el ? el.value : '' });
     }
   });
+
   return sections;
 }
 function collectSectionsForProgress() {
@@ -3615,6 +3851,39 @@ async function launchChecklistFromRfi(templateKey) {
   pendingParentMeta = captureCurrentRfiPrefill();
   openTemplate(templateKey);
 }
+function launchHallmarkChecklist(templateKey) {
+  if (activeTemplateKey !== 'audit') {
+    toast('⚠️ Open an Audit Report first');
+    return;
+  }
+  const reportNoEl = document.getElementById('meta_reportNo');
+  const reportNo = (reportNoEl?.value || '').trim();
+  if (!reportNo) {
+    toast('⚠️ Enter Report No first');
+    reportNoEl?.focus();
+    return;
+  }
+  
+  // Save the audit first
+  try {
+    saveReport({ preventDefault() {} });
+  } catch (e) {
+    toast('❌ Failed to save Audit: ' + e.message);
+    return;
+  }
+  
+  const parent = currentRecord();
+  if (!parent || activeTemplateKey !== 'audit') {
+    toast('⚠️ Please save Audit first');
+    return;
+  }
+  
+  pendingReturnRfiId = parent.id;
+  pendingLinkedAuditNo = reportNo;
+  openTemplate(templateKey);
+}
+
+let pendingLinkedAuditNo = null;  
 function openLinkedChecklistFromRfi(checklistId, parentRfiId) {
   const chk = savedReports.find(r => r.id === checklistId);
   if (!chk) { toast('⚠️ Checklist not found'); return; }
@@ -3648,7 +3917,34 @@ function openTemplate(key, reportId = null, reportObj = null) {
   const t = templates[key];
   // Use reportObj if provided, otherwise look up in savedReports
   const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
-
+   // Auto-populate linked RFI for checklists
+  if (pendingLinkedRfiNo && activeTemplateKey !== 'rfi') {
+    const sel = document.getElementById('meta_linkedRfi');
+    if (sel) {
+      const exists = Array.from(sel.options).some(o => o.value === pendingLinkedRfiNo);
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = pendingLinkedRfiNo;
+        opt.textContent = pendingLinkedRfiNo;
+        sel.appendChild(opt);
+      }
+      sel.value = pendingLinkedRfiNo;
+    }
+  }
+    // ★ NEW: For Hallmark checklists, auto-populate the Linked Audit dropdown
+  if (pendingLinkedAuditNo && activeTemplateKey !== 'audit') {
+    const sel = document.getElementById('meta_linkedAudit');
+    if (sel) {
+      const exists = Array.from(sel.options).some(o => o.value === pendingLinkedAuditNo);
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = pendingLinkedAuditNo;
+        opt.textContent = pendingLinkedAuditNo;
+        sel.appendChild(opt);
+      }
+      sel.value = pendingLinkedAuditNo;
+    }
+  }
   document.getElementById('sheetOrg').innerText = appConfig.companyName || 'QA/QC Suite';
   document.getElementById('sheetDept').innerText = t.dept || 'QA / QC RECORDS';
   document.getElementById('fmtNo').innerText = 'Format No. - ' + (t.formatNo || buildFormatNo('01'));
