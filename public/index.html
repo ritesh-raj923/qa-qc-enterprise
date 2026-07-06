@@ -3440,7 +3440,7 @@ async function saveReport(ev) {
   row.defectsCount = no;
 
   // --- Validate linked RFI for checklists ---
- if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && activeTemplateKey !== 'audit' && !row.meta.linkedRfi) {
+if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && activeTemplateKey !== 'audit' && !activeTemplateKey.startsWith('hallmark_') && !row.meta.linkedRfi) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
 }
