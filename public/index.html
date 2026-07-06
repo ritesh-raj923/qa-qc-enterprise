@@ -898,6 +898,7 @@ body.dark-mode .exact-small {
   <div class="menu-item auth-only" data-target="history" onclick="switchView('history')">📋 Saved Records</div>
   <div class="menu-item auth-only" data-target="settings" onclick="switchView('settings')">⚙️ Configuration</div>
   <div class="menu-item auth-only" data-target="masters" onclick="switchView('masters')">📚 Master Data</div>
+  <div class="menu-item auth-only" data-target="auditdashboard" onclick="switchView('auditdashboard')">📊 Audit Dashboard</div>
   <div class="menu-item auth-only" onclick="logout()">🚪 Logout</div>
 </div>
 
@@ -996,7 +997,52 @@ body.dark-mode .exact-small {
     </div>
     <div class="cards" id="templateCards"></div>
   </div>
+ <!-- ===== AUDIT DASHBOARD ===== -->
+<div id="view-auditdashboard" class="view">
+  <div class="dashboard-grid" id="auditStatsGrid">
+    <div class="stat active-kpi" data-audit-kpi="audit_total" onclick="filterAuditKPI('audit_total')">
+      <div class="label">📋 Total Audits</div>
+      <div class="value" id="auditTotal">0</div>
+    </div>
+    <div class="stat warn" data-audit-kpi="audit_pending" onclick="filterAuditKPI('audit_pending')">
+      <div class="label">⏳ Pending Audits</div>
+      <div class="value" id="auditPending">0</div>
+    </div>
+    <div class="stat ok" data-audit-kpi="audit_approved" onclick="filterAuditKPI('audit_approved')">
+      <div class="label">✅ Approved Audits</div>
+      <div class="value" id="auditApproved">0</div>
+    </div>
+    <div class="stat alert" data-audit-kpi="audit_rejected" onclick="filterAuditKPI('audit_rejected')">
+      <div class="label">❌ Rejected Audits</div>
+      <div class="value" id="auditRejected">0</div>
+    </div>
+    <div class="stat" data-audit-kpi="audit_closed" onclick="filterAuditKPI('audit_closed')">
+      <div class="label">🔒 Closed Audits</div>
+      <div class="value" id="auditClosed">0</div>
+    </div>
+  </div>
 
+  <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
+
+  <div id="auditKpiResultSection" class="panel kpi-panel">
+    <div class="kpi-panel-head">
+      <div class="kpi-title-wrap">
+        <h3 id="auditKpiPanelTitle">All Audits</h3>
+        <p id="auditKpiPanelSub">Showing all audit records.</p>
+      </div>
+      <div class="kpi-toolbar">
+        <span class="kpi-chip" id="auditActiveFilterChip">Active Filter: All</span>
+        <span class="kpi-count" id="auditRecordCount">0 records</span>
+      </div>
+    </div>
+    <div class="kpi-table-wrap">
+      <table class="kpi-table">
+        <thead><tr><th>Report No.</th><th>Project / Location</th><th>Status</th><th>Auditor</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr></thead>
+        <tbody id="auditKpiResultBody"><tr><td colspan="7" class="kpi-empty">No audit records found.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
   <div id="view-history" class="view">
     <div class="history-wrap">
       <div class="filters">
@@ -2442,6 +2488,7 @@ function switchView(view) {
     document.getElementById('appTitle').innerText = 'QA/QC Inspection Suite';
     document.getElementById('appSub').innerText = 'Secure Access';
   }
+  if (view === 'auditdashboard') { updateAuditStats(); renderAuditHistory(); if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); }
   updateNotificationUI();
 }
 function backFromForm() {
@@ -4000,8 +4047,108 @@ function renderKPIResults(data, type, customTitle, customSub) {
       <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button></td>
     </tr>
   `}).join('');
+} 
+// ============================================================
+// AUDIT DASHBOARD – STATS & RENDERING
+// ============================================================
+
+let currentAuditKpiFilter = 'audit_total';
+
+function getAuditRecords() {
+  const all = visibleReports();
+  return all.filter(r => r.templateKey === 'audit');
 }
 
+function updateAuditStats() {
+  const audits = getAuditRecords();
+  const total = audits.length;
+  const pending = audits.filter(r => ['Draft', 'Submitted', 'Under Review'].includes(r.status)).length;
+  const approved = audits.filter(r => r.status === 'Approved' || r.status === 'Approved with Comment').length;
+  const rejected = audits.filter(r => r.status === 'Rejected').length;
+  const closed = audits.filter(r => r.status === 'Closed').length;
+
+  document.getElementById('auditTotal').innerText = total;
+  document.getElementById('auditPending').innerText = pending;
+  document.getElementById('auditApproved').innerText = approved;
+  document.getElementById('auditRejected').innerText = rejected;
+  document.getElementById('auditClosed').innerText = closed;
+
+  if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter);
+}
+
+function filterAuditKPI(type) {
+  const audits = getAuditRecords();
+  let filtered = [];
+  let title = 'All Audits';
+  let sub = 'Showing all audit records.';
+
+  if (type === 'audit_total') filtered = audits;
+  else if (type === 'audit_pending') filtered = audits.filter(r => ['Draft', 'Submitted', 'Under Review'].includes(r.status));
+  else if (type === 'audit_approved') filtered = audits.filter(r => r.status === 'Approved' || r.status === 'Approved with Comment');
+  else if (type === 'audit_rejected') filtered = audits.filter(r => r.status === 'Rejected');
+  else if (type === 'audit_closed') filtered = audits.filter(r => r.status === 'Closed');
+
+  currentAuditKpiFilter = type;
+  renderAuditKPIResults(filtered, type, title, sub);
+  setActiveAuditKpiCard(type);
+}
+
+function setActiveAuditKpiCard(type) {
+  document.querySelectorAll('.dashboard-grid .stat[data-audit-kpi]').forEach(card => {
+    card.classList.toggle('active-kpi', card.getAttribute('data-audit-kpi') === type);
+  });
+}
+
+function renderAuditKPIResults(data, type, customTitle, customSub) {
+  const body = document.getElementById('auditKpiResultBody');
+  const chip = document.getElementById('auditActiveFilterChip');
+  const count = document.getElementById('auditRecordCount');
+  const title = document.getElementById('auditKpiPanelTitle');
+  const sub = document.getElementById('auditKpiPanelSub');
+
+  const labels = {
+    audit_total: 'All Audits',
+    audit_pending: 'Pending Audits',
+    audit_approved: 'Approved Audits',
+    audit_rejected: 'Rejected Audits',
+    audit_closed: 'Closed Audits'
+  };
+
+  if (chip) chip.textContent = 'Active Filter: ' + (labels[type] || 'All');
+  if (count) count.textContent = data.length + (data.length === 1 ? ' record' : ' records');
+  if (title) title.textContent = customTitle || 'All Audits';
+  if (sub) sub.textContent = customSub || 'Showing audit records.';
+
+  if (!body) return;
+  if (!data.length) {
+    body.innerHTML = '<tr><td colspan="7" class="kpi-empty">No audit records found for this filter.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = data.map(r => {
+    const reportNo = r.meta?.reportNo || r.id || '-';
+    const project = r.meta?.project || r.titleLoc || '-';
+    const auditor = r.meta?.auditor || '-';
+    const statusClass = kpiStatusClass(r.status || '');
+    return `
+    <tr>
+      <td><b>${esc(reportNo)}</b></td>
+      <td>${esc(project)}</td>
+      <td><span class="kpi-status ${statusClass}">${esc(r.status || 'Draft')}</span></td>
+      <td>${esc(auditor)}</td>
+      <td>${esc(r.createdByDisplay || '-')}</td>
+      <td>${fmtDateTime(r.savedAt || r.meta?.auditDate)}</td>
+      <td><button class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="openRecord('${r.id}')">Open</button></td>
+    </tr>
+  `}).join('');
+}
+
+function renderAuditHistory() {
+  // This is called by switchView – it uses the same KPI table above.
+  // No separate table needed – the KPI table is the main table.
+  // Just refresh the stats and KPI results.
+  updateAuditStats();
+}
 // ============================================================
 // 23. PRINT FUNCTIONS
 // ============================================================
