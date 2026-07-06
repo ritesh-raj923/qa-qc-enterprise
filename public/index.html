@@ -1420,7 +1420,7 @@ const templates = {
       { type: 'textarea', title: 'Remarks' },
       { type: 'signatures', title: 'Signatory', roles: ['Merit Execution', 'Merit QA/QC', 'Adani Execution', 'Adani FQA', 'Adani QA/QC'] }
     ]
-  }
+  },
   audit: {
   formatNo: 'AUDIT / QA / 001',
   menuTitle: 'Project Audit',
@@ -3054,14 +3054,15 @@ async function saveReport(ev) {
         blobToEncode = file;
       }
     }
-    console.log('Reading file:', file.name, file.size);
+   console.log('Reading file:', file.name, file.size);
 const data = await readFileAsBase64(blobToEncode);
 console.log('File data length:', data.length);
-    attachmentData.push({
-      name: file.name,
-      type: file.type,
-      data: data
-    });
+// ← duplicate line removed
+attachmentData.push({
+  name: file.name,
+  type: file.type,
+  data: data
+});
   }
 }
   // Merge with existing attachments (if any)
