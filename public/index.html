@@ -3301,7 +3301,6 @@ function generateNcrNumber() {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   return 'NCR-' + num;
 }
-
 async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
@@ -3321,50 +3320,51 @@ async function saveReport(ev) {
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
-    const titleLoc = meta.building || meta.structure || meta.location || meta.project || getProjectDisplay();
+  const titleLoc = meta.building || meta.structure || meta.location || meta.project || getProjectDisplay();
   const preparedBy = meta.preparedBy || meta.raisedBy || meta.contractor || meta.agency || meta.to || '';
 
-  // --- NEW: Handle file attachments (store base64 data) ---
+  // --- Handle file attachments ---
   const attachmentInput = document.getElementById('wfAttachment');
   let attachmentData = [];
 
   if (attachmentInput && attachmentInput.files.length > 0) {
-  const files = attachmentInput.files;
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (file.size > 2 * 1024 * 1024) {
-      toast('⚠️ File ' + file.name + ' exceeds 2MB limit – skipped.');
-      continue;
-    }
-  // --- Attachment handling (fixed) ---
-let blobToEncode = file;  // <- default to original
+    const files = attachmentInput.files;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 2 * 1024 * 1024) {
+        toast('⚠️ File ' + file.name + ' exceeds 2MB limit – skipped.');
+        continue;
+      }
+      let blobToEncode = file; // default to original
 
-if (file.type && file.type.startsWith('image/')) {
-    try {
-        blobToEncode = await compressImage(file, 800, 0.7);
-    } catch (e) {
-        console.warn('Compression failed, using original file', e);
-        blobToEncode = file;
-    }
-}
+      if (file.type && file.type.startsWith('image/')) {
+        try {
+          blobToEncode = await compressImage(file, 800, 0.7);
+        } catch (e) {
+          console.warn('Compression failed, using original file', e);
+          blobToEncode = file;
+        }
+      }
 
-console.log('Reading file:', file.name, file.size);
-const data = await readFileAsBase64(blobToEncode);
-console.log('File data length:', data.length);
+      console.log('Reading file:', file.name, file.size);
+      const data = await readFileAsBase64(blobToEncode);
+      console.log('File data length:', data.length);
 
-attachmentData.push({
-    name: file.name,
-    type: file.type,
-    data: data
-});
+      attachmentData.push({
+        name: file.name,
+        type: file.type,
+        data: data
+      });
+    } // end for
+  } // end if
 
-// Merge with existing attachments
-const existingAttachments = existing?.attachments || [];
-const mergedAttachments = [...existingAttachments, ...attachmentData];
-  // --- End of new attachment handling ---
+  // --- Merge with existing attachments (OUTSIDE the loop) ---
+  const existingAttachments = existing?.attachments || [];
+  const mergedAttachments = [...existingAttachments, ...attachmentData];
 
   const raisedFromRfi = meta.raisedFromRfi || existing?.raisedFromRfi || '';
 
+  // --- Build the row object ---
   const row = {
     id: id,
     templateKey: activeTemplateKey,
@@ -3387,6 +3387,8 @@ const mergedAttachments = [...existingAttachments, ...attachmentData];
     audit: (existing?.audit || []).concat([getAuditNow(existing ? 'Updated' : 'Created', document.getElementById('wfComment')?.value.trim() || '')]),
     raisedFromRfi: raisedFromRfi
   };
+
+  // --- Score calculation ---
   let yes = 0, no = 0;
   sections.forEach(sec => {
     if (sec.type === 'checklist' || sec.type === 'simple_check') {
@@ -3396,11 +3398,13 @@ const mergedAttachments = [...existingAttachments, ...attachmentData];
   row.score = (yes + no) ? Math.round((yes / (yes + no)) * 100) : 100;
   row.defectsCount = no;
 
+  // --- Validate linked RFI for checklists ---
   if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && !row.meta.linkedRfi) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
 
+  // --- Save to server ---
   try {
     const isNew = !savedReports.find(r => r.id === id);
     await syncReportToServer(row, isNew);
@@ -3414,11 +3418,9 @@ const mergedAttachments = [...existingAttachments, ...attachmentData];
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-   // Instead of reloading everything from server, just update the local UI
-updateStats();
-renderHistory();
-updateNotificationUI();
-toast('✅ Saved successfully'); 
+    updateStats();
+    renderHistory();
+    updateNotificationUI();
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
   }
