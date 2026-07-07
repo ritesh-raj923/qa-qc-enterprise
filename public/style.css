@@ -879,3 +879,178 @@ body.dark-mode .exact-internal {
 body.dark-mode .exact-small {
   color: #aabbcc !important;
 } 
+/* ===== HAMBURGER MENU (mobile) ===== */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+/* ===== MOBILE RESPONSIVENESS ===== */
+@media (max-width: 768px) {
+  /* Show hamburger on mobile */
+  .hamburger {
+    display: inline-block;
+  }
+
+  /* Sidebar – hidden by default, slides in */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    background: var(--blue2);
+    padding-top: 60px;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Main content – full width */
+  .main {
+    margin-left: 0;
+    width: 100%;
+    padding: 12px;
+  }
+
+  /* Header – smaller text */
+  header {
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 999;
+    padding: 6px 0;
+  }
+  header h1 {
+    font-size: 18px;
+  }
+  header .sub {
+    font-size: 11px;
+  }
+
+  /* Dashboard stats – 2 columns */
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat .value {
+    font-size: 22px;
+  }
+  .stat .label {
+    font-size: 10px;
+  }
+
+  /* Cards – full width */
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tables – horizontal scroll */
+  .history-wrap table,
+  .sheet-table,
+  .kpi-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .sheet-table td,
+  .sheet-table th {
+    padding: 4px 6px;
+  }
+
+  /* Filters – two columns */
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+    padding: 10px 8px;
+  }
+
+  /* Buttons – full width on small screens */
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .topbar .btn {
+    width: 100%;
+    margin-bottom: 6px;
+  }
+  .topbar > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .topbar > div .btn {
+    flex: 1;
+  }
+
+  /* Workflow panel – stack fields */
+  #workflowPanel .filters {
+    grid-template-columns: 1fr;
+  }
+
+  /* Exact audit format – smaller font */
+  .exact-format table {
+    font-size: 10px;
+  }
+  .exact-format .exact-input,
+  .exact-format .exact-select,
+  .exact-format .exact-textarea {
+    font-size: 11px;
+  }
+
+  /* Notifications dropdown – full width */
+  .notif-dropdown {
+    width: 100%;
+    right: 0;
+    left: 0;
+    top: 50px;
+  }
+
+  /* Login page */
+  .login-wrap {
+    padding: 16px;
+  }
+  .login-wrap .note {
+    font-size: 11px;
+  }
+  .login-wrap .note span {
+    display: block;
+    width: 100% !important;
+  }
+
+  /* Progress bar */
+  .progressbox {
+    text-align: left;
+    margin-top: 6px;
+  }
+  .progressline {
+    width: 100%;
+  }
+
+  /* Agency radio group */
+  .exact-radio-line {
+    flex-wrap: wrap;
+  }
+
+  /* Menu items – larger touch area */
+  .menu-item {
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+}
