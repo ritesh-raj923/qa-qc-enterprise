@@ -43,6 +43,13 @@ let currentKpiRows = [];
 let globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
 let notifications = [];
 let notificationPollInterval = null;
+// Toggle sidebar for mobile
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
+}
 
 function isNcr() { return activeTemplateKey === 'ncr'; }
 function isRfi() { return activeTemplateKey === 'rfi'; }
@@ -3804,6 +3811,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.matches('.table-textarea,.plain-textarea,.value-input,.table-input,.sig-input')) updateProgress();
 });
+// ---- NOTIFICATION DROPDOWN CLOSE ----
 document.addEventListener('click', function(e) {
   const container = document.getElementById('notifContainer');
   if (container && !container.contains(e.target)) {
@@ -3811,6 +3819,16 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// ===== CLOSE SIDEBAR WHEN CLICKING OUTSIDE =====
+document.addEventListener('click', function(e) {
+  const sidebar = document.querySelector('.sidebar');
+  const hamburger = document.getElementById('hamburgerBtn');
+  if (sidebar && sidebar.classList.contains('open') && 
+      !sidebar.contains(e.target) && 
+      !hamburger.contains(e.target)) {
+    sidebar.classList.remove('open');
+  }
+});
 // User mapping for notification routing (matches backend seeds)
 const users = [
   { u: 'admin', role: 'admin', name: 'System Admin', assigned_sites: ['*'] },
