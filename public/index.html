@@ -3815,14 +3815,6 @@ else if (isImir()) {
 
   // === RFI SUBMIT ===
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
-  // <<< PASTE THE VALIDATION CODE HERE >>>
-  // Check if linked checklists are complete
-  const linkedChecklists = getLinkedChecklistsForRfi(rec.meta?.rfiNo || rec.id);
-  const incomplete = linkedChecklists.filter(chk => chk.status !== 'Approved' && chk.status !== 'Closed');
-  if (incomplete.length) {
-    toast(`⚠️ Complete linked checklists first: ${incomplete.map(c => c.templateName).join(', ')}`);
-    return;
-  }
   rec.status = 'Submitted';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
