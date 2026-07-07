@@ -3721,7 +3721,6 @@ async function raiseNCRFromRFI() {
     toast('❌ Failed to create NCR: ' + e.message);
   }
 }
-
 async function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
@@ -3751,24 +3750,6 @@ async function submitRecord() {
         );
       }
     }
-    // === IMIR SUBMIT ===
-else if (isImir()) {
-  if (rec.status !== 'Draft') { toast('⚠️ IMIR is not in Draft state'); return; }
-  rec.status = 'Submitted';
-  rec.comment = document.getElementById('wfComment').value.trim() || 'Material submitted for approval';
-  rec.savedAt = new Date().toISOString();
-  rec.audit.push(getAuditNow('Submitted for Approval', rec.comment));
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
-  toast('📤 IMIR submitted for approval');
-  
-  // Notify QA/Exec
-  const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
-  for (const approver of approvers) {
-    await sendNotification(approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
-  }
-  return;
-}
     // Existing linked‑RFI logic
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
@@ -3813,6 +3794,25 @@ else if (isImir()) {
     return;
   }
 
+  // === IMIR SUBMIT ===  (MOVED OUTSIDE NCR BLOCK)
+  else if (isImir()) {
+    if (rec.status !== 'Draft') { toast('⚠️ IMIR is not in Draft state'); return; }
+    rec.status = 'Submitted';
+    rec.comment = document.getElementById('wfComment').value.trim() || 'Material submitted for approval';
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Submitted for Approval', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('📤 IMIR submitted for approval');
+    
+    // Notify QA/Exec
+    const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
+    for (const approver of approvers) {
+      await sendNotification(approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+    }
+    return;
+  }
+
   // === RFI SUBMIT ===
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
   rec.status = 'Submitted';
@@ -3838,7 +3838,6 @@ else if (isImir()) {
   setChecklistButtonsState(rec);
   toast('📤 Submitted');
 }
-
 async function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
