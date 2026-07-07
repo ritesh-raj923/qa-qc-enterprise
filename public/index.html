@@ -25,29 +25,31 @@
 
   <!-- ===== MAIN CONTENT ===== -->
   <div class="main">
-    <!-- HEADER -->
-    <header>
-      <div>
-        <h1 id="appTitle">QA/QC Inspection Suite</h1>
-        <div class="sub" id="appSub">Project Name - Location</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="badge info" id="viewBadge">Not Logged In</span>
-        <div class="notif-container" id="notifContainer" style="display:none;">
-          <div class="notif-bell" id="notifBell" onclick="toggleNotifications()">🔔</div>
-          <div class="notif-badge hidden" id="notifBadge">0</div>
-          <div class="notif-dropdown" id="notifDropdown">
-            <div class="notif-dropdown-header">
-              <span>🔔 Notifications</span>
-              <span class="mark-all" onclick="markAllNotificationsRead()">Mark all as read</span>
-            </div>
-            <div id="notifList"></div>
-          </div>
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <!-- Hamburger button -->
+    <button id="hamburgerBtn" class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h1 id="appTitle">QA/QC Inspection Suite</h1>
+    <div class="sub" id="appSub">Project Name - Location</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="badge info" id="viewBadge">Not Logged In</span>
+    <div class="notif-container" id="notifContainer" style="display:none;">
+      <div class="notif-bell" id="notifBell" onclick="toggleNotifications()">🔔</div>
+      <div class="notif-badge hidden" id="notifBadge">0</div>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-dropdown-header">
+          <span>🔔 Notifications</span>
+          <span class="mark-all" onclick="markAllNotificationsRead()">Mark all as read</span>
         </div>
-        <button id="darkModeToggle" class="btn btn-secondary" style="font-size:16px; padding:4px 10px; border-radius:50%;">🌙</button>
-        <div class="small" id="todayDate"></div>
+        <div id="notifList"></div>
       </div>
-    </header>
+    </div>
+    <button id="darkModeToggle" class="btn btn-secondary" style="font-size:16px; padding:4px 10px; border-radius:50%;">🌙</button>
+    <div class="small" id="todayDate"></div>
+  </div>
+</header>
 
     <!-- ===== VIEW: LOGIN ===== -->
     <div id="view-login" class="view">
