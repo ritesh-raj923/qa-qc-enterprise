@@ -1223,7 +1223,7 @@ const MASTER_KEY = 'qaqc_suite_masters_v2';
 const NOTIFICATION_KEY = 'qaqc_suite_notifications_v2';
 
 let savedReports = [];
-let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1 };
+let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1,imirCounter: 1 };
 let masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
 let currentUser = null;
 let activeTemplateKey = null;
@@ -2555,6 +2555,10 @@ function canUserSeeRecord(record, user) {
     if (record.templateKey === 'ncr' && user.role === 'engineer' && record.meta?.agency === user.username) {
       return true;
     }
+    // Allow contractor to see an Audit if they are the selected Agency
+if (record.templateKey === 'audit' && user.role === 'engineer' && record.meta?.agency === user.username) {
+  return true;
+}
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
   } // ← CLOSING BRACE ADDED HERE
 
@@ -3357,6 +3361,12 @@ async function saveReport(ev) {
       meta.ncrNo = generateNcrNumber();
     }
   }
+  // <<< PASTE YOUR IMIR BLOCK HERE >>>
+  if (activeTemplateKey === 'imir' && (!meta.imirNo || meta.imirNo.trim() === '')) {
+    meta.imirNo = 'IMIR-' + String(appConfig.imirCounter || 1).padStart(3, '0');
+    appConfig.imirCounter = (appConfig.imirCounter || 1) + 1;
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
+  }
   if (!validateForm(meta)) return;
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
@@ -3560,6 +3570,27 @@ function updateWorkflowButtons(rec) {
     return;
   }
 
+  // <<< PASTE IMIR BLOCK HERE >>>
+  // === IMIR WORKFLOW ===
+  else if (isImirFlag) {
+    const status = rec?.status || 'Draft';
+    const isSubmitter = currentUser && (currentUser.role === 'engineer' || currentUser.role === 'admin');
+    const isApprover = currentUser && (currentUser.role === 'qa_head' || currentUser.role === 'exec_engineer' || currentUser.role === 'manager' || currentUser.role === 'admin');
+
+    const showSubmit = isSubmitter && (status === 'Draft');
+    const showApprove = isApprover && (status === 'Submitted');
+    const showReject = isApprover && (status === 'Submitted');
+
+    document.getElementById('btnSubmit').classList.toggle('hidden', !showSubmit);
+    document.getElementById('btnReview').classList.toggle('hidden', true);
+    document.getElementById('btnApprove').classList.toggle('hidden', !showApprove);
+    document.getElementById('btnReject').classList.toggle('hidden', !showReject);
+    document.getElementById('btnClose').classList.toggle('hidden', true);
+    document.getElementById('btnApproveComment').classList.toggle('hidden', true);
+    document.getElementById('btnApproveQA').classList.toggle('hidden', true);
+    document.getElementById('btnRaiseNCR').classList.toggle('hidden', true);
+    return;
+  }
   // ===== RFI WORKFLOW (comes after) =====
   const routing = meta.routing || 'Execution Engineer → QA Head';
   const isDirect = routing === 'Direct to QA Head';
@@ -3720,6 +3751,24 @@ async function submitRecord() {
         );
       }
     }
+    // === IMIR SUBMIT ===
+else if (isImir()) {
+  if (rec.status !== 'Draft') { toast('⚠️ IMIR is not in Draft state'); return; }
+  rec.status = 'Submitted';
+  rec.comment = document.getElementById('wfComment').value.trim() || 'Material submitted for approval';
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Submitted for Approval', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('📤 IMIR submitted for approval');
+  
+  // Notify QA/Exec
+  const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
+  for (const approver of approvers) {
+    await sendNotification(approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+  }
+  return;
+}
     // Existing linked‑RFI logic
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
@@ -3766,6 +3815,14 @@ async function submitRecord() {
 
   // === RFI SUBMIT ===
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
+  // <<< PASTE THE VALIDATION CODE HERE >>>
+  // Check if linked checklists are complete
+  const linkedChecklists = getLinkedChecklistsForRfi(rec.meta?.rfiNo || rec.id);
+  const incomplete = linkedChecklists.filter(chk => chk.status !== 'Approved' && chk.status !== 'Closed');
+  if (incomplete.length) {
+    toast(`⚠️ Complete linked checklists first: ${incomplete.map(c => c.templateName).join(', ')}`);
+    return;
+  }
   rec.status = 'Submitted';
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
@@ -3929,7 +3986,27 @@ async function approveRecord() {
     }
     return;
   }
-
+  // === IMIR APPROVE ===
+else if (isImir()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can approve IMIR');
+    return;
+  }
+  if (rec.status !== 'Submitted') { toast('⚠️ Cannot approve now'); return; }
+  rec.status = 'Approved';
+  rec.comment = document.getElementById('wfComment').value.trim() || 'Material Approved';
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Approved', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('✅ IMIR Approved');
+  if (rec.createdBy) {
+    await sendNotification(rec.createdBy, `✅ IMIR #${rec.meta?.imirNo || rec.id} Approved by ${currentUser.display}`, 'approved', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+  }
+  return;
+}
   // === RFI ===
   rec.status = 'Approved';
   rec.comment = document.getElementById('wfComment').value.trim();
@@ -4033,7 +4110,29 @@ async function rejectRecord() {
     }
     return;
   }
-
+   // === IMIR REJECT ===
+else if (isImir()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can reject IMIR');
+    return;
+  }
+  if (rec.status !== 'Submitted') { toast('⚠️ Cannot reject now'); return; }
+  const c = document.getElementById('wfComment').value.trim();
+  if (!c) { toast('⚠️ Enter rejection comment'); return; }
+  rec.status = 'Rejected';
+  rec.comment = c;
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Rejected', c));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('❌ IMIR Rejected');
+  if (rec.createdBy) {
+    await sendNotification(rec.createdBy, `❌ IMIR #${rec.meta?.imirNo || rec.id} Rejected by ${currentUser.display}`, 'rejected', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+  }
+  return;
+}
   // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
