@@ -3760,6 +3760,12 @@ async function init() {
   document.getElementById('todayDate').innerText = todayText();
   loadConfig(); loadMasters(); loadDb();
   applyConfig(); populateConfigForm(); populateMastersForm();
+    // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('Service Worker registered successfully'))
+      .catch(err => console.warn('Service Worker registration failed:', err));
+  }
 
   const token = localStorage.getItem('token');
   if (token) {
