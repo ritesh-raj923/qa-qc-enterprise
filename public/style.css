@@ -13,25 +13,25 @@
   --card: #ffffff;
   --accent: #edf4ff;
 }
-  /* ============================================================ */
-/*               COMPLETE DARK MODE – ALL ELEMENTS               */
-/* ============================================================ */
+/* ============================================================
+   IMPROVED DARK MODE – BRIGHT & VIBRANT
+   ============================================================ */
 body.dark-mode {
   --blue: #1a3a6a;
   --blue2: #0d1f3c;
   --gold: #f2b441;
   --line: #3a4a5a;
   --soft: #2a3a4a;
-  --bg: #1a2a3a;
-  --card: #2a3a4a;
+  --bg: #121e2e;          /* deeper background for better contrast */
+  --card: #1a2a3a;
   --muted: #aabbcc;
   --accent: #2a4a6a;
-  --text: #eef4fa;
-  color: #eef4fa;
+  --text: #ffffff;        /* pure white – much brighter */
+  color: #ffffff;
   background: var(--bg);
 }
 
-/* ---- Sidebar ---- */
+/* Sidebar */
 body.dark-mode .sidebar {
   background: linear-gradient(180deg, #0a1a2a 0%, #0d1f3c 100%);
 }
@@ -39,36 +39,36 @@ body.dark-mode .brand small {
   color: var(--gold);
 }
 body.dark-mode .menu-item {
-  color: #b0c4de;
+  color: #c0d0e0;
 }
 body.dark-mode .menu-item:hover,
 body.dark-mode .menu-item.active {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
 }
 
-/* ---- Header & Badges ---- */
+/* Header & Badges */
 body.dark-mode header {
   border-bottom-color: var(--line);
 }
 body.dark-mode .badge.info {
   background: #2a4a6a;
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .badge.ok {
-  background: #1a5a3a;
-  color: #b0e0c0;
+  background: #1a6a3a;
+  color: #b0f0c0;
 }
 body.dark-mode .badge.mid {
-  background: #5a4a2a;
-  color: #f0d080;
+  background: #6a5a2a;
+  color: #f0e080;
 }
 body.dark-mode .badge.bad {
-  background: #5a2a2a;
+  background: #6a2a2a;
   color: #f0a0a0;
 }
 
-/* ---- Cards, Panels, Stats ---- */
+/* Cards, Panels, Stats */
 body.dark-mode .stat,
 body.dark-mode .history-wrap,
 body.dark-mode .sheet-shell,
@@ -81,10 +81,10 @@ body.dark-mode .kpi-table-wrap {
   border-color: var(--line);
 }
 body.dark-mode .stat .value {
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .stat .label {
-  color: #aabbcc;
+  color: #c0d0e0;
 }
 body.dark-mode .stat:before {
   background: linear-gradient(90deg, var(--blue), var(--gold));
@@ -97,19 +97,19 @@ body.dark-mode .stat.active-kpi .value {
   color: var(--gold);
 }
 
-/* ---- Tables (History, KPI, Sheet) ---- */
+/* Tables */
 body.dark-mode .history-wrap th,
 body.dark-mode .kpi-table th,
 body.dark-mode .sheet-table th {
   background: #1a2a3a;
-  color: #eef4fa;
+  color: #ffffff;
   border-color: var(--line);
 }
 body.dark-mode .history-wrap td,
 body.dark-mode .kpi-table td,
 body.dark-mode .sheet-table td {
   background: var(--card);
-  color: #eef4fa;
+  color: #e0e8f0;
   border-color: var(--line);
 }
 body.dark-mode .child-row td {
@@ -120,10 +120,10 @@ body.dark-mode .parent-rfi-row td {
 }
 body.dark-mode .check-section-row td {
   background: #1a2a3a !important;
-  color: #eef4fa;
+  color: #ffffff;
 }
 
-/* ---- Exact Format (NCR, IMIR) ---- */
+/* Exact Formats */
 body.dark-mode .exact-format .sheet-table,
 body.dark-mode .exact-format table.exact-table {
   background: #1a2a3a;
@@ -134,27 +134,27 @@ body.dark-mode .exact-format table.exact-table td,
 body.dark-mode .exact-format .sheet-table th,
 body.dark-mode .exact-format table.exact-table th {
   border-color: #3a4a5a;
-  color: #eef4fa;
+  color: #e0e8f0;
   background: #1a2a3a;
 }
 body.dark-mode .exact-format th,
 body.dark-mode .exact-title-cell {
   background: #1a2a3a !important;
-  color: #eef4fa !important;
+  color: #ffffff !important;
 }
 body.dark-mode .exact-label {
   background: #1a2a3a !important;
-  color: #eef4fa !important;
+  color: #ffffff !important;
 }
 body.dark-mode .exact-internal {
   background: #0d1f3c !important;
-  color: #eef4fa !important;
+  color: #f2b441 !important;  /* bright gold */
 }
 body.dark-mode .exact-small {
-  color: #aabbcc !important;
+  color: #c0d0e0 !important;
 }
 
-/* ---- Inputs, Selects, Textareas ---- */
+/* Inputs, Selects, Textareas */
 body.dark-mode input,
 body.dark-mode select,
 body.dark-mode textarea,
@@ -168,7 +168,7 @@ body.dark-mode .exact-input,
 body.dark-mode .exact-textarea,
 body.dark-mode .exact-select {
   background: #0d1f3c;
-  color: #eef4fa;
+  color: #ffffff;
   border-color: #3a4a5a;
 }
 body.dark-mode input:focus,
@@ -186,35 +186,35 @@ body.dark-mode .exact-select:focus {
 }
 body.dark-mode .status-select option {
   background: #0d1f3c;
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .status-select.select-yes {
-  color: #4caf50;
+  color: #4caf50;   /* bright green */
 }
 body.dark-mode .status-select.select-no {
-  color: #f44336;
+  color: #f44336;   /* bright red */
 }
 body.dark-mode .status-select.select-na {
   color: #aaa;
 }
 
-/* ---- Radio & Checkbox Labels ---- */
+/* Radio & Checkbox Labels */
 body.dark-mode .radio-line label,
 body.dark-mode .exact-radio-line label {
-  color: #eef4fa;
+  color: #ffffff;
 }
 
-/* ---- Buttons ---- */
+/* Buttons */
 body.dark-mode .btn-primary {
   background: #1a3a6a;
-  color: #fff;
+  color: #ffffff;
 }
 body.dark-mode .btn-primary:hover {
   background: #2a4a7a;
 }
 body.dark-mode .btn-secondary {
   background: #3a4a5a;
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .btn-secondary:hover {
   background: #4a5a6a;
@@ -222,27 +222,27 @@ body.dark-mode .btn-secondary:hover {
 body.dark-mode .btn-outline {
   background: transparent;
   border-color: #4a5a6a;
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .btn-danger {
   background: #6a2a2a;
-  color: #fff;
+  color: #ffffff;
 }
 body.dark-mode .btn-danger:hover {
   background: #8a2a2a;
 }
 body.dark-mode .btn-ok {
   background: #2a6a3a;
-  color: #fff;
+  color: #ffffff;
 }
 body.dark-mode .btn-warn {
   background: #6a5a2a;
-  color: #fff;
+  color: #ffffff;
 }
 
-/* ---- Notifications ---- */
+/* Notifications */
 body.dark-mode .notif-container .notif-bell {
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .notif-dropdown {
   background: #1a2a3a;
@@ -250,7 +250,7 @@ body.dark-mode .notif-dropdown {
 }
 body.dark-mode .notif-dropdown-header {
   background: #1a2a3a;
-  color: #eef4fa;
+  color: #ffffff;
   border-color: #3a4a5a;
 }
 body.dark-mode .notif-item {
@@ -263,37 +263,37 @@ body.dark-mode .notif-item.unread {
   background: #1a3a6a;
 }
 body.dark-mode .notif-empty {
-  color: #aabbcc;
+  color: #c0d0e0;
 }
 body.dark-mode .notif-mark-read {
   color: #8ab6ff;
 }
 
-/* ---- Toast ---- */
+/* Toast */
 body.dark-mode .toast {
   background: #1a3a6a;
-  color: #eef4fa;
+  color: #ffffff;
 }
 
-/* ---- Login ---- */
+/* Login */
 body.dark-mode .login-wrap {
   background: var(--card);
   border-color: var(--line);
 }
 body.dark-mode .login-wrap h2,
 body.dark-mode .login-wrap p {
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .note {
   background: #1a2a3a !important;
   border-color: #3a4a5a !important;
-  color: #eef4fa !important;
+  color: #e0e8f0 !important;
 }
 body.dark-mode .note code {
-  color: #8ab6ff;
+  color: #f2b441 !important;  /* bright gold */
 }
 
-/* ---- Progress & Misc ---- */
+/* Progress */
 body.dark-mode .progressline {
   background: #2a3a4a;
 }
@@ -301,29 +301,29 @@ body.dark-mode .progressline > div {
   background: var(--ok);
 }
 body.dark-mode .small {
-  color: #aabbcc;
+  color: #c0d0e0;
 }
 body.dark-mode .kpi-chip {
   background: #1a3a5a;
   border-color: #3a4a5a;
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .kpi-count {
-  color: #aabbcc;
+  color: #c0d0e0;
 }
 body.dark-mode .kpi-empty {
-  color: #aabbcc;
+  color: #c0d0e0;
 }
 body.dark-mode .kpi-status {
-  color: #eef4fa;
+  color: #ffffff;
 }
 body.dark-mode .kpi-status.approved {
   background: #1a5a3a;
-  color: #b0e0c0;
+  color: #b0f0c0;
 }
 body.dark-mode .kpi-status.comment {
   background: #5a4a2a;
-  color: #f0d080;
+  color: #f0e080;
 }
 body.dark-mode .kpi-status.pending {
   background: #2a4a6a;
