@@ -1409,6 +1409,20 @@ async function registerUser(ev) {
     toast('❌ Network error: ' + err.message);
   }
 }
+// ← PASTE HERE ↓↓↓
+async function loadSites() {
+  try {
+    const res = await fetch(`${API_BASE}/api/sites`);
+    const sites = await res.json();
+    const select = document.getElementById('regSites');
+    if (select) {
+      select.innerHTML = sites.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+  } catch (e) {
+    console.warn('Could not load sites', e);
+  }
+}
+// ← PASTE HERE ↑↑↑
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
   localStorage.removeItem('token');
@@ -1615,7 +1629,8 @@ function switchView(view) {
     document.getElementById('appSub').innerText = 'Secure Access';
   }
   if (view === 'auditdashboard') { updateAuditStats(); renderAuditHistory(); if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); }
-  updateNotificationUI();
+if (view === 'register') { loadSites(); }   // ← ADD THIS
+updateNotificationUI();
 }
 function backFromForm() {
   if (pendingReturnRfiId) {
