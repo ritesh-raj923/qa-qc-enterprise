@@ -50,41 +50,78 @@
     <div class="small" id="todayDate"></div>
   </div>
 </header>
-
-    <!-- ===== VIEW: LOGIN ===== -->
-    <div id="view-login" class="view">
-      <div class="login-shell">
-        <div class="login-wrap">
-          <h2>🔐 Secure Sign In</h2>
-          <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
-          <div class="field">
-            <label>Username</label>
-            <input id="loginUser" placeholder="Enter username" value="contractor1_siteA">
-          </div>
-          <div class="field">
-            <label>Password</label>
-            <input id="loginPass" type="password" placeholder="Enter password" value="ContA123">
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn btn-primary" type="button" onclick="login()">Login</button>
-          </div>
-          <div class="note" style="margin-top:14px; line-height:1.8; background:#f8fafc; padding:10px 14px; border-radius:8px; border:1px solid #e2e8f0;">
-            <b>👥 Demo Users (from database):</b><br>
-            <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site A): <code>contractor1_siteA</code> / <code>ContA123</code></span>
-            <span style="display:inline-block; width:48%;">👷 Contractor 2 (Site A): <code>contractor2_siteA</code> / <code>ContA456</code></span>
-            <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site A): <code>exec_siteA</code> / <code>ExecA123</code></span>
-            <span style="display:inline-block; width:48%;">👔 QA Head (Site A): <code>qa_siteA</code> / <code>QaA123</code></span>
-            <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site B): <code>exec_siteB</code> / <code>ExecB123</code></span>
-            <span style="display:inline-block; width:48%;">👔 QA Head (Site B): <code>qa_siteB</code> / <code>QaB123</code></span>
-            <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site B): <code>contractor1_siteB</code> / <code>ContB123</code></span>
-            <span style="display:inline-block; width:48%;">📊 Manager: <code>manager</code> / <code>Mgr123</code></span>
-            <span style="display:inline-block; width:48%;">🔧 Admin: <code>admin</code> / <code>Admin123</code></span>
-            <span style="display:inline-block; width:48%;">👀 Consultant: <code>consultant</code> / <code>View123</code></span>
-          </div>
-        </div>
+     <!-- ===== VIEW: LOGIN ===== -->
+<div id="view-login" class="view">
+  <div class="login-shell">
+    <div class="login-wrap">
+      <h2>🔐 Secure Sign In</h2>
+      <p>QA/QC Inspection Suite with multi-user workflow. Contractors submit, Execution Engineer reviews, QA Head approves.</p>
+      <div class="field">
+        <label>Email / Username</label>
+        <input id="loginUser" placeholder="Enter your email or username" value="contractor1_siteA">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="loginPass" type="password" placeholder="Enter your password" value="ContA123">
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap; align-items:center;">
+        <button class="btn btn-primary" type="button" onclick="login()">Login</button>
+        <span style="font-size:14px; color:#666;">Don't have an account? <a href="#" onclick="switchView('register')" style="color:var(--blue); text-decoration:none; font-weight:600;">Sign up</a></span>
+      </div>
+      <div class="note" style="margin-top:14px; line-height:1.8; background:#f8fafc; padding:10px 14px; border-radius:8px; border:1px solid #e2e8f0;">
+        <b>👥 Demo Users (from database):</b><br>
+        <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site A): <code>contractor1_siteA</code> / <code>ContA123</code></span>
+        <span style="display:inline-block; width:48%;">👷 Contractor 2 (Site A): <code>contractor2_siteA</code> / <code>ContA456</code></span>
+        <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site A): <code>exec_siteA</code> / <code>ExecA123</code></span>
+        <span style="display:inline-block; width:48%;">👔 QA Head (Site A): <code>qa_siteA</code> / <code>QaA123</code></span>
+        <span style="display:inline-block; width:48%;">🔧 Execution Engineer (Site B): <code>exec_siteB</code> / <code>ExecB123</code></span>
+        <span style="display:inline-block; width:48%;">👔 QA Head (Site B): <code>qa_siteB</code> / <code>QaB123</code></span>
+        <span style="display:inline-block; width:48%;">👷 Contractor 1 (Site B): <code>contractor1_siteB</code> / <code>ContB123</code></span>
+        <span style="display:inline-block; width:48%;">📊 Manager: <code>manager</code> / <code>Mgr123</code></span>
+        <span style="display:inline-block; width:48%;">🔧 Admin: <code>admin</code> / <code>Admin123</code></span>
+        <span style="display:inline-block; width:48%;">👀 Consultant: <code>consultant</code> / <code>View123</code></span>
       </div>
     </div>
-
+  </div>
+</div>
+    
+     <!-- REGISTRATION VIEW -->
+<div id="view-register" class="view" style="display:none;">
+  <div class="login-container" style="max-width:420px; margin:40px auto; padding:30px; background:var(--card); border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.1);">
+    <h2 style="text-align:center; color:var(--blue); margin-bottom:20px;">Create Account</h2>
+    <form id="registerForm">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Official Email</label>
+        <input type="email" id="regEmail" placeholder="your@company.com" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Full Name</label>
+        <input type="text" id="regFullName" placeholder="John Doe" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Role</label>
+        <select id="regRole" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px; background:white;">
+          <option value="">Select your role</option>
+          <option value="engineer">👷 Contractor</option>
+          <option value="exec_engineer">🔧 Execution Engineer</option>
+          <option value="qa_head">👔 QA Head</option>
+          <option value="manager">📊 Manager</option>
+          <option value="consultant">👀 Consultant</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Assigned Sites <span style="font-weight:400; font-size:12px; color:#888;">(comma separated)</span></label>
+        <input type="text" id="regSites" placeholder="e.g. Site-A, Site-B" style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Password</label>
+        <input type="password" id="regPassword" placeholder="Choose a strong password" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      </div>
+      <button type="submit" style="width:100%; padding:12px; background:var(--blue); color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">Sign Up</button>
+    </form>
+    <p style="text-align:center; margin-top:16px; font-size:14px;">Already have an account? <a href="#" onclick="switchView('login')" style="color:var(--blue); text-decoration:none; font-weight:600;">Login</a></p>
+  </div>
+</div>
     <!-- ===== VIEW: DASHBOARD ===== -->
     <div id="view-dashboard" class="view">
       <div class="dashboard-grid">
