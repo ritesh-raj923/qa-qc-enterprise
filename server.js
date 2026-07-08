@@ -5,7 +5,6 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key_here_change_in_production';
@@ -160,6 +159,8 @@ function userHasSiteAccess(user, siteName) {
   let assigned = [];
   try { assigned = JSON.parse(sites); } catch (e) { assigned = []; }
   if (assigned.includes('*')) return true;
+  // Global reports (site_name = '*') are accessible to everyone
+  if (siteName === '*') return true;
   return assigned.includes(siteName);
 }
 
@@ -168,12 +169,18 @@ function buildSiteFilter(user) {
   let assigned = [];
   try { assigned = JSON.parse(sites); } catch (e) { assigned = []; }
   if (assigned.includes('*')) {
+    // Admin/manager sees everything – no filter
     return { sql: '', params: [] };
   }
+  // For users with specific sites, also include global reports (site_name = '*')
   const placeholders = assigned.map((_, i) => `$${i + 1}`).join(',');
-  return { sql: `WHERE site_name IN (${placeholders})`, params: assigned };
+  // Note: we keep the assigned list as parameters for the IN clause
+  // We add an OR for site_name = '*'
+  return {
+    sql: `WHERE (site_name IN (${placeholders}) OR site_name = '*')`,
+    params: assigned
+  };
 }
-
 function parseReportRow(row) {
   return {
     ...row,
