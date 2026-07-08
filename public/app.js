@@ -1774,7 +1774,8 @@ function switchView(view) {
   }
   if (view === 'auditdashboard') { updateAuditStats(); renderAuditHistory(); if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); }
 if (view === 'register') { loadSites(); }   // ← ADD THIS
-if (view === 'sites') { loadSiteList(); }  
+if (view === 'sites') { loadSiteList(); } 
+if (view === 'users') { loadUsers(); }  
 updateNotificationUI();
 }
 function backFromForm() {
