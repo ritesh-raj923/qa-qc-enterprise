@@ -1368,11 +1368,9 @@ async function registerUser(ev) {
     return;
   }
 
-  // Convert sites input to array
-  let assigned_sites = [];
-  if (assigned_sites_input) {
-    assigned_sites = assigned_sites_input.split(',').map(s => s.trim()).filter(Boolean);
-  }
+ // Get selected sites from dropdown
+const siteSelect = document.getElementById('regSites');
+const assigned_sites = Array.from(siteSelect.selectedOptions).map(opt => opt.value);
 
   try {
     const res = await fetch(`${API_BASE}/api/register`, {
@@ -1423,6 +1421,63 @@ async function loadSites() {
   }
 }
 // ← PASTE HERE ↑↑↑
+// ============================================================
+// SITE MANAGEMENT (Admin only)
+// ============================================================
+
+async function loadSiteList() {
+  try {
+    const res = await fetch(`${API_BASE}/api/sites`);
+    if (!res.ok) throw new Error('Failed to load sites');
+    const sites = await res.json();
+    const list = document.getElementById('siteList');
+    if (list) {
+      list.innerHTML = sites.map(s => `
+        <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line);">
+          <span>${s}</span>
+          <button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteSite('${s}')">Delete</button>
+        </li>
+      `).join('');
+    }
+  } catch (e) {
+    console.warn('Could not load site list:', e);
+  }
+}
+
+async function addSite() {
+  const input = document.getElementById('newSiteName');
+  const name = input.value.trim();
+  if (!name) return toast('⚠️ Please enter a site name');
+  try {
+    const res = await fetch(`${API_BASE}/api/sites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to add site');
+    toast('✅ Site added');
+    input.value = '';
+    loadSiteList(); // refresh the list
+    loadSites(); // refresh registration dropdown (if open)
+  } catch (e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function deleteSite(name) {
+  if (!confirm(`Delete site "${name}"?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/sites/${name}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete site');
+    toast('✅ Site deleted');
+    loadSiteList();
+    loadSites();
+  } catch (e) {
+    toast('❌ ' + e.message);
+  }
+}
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
   localStorage.removeItem('token');
@@ -1630,6 +1685,7 @@ function switchView(view) {
   }
   if (view === 'auditdashboard') { updateAuditStats(); renderAuditHistory(); if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); }
 if (view === 'register') { loadSites(); }   // ← ADD THIS
+if (view === 'sites') { loadSiteList(); }  
 updateNotificationUI();
 }
 function backFromForm() {
