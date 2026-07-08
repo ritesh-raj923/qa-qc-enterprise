@@ -1420,7 +1420,6 @@ async function loadSites() {
     console.warn('Could not load sites', e);
   }
 }
-// ← PASTE HERE ↑↑↑
 // ============================================================
 // SITE MANAGEMENT (Admin only)
 // ============================================================
@@ -1468,6 +1467,7 @@ async function addSite() {
     toast('❌ ' + e.message);
   }
 }
+
 async function deleteSite(name) {
   if (!confirm(`Delete site "${name}"?`)) return;
   try {
@@ -1485,6 +1485,87 @@ async function deleteSite(name) {
     toast('❌ ' + e.message);
   }
 }
+
+// ============================================================
+// USER MANAGEMENT (Admin only)
+// ============================================================
+
+async function loadUsers() {
+  try {
+    const users = await apiRequest('/api/users/all');
+    const tbody = document.getElementById('userListBody');
+    if (!tbody) return;
+    
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="kpi-empty">No users registered yet.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = users.map(u => {
+      const isPending = !u.approved;
+      const statusBadge = isPending 
+        ? '<span class="badge warn">⏳ Pending</span>' 
+        : '<span class="badge ok">✅ Approved</span>';
+      
+      let actionButtons = isPending
+        ? `<button class="btn btn-ok" style="padding:4px 10px; font-size:11px;" onclick="approveUser(${u.id})">Approve</button>`
+        : '';
+      actionButtons += ` <button class="btn btn-danger" style="padding:4px 10px; font-size:11px;" onclick="deleteUser(${u.id})">Delete</button>`;
+      
+      const sites = Array.isArray(u.assigned_sites) ? u.assigned_sites.join(', ') : '-';
+      const roleMap = {
+        'engineer': '👷 Contractor',
+        'exec_engineer': '🔧 Execution Engineer',
+        'qa_head': '👔 QA Head',
+        'manager': '📊 Manager',
+        'admin': '🔧 Admin',
+        'consultant': '👀 Consultant'
+      };
+      
+      return `
+        <tr>
+          <td><b>${esc(u.full_name || u.username)}</b></td>
+          <td>${esc(u.email || u.username)}</td>
+          <td>${roleMap[u.role] || u.role}</td>
+          <td>${esc(sites)}</td>
+          <td>${statusBadge}</td>
+          <td>${fmtDateTime(u.created_at)}</td>
+          <td>${actionButtons}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('Failed to load users:', e);
+    const tbody = document.getElementById('userListBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="kpi-empty">Failed to load users.</td></tr>';
+  }
+}
+
+async function approveUser(id) {
+  if (!confirm('Approve this user?')) return;
+  try {
+    await apiRequest(`/api/users/${id}/approve`, { method: 'PUT' });
+    toast('✅ User approved');
+    loadUsers();
+  } catch (e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  try {
+    await apiRequest(`/api/users/${id}`, { method: 'DELETE' });
+    toast('✅ User deleted');
+    loadUsers();
+  } catch (e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+// ============================================================
+// LOGOUT & PERMISSION HELPERS
+// ============================================================
 
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
