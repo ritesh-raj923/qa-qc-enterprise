@@ -1369,6 +1369,7 @@ function canUserSeeRecord(record, user) {
       return true;
     }
     // Allow contractor to see an Audit if they are the selected Agency
+  // Allow contractor to see an Audit if they are the selected Agency
 if (record.templateKey === 'audit' && user.role === 'engineer' && record.meta?.agency === user.username) {
   return true;
 }
