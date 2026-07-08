@@ -290,7 +290,24 @@
         </form>
       </div>
     </div>
-
+    <!-- ===== VIEW: SITE MANAGEMENT (Admin only) ===== -->
+<div id="view-sites" class="view">
+  <div class="panel">
+    <div class="topbar">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--blue);">🏗️ Manage Sites</div>
+        <div class="small">Add or remove sites that appear in the registration dropdown.</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+      <input id="newSiteName" placeholder="Enter site name" style="flex:1; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+      <button class="btn btn-primary" onclick="addSite()">➕ Add Site</button>
+    </div>
+    <div id="siteListContainer">
+      <ul id="siteList" style="list-style:none; padding:0;"></ul>
+    </div>
+  </div>
+</div>
     <!-- ===== VIEW: FORM / RECORD EDITOR ===== -->
     <div id="view-form" class="view">
       <div class="topbar">
