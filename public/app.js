@@ -27,10 +27,9 @@ const STORAGE_KEY = 'qaqc_suite_data_v2';
 const CONFIG_KEY = 'qaqc_suite_config_v2';
 const MASTER_KEY = 'qaqc_suite_masters_v2';
 const NOTIFICATION_KEY = 'qaqc_suite_notifications_v2';
-
+const SESSION_KEY = 'qaqc_session_v2';
 let savedReports = [];
-let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1,imirCounter: 1 };
-let masters = { disciplines: ['Civil', 'Mechanical', 'Electrical'] };
+let appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1, imirCounter: 1 };
 let currentUser = null;
 let activeTemplateKey = null;
 let activeReportId = null;
@@ -331,13 +330,13 @@ const templates = {
 }
 };   
   // ============================================================
-// HALLMARK CHECKLIST DATA (from "Total Number of checks" sheet)
+// activity CHECKLIST DATA (from "Total Number of checks" sheet)
 // ============================================================
-const hallmarkChecklists = [
+const activityChecklists = [
   {
-    key: 'hallmark_painting',
+    key: 'activity_painting',
     title: 'Painting Checklist',
-    formatNo: 'HALLMARK / PAINT / 01',
+    formatNo: 'activity / PAINT / 01',
     items: [
       'Walls & Ceilings - 7 checks',
       'Tilling - 39 checks',
@@ -356,9 +355,9 @@ const hallmarkChecklists = [
     ]
   },
   {
-    key: 'hallmark_door_frames',
+    key: 'activity_door_frames',
     title: 'Door Frames & Shutters',
-    formatNo: 'HALLMARK / DOOR / 02',
+    formatNo: 'activity / DOOR / 02',
     items: [
       'Architectural drawings & section details',
       'Approved work method statement',
@@ -386,9 +385,9 @@ const hallmarkChecklists = [
     ]
   },
   {
-    key: 'hallmark_tiling',
+    key: 'activity_tiling',
     title: 'Tiling Works (Wall & Dado)',
-    formatNo: 'HALLMARK / TILE / 03',
+    formatNo: 'ACTIVITY REQUIRED / TILE / 03',
     items: [
       'Architectural drawings showing tile layout',
       'Approved shop drawings for each typology',
@@ -422,15 +421,15 @@ const hallmarkChecklists = [
   // ★ You can add the remaining 13 checklists here later (I'll give them in Step 2)
 ];
  // ============================================================
-// GENERATE HALLMARK CHECKLIST TEMPLATES DYNAMICALLY
+// GENERATE activity CHECKLIST TEMPLATES DYNAMICALLY
 // ============================================================
-hallmarkChecklists.forEach(hc => {
+activityChecklists.forEach(hc => {
   templates[hc.key] = {
     formatNo: hc.formatNo,
     menuTitle: hc.title,
     title: hc.title.toUpperCase(),
-    dept: 'HALLMARK QUALITY CHECKLIST',
-    summary: 'Hallmark quality checklist for ' + hc.title,
+    dept: 'ACTIVITY REQUIRED QUALITY CHECKLIST',
+    summary: 'activity quality checklist for ' + hc.title,
     metaRows: [
       [{ l: 'Linked Audit Report:', k: 'linkedAudit', t: 'select', options: [] }],
       [{ l: 'Project:', k: 'project', d: 'Project Name' }, { l: 'Audit Date:', k: 'date', t: 'date' }],
@@ -438,7 +437,7 @@ hallmarkChecklists.forEach(hc => {
     ],
     sections: [
       {
-        type: 'hallmark_checklist',
+        type: 'activity_checklist',
         title: hc.title + ' Checklist',
         items: hc.items
       },
@@ -661,23 +660,23 @@ function renderAuditExact(report) {
   return html;
 }
  // ============================================================
-// RENDER HALLMARK CHECKLIST
+// RENDER activity CHECKLIST
 // ============================================================
-function renderHallmarkExact(report) {
+function renderactivityExact(report) {
   const m = report?.meta || {};
   const section = report?.sections?.[0] || {};
   const items = section.items || [];
   
   let html = `
-  <div class="exact-format hallmark-exact">
+  <div class="exact-format activity-exact">
     <table class="exact-table">
-      <tr><th colspan="4" class="exact-main-title">${esc(report?.templateName || 'HALLMARK CHECKLIST')}</th></tr>
+      <tr><th colspan="4" class="exact-main-title">${esc(report?.templateName || 'activity CHECKLIST')}</th></tr>
       <tr><td class="exact-label">Linked Audit Report:</td><td colspan="3">${inputExact('meta_linkedAudit', m.linkedAudit, 'select', getAuditOptions())}</td></tr>
       <tr><td class="exact-label">Project:</td><td>${inputExact('meta_project', m.project)}</td><td class="exact-label">Audit Date:</td><td>${inputExact('meta_date', m.date, 'date')}</td></tr>
       <tr><td class="exact-label">Contractor:</td><td>${inputExact('meta_contractor', m.contractor)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location)}</td></tr>
     </table>
 
-    <table class="exact-table hallmark-checklist">
+    <table class="exact-table activity-checklist">
       <tr><th>Sr No</th><th>Check Point</th><th>Status</th><th>Remarks</th></tr>
       ${items.map((item, idx) => `
         <tr>
@@ -689,7 +688,7 @@ function renderHallmarkExact(report) {
       `).join('')}
     </table>
 
-    <table class="exact-table"><tr><th>Remarks / Comments</th></tr><tr><td>${textExact('hallmark_remarks', secVal(report, 1))}</td></tr></table>
+    <table class="exact-table"><tr><th>Remarks / Comments</th></tr><tr><td>${textExact('activity_remarks', secVal(report, 1))}</td></tr></table>
     <table class="exact-table">
       <tr><th>Contractor QA/QC</th><th>Company QA/QC</th><th>QA Head</th></tr>
       <tr>${['contractor', 'company', 'qa'].map(role => `<td><b>Name:</b> <input class="exact-input" data-sign-name-${role}><br><b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br><b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}></td>`).join('')}</tr>
@@ -789,12 +788,12 @@ function collectAuditSectionsExact() {
     ]}
   ];
 }
- function collectHallmarkSectionsExact() {
-  const root = document.querySelector('.hallmark-exact');
+ function collectactivitySectionsExact() {
+  const root = document.querySelector('.activity-exact');
   if (!root) return [];
 
   // Collect checklist rows
-  const items = Array.from(root.querySelectorAll('.hallmark-checklist tbody tr')).map(tr => {
+  const items = Array.from(root.querySelectorAll('.activity-checklist tbody tr')).map(tr => {
     const inputs = tr.querySelectorAll('input, select');
     return {
       item: tr.cells[1]?.textContent.trim() || '',
@@ -804,8 +803,8 @@ function collectAuditSectionsExact() {
   });
 
   return [
-    { type: 'hallmark_checklist', items: items },
-    { type: 'textarea', value: root.querySelector('[data-exact-text="hallmark_remarks"]')?.value || '' },
+    { type: 'activity_checklist', items: items },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="activity_remarks"]')?.value || '' },
     { type: 'signatures', entries: [
       { role: 'Contractor QA/QC', name: root.querySelector('[data-sign-name-contractor]')?.value || '', sign: root.querySelector('[data-sign-sign-contractor]')?.value || '', date: root.querySelector('[data-sign-date-contractor]')?.value || '' },
       { role: 'Company QA/QC', name: root.querySelector('[data-sign-name-company]')?.value || '', sign: root.querySelector('[data-sign-sign-company]')?.value || '', date: root.querySelector('[data-sign-date-company]')?.value || '' },
@@ -901,31 +900,34 @@ function getAuditOptions() {
   const options = audits.map(r => r.meta?.reportNo || r.id || '');
   return [...new Set(options)];
 }
- function generateAgencyRadios(currentValue) {
-    let engineers = users.filter(u => u.role === 'engineer');
+function generateAgencyRadios(currentValue) {
+    // currentValue can be an array or a single string (for backwards compatibility)
+    const selected = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
+    // Include both contractors (engineer) AND execution engineers
+    let recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
     const userSites = currentUser?.assigned_sites || ['*'];
     if (!userSites.includes('*')) {
-        engineers = engineers.filter(e => {
+        recipients = recipients.filter(e => {
             if (!e.assigned_sites) return false;
             return e.assigned_sites.some(s => userSites.includes(s));
         });
     }
-    if (engineers.length === 0) engineers = users.filter(u => u.role === 'engineer');
-    return engineers.map(e => {
-        const checked = (currentValue === e.u) ? 'checked' : '';
-        return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
-                  <input type="radio" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
+    if (recipients.length === 0) recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    return recipients.map(e => {
+        const checked = selected.includes(e.u) ? 'checked' : '';
+        return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; margin-right:8px;">
+                  <input type="checkbox" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
                 </label>`;
     }).join('');
-} 
+}
 // ============================================================
-// POPULATE HALLMARK CHECKLIST BUTTONS
+// POPULATE activity CHECKLIST BUTTONS
 // ============================================================
-function populateHallmarkButtons() {
-  const container = document.getElementById('hallmarkChecklistButtons');
+function populateactivityButtons() {
+  const container = document.getElementById('activityChecklistButtons');
   if (!container) return;
-  container.innerHTML = hallmarkChecklists.map(hc => `
-    <button type="button" class="btn btn-secondary" onclick="launchHallmarkChecklist('${hc.key}')">📋 ${hc.title}</button>
+  container.innerHTML = activityChecklists.map(hc => `
+    <button type="button" class="btn btn-secondary" onclick="launchactivityChecklist('${hc.key}')">📋 ${hc.title}</button>
   `).join('');
 }  
 function getLinkedChecklistsForRfi(rfiNo) {
@@ -1136,6 +1138,11 @@ function loadDb() {
 async function syncReportToServer(row, isNew) {
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
+  // DEBUG: Log the payload being sent
+console.log('🔍 [DEBUG] Sending payload:', payload);
+if (row.templateKey === 'audit') {
+  console.log('🔍 [DEBUG] Audit payload agency:', payload.meta.agency);
+}
   if (isNew) {
     await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
   } else {
@@ -1165,6 +1172,13 @@ async function syncReportToServer(row, isNew) {
 async function loadFromServer() {
   try {
     const data = await apiRequest('/api/data');
+    // DEBUG: Log server response
+console.log('🔍 [DEBUG] Server data:', data);
+const auditReports = data.reports?.filter(r => r.template_key === 'audit') || [];
+console.log('🔍 [DEBUG] Audits from server:', auditReports.length);
+auditReports.forEach(a => {
+  console.log('  Report:', a.meta?.reportNo, 'Agency:', a.meta?.agency);
+});
     savedReports = (data.reports || []).map(r => {
       // Strip image data from attachments before storing in localStorage
       let attachments = (r.attachments || []).map(att => ({
@@ -1231,8 +1245,8 @@ function saveConfig(ev) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   applyConfig(); toast('✅ Configuration saved');
 }
-function resetConfig() {
-  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1 };
+ function resetConfig() {
+  appConfig = { companyName: 'QA/QC Suite', projectName: 'Project Name', location: 'Location', formatPrefix: 'QA / QC', businessPackage: 'Site Formats', ncrCounter: 1, imirCounter: 1 };
   localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   populateConfigForm(); applyConfig(); toast('↩️ Configuration reset');
 }
@@ -1338,8 +1352,7 @@ function canUserSeeRecord(record, user) {
   // 2. Admin sees everything
   if (user.role === 'admin') return true;
 
-  // 3. For RFI records, give QA Head an extra exception:
-  //    If they have raised any NCR against this RFI, they can see it.
+  // 3. For RFI records, give QA Head an extra exception
   if (user.role === 'qa_head' && record.templateKey === 'rfi') {
     const rfiId = record.id;
     const rfiNo = record.meta?.rfiNo || '';
@@ -1351,8 +1364,9 @@ function canUserSeeRecord(record, user) {
     if (hasNcr) return true;
   }
 
-  // 4. For non-RFI records (checklists, NCRs, IMIRs)
+  // 4. For non-RFI records (checklists, NCRs, IMIRs, Audits)
   if (record.templateKey !== 'rfi') {
+    // Linked RFI logic (checklists, NCRs, IMIRs)
     let linkedRfiId = record.raisedFromRfi || record.meta?.raisedFromRfi || record.meta?.linkedRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r =>
@@ -1364,27 +1378,33 @@ function canUserSeeRecord(record, user) {
         return canUserSeeRecord(parentRfi, user);
       }
     }
-    // Allow contractor to see an NCR if they are the selected Agency
+
+    // --- NCR visibility ---
     if (record.templateKey === 'ncr' && user.role === 'engineer' && record.meta?.agency === user.username) {
       return true;
     }
-    // Allow contractor to see an Audit if they are the selected Agency
-  // Allow contractor to see an Audit if they are the selected Agency
-if (record.templateKey === 'audit' && user.role === 'engineer' && record.meta?.agency === user.username) {
-  return true;
-}
-    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
-  } // ← CLOSING BRACE ADDED HERE
 
-  // 5. Normal routing logic for RFI records
-  // Allow manager and consultant to see all RFIs
+    // --- AUDIT visibility (only for selected agencies) ---
+    if (record.templateKey === 'audit') {
+      const agencies = record.meta?.agency;
+      // Check if user is in the selected agencies list
+      if (Array.isArray(agencies) && agencies.includes(user.username)) {
+        return true;
+      }
+      // If not selected, they cannot see it
+      return false;
+    }
+
+    // For other non-RFI records (checklists, IMIRs, etc.) – only managers, consultants, QA heads, exec engineers can see
+    return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
+  }
+
+  // 5. RFI routing logic (unchanged)
   if (user.role === 'manager' || user.role === 'consultant') {
     return true;
   }
-
   const routing = record.meta?.routing || 'Execution Engineer → QA Head';
   const status = record.status || 'Draft';
-
   if (routing === 'Direct to QA Head') {
     return user.role === 'qa_head';
   } else if (routing === 'Execution Engineer → QA Head') {
@@ -1502,9 +1522,15 @@ function switchView(view) {
   updateNotificationUI();
 }
 function backFromForm() {
-  if (activeTemplateKey !== 'rfi' && pendingReturnRfiId) {
-    openTemplate('rfi', pendingReturnRfiId);
-    return;
+  if (pendingReturnRfiId) {
+    const record = savedReports.find(r => r.id === pendingReturnRfiId);
+    if (record) {
+      // Clear pending ID so we don't loop back again
+      const id = pendingReturnRfiId;
+      pendingReturnRfiId = null;
+      openTemplate(record.templateKey, id);
+      return;
+    }
   }
   switchView(previousView || 'dashboard');
 }
@@ -1520,7 +1546,7 @@ function renderCards() {
   Object.entries(templates).forEach(([k, t]) => {
     if (isExec && k === 'rfi') return;
     if (k === 'audit') return;   // ← hide Project Audit from main Dashboard
-     if (k.startsWith('hallmark_')) return;   // ← ADD THIS
+     if (k.startsWith('activity_')) return;   // ← ADD THIS
     const c = document.createElement('div');
     c.className = 'card';
     c.innerHTML = `
@@ -1737,12 +1763,12 @@ if (activeTemplateKey === 'audit') {
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
-  renderLinkedHallmarks(report);
-  populateHallmarkButtons();
+  renderLinkedactivitys(report);
+  populateactivityButtons();
   return;
 }
-  else if (activeTemplateKey && activeTemplateKey.startsWith('hallmark_')) {
-  body.innerHTML = renderHallmarkExact(report);
+  else if (activeTemplateKey && activeTemplateKey.startsWith('activity_')) {
+  body.innerHTML = renderactivityExact(report);
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
@@ -1866,22 +1892,22 @@ function renderLinkedChecklists() {
   list.innerHTML = html;
 }
   // ============================================================
-// RENDER LINKED HALLMARK CHECKLISTS (for Audit Reports)
+// RENDER LINKED activity CHECKLISTS (for Audit Reports)
 // ============================================================
-function renderLinkedHallmarks(auditReport) {
-  const list = document.getElementById('relatedHallmarkList');
+function renderLinkedactivitys(auditReport) {
+  const list = document.getElementById('relatedactivityList');
   if (!list) return;
   if (!auditReport) {
-    list.innerHTML = 'No linked Hallmark checklist yet.';
+    list.innerHTML = 'No linked activity checklist yet.';
     return;
   }
   const auditNo = auditReport.meta?.reportNo || auditReport.id || '';
   const linked = savedReports.filter(r => 
-    r.templateKey?.startsWith('hallmark_') && 
+    r.templateKey?.startsWith('activity_') && 
     (r.meta?.linkedAudit === auditNo || r.meta?.linkedAudit === auditReport.id)
   );
   if (!linked.length) {
-    list.innerHTML = 'No linked Hallmark checklist yet. Use the buttons above to add one.';
+    list.innerHTML = 'No linked activity checklist yet. Use the buttons above to add one.';
     return;
   }
   let html = `<table class="kpi-table" style="font-size:12px;margin-top:6px;">
@@ -1958,14 +1984,10 @@ function collectMeta(t) {
     }
   }
   if (activeTemplateKey === 'audit') {
-    const checkedAgency = document.querySelector('input[name="meta_agency"]:checked');
-    if (checkedAgency) {
-        meta.agency = checkedAgency.value;
-    } else {
-        meta.agency = '';
-    }
+    const checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedAgencies).map(el => el.value);
+    meta.agency = agencies; // store as array
 }
-
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -1982,8 +2004,8 @@ function collectSections(t) {
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
   if (activeTemplateKey === 'imir') return collectIMIRSectionsExact();
   if (activeTemplateKey === 'audit') return collectAuditSectionsExact();
-  if (activeTemplateKey && activeTemplateKey.startsWith('hallmark_')) {
-    return collectHallmarkSectionsExact();
+  if (activeTemplateKey && activeTemplateKey.startsWith('activity_')) {
+    return collectactivitySectionsExact();
   }
 
   // For all other templates (rfi, brick, plaster, concrete, etc.)
@@ -2107,12 +2129,14 @@ function validateForm(meta) {
     if (!meta.package) req.push('Package/System');
     if (!meta.date) req.push('Date');
   } 
-    else if (activeTemplateKey === 'audit') {
-  if (!meta.project) req.push('Project');
-  if (!meta.reportNo) req.push('Report No.');
-  if (!meta.auditor) req.push('Auditor');
-  if (!meta.auditDate) req.push('Audit Date');
-   if (!meta.agency) req.push('Agency');   // <-- add this    
+   else if (activeTemplateKey === 'audit') {
+    if (!meta.project) req.push('Project');
+    if (!meta.reportNo) req.push('Report No.');
+    if (!meta.auditor) req.push('Auditor');
+    if (!meta.auditDate) req.push('Audit Date');
+    if (!meta.agency || (Array.isArray(meta.agency) && meta.agency.length === 0)) {
+        req.push('At least one Agency (Contractor/Execution Engineer)');
+    }
 }
  else {
     if (!meta.project) req.push('Project');
@@ -2152,7 +2176,30 @@ function canEditNCR(rec) {
   }
   return false;
 }
+// ★★★ PASTE HERE ★★★
+// ===== canEditAudit – allows contractors/exec engineers to edit when status is Open or Rejected =====
+function canEditAudit(rec) {
+  if (!rec) {
+    // New audit: allow creation if user is QA/Exec/Manager/Admin
+    return currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  }
+  const status = rec.status || 'Draft';
+  // Cannot edit when closed, approved, or under review
+  if (status === 'Closed' || status === 'Approved' || status === 'Under Review') return false;
 
+  // Creator (manager/QA) can edit in Draft, Open, Rejected (they are the owner)
+  if (rec.createdBy === currentUser?.username) return true;
+
+  // For recipients (contractor/exec engineer): can edit only if they are in the selected agencies list
+  // and the status is Open or Rejected
+  if (rec.templateKey === 'audit' && (currentUser?.role === 'engineer' || currentUser?.role === 'exec_engineer')) {
+    const agencies = rec.meta?.agency;
+    if (Array.isArray(agencies) && agencies.includes(currentUser.username)) {
+      return status === 'Open' || status === 'Rejected';
+    }
+  }
+  return false;
+}
 function generateNcrNumber() {
   let counter = appConfig.ncrCounter || 1;
   const num = String(counter).padStart(3, '0');
@@ -2165,6 +2212,13 @@ async function saveReport(ev) {
   const t = templates[activeTemplateKey];
   if (!t) return;
   const meta = collectMeta(t);
+  // DEBUG: Log the collected meta
+  console.log('🔍 [DEBUG] Collected meta:', meta);
+  if (activeTemplateKey === 'audit') {
+    console.log('🔍 [DEBUG] Audit agency:', meta.agency);
+  }
+
+  // --- NCR edit check ---
   if (activeTemplateKey === 'ncr') {
     const rec = currentRecord();
     if (!canEditNCR(rec)) {
@@ -2175,12 +2229,23 @@ async function saveReport(ev) {
       meta.ncrNo = generateNcrNumber();
     }
   }
-  // <<< PASTE YOUR IMIR BLOCK HERE >>>
+
+  // --- AUDIT edit check (NEW) ---
+  if (activeTemplateKey === 'audit') {
+    const rec = currentRecord();
+    if (!canEditAudit(rec)) {
+      toast('⛔ You cannot edit this audit in its current state');
+      return;
+    }
+  }
+
+  // --- IMIR number generation ---
   if (activeTemplateKey === 'imir' && (!meta.imirNo || meta.imirNo.trim() === '')) {
     meta.imirNo = 'IMIR-' + String(appConfig.imirCounter || 1).padStart(3, '0');
     appConfig.imirCounter = (appConfig.imirCounter || 1) + 1;
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
+
   if (!validateForm(meta)) return;
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
@@ -2264,10 +2329,11 @@ async function saveReport(ev) {
   row.defectsCount = no;
 
   // --- Validate linked RFI for checklists ---
-if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && activeTemplateKey !== 'audit' && !activeTemplateKey.startsWith('hallmark_') && !row.meta.linkedRfi) {
+  if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplateKey !== 'imir' && activeTemplateKey !== 'audit' && !activeTemplateKey.startsWith('activity_') && !row.meta.linkedRfi) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
-}
+  }
+
   // --- Save to server ---
   try {
     const isNew = !savedReports.find(r => r.id === id);
@@ -2283,7 +2349,7 @@ if (activeTemplateKey !== 'rfi' && activeTemplateKey !== 'ncr' && activeTemplate
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
     // Re-render the current sheet to show newly uploaded attachments
-renderSheet(t, row);
+    renderSheet(t, row);
     updateStats();
     renderHistory();
     updateNotificationUI();
@@ -2577,36 +2643,39 @@ async function submitRecord() {
     }
     return;
   }
-
   // === AUDIT SUBMIT ===
-  else if (isAudit()) {
-    if (rec.status !== 'Draft') { toast('⚠️ Audit is not in Draft state'); return; }
-    if (!rec.meta?.agency) { toast('⚠️ Please select an Agency before submitting'); return; }
-    
-    rec.status = 'Open';
-    rec.comment = document.getElementById('wfComment').value.trim() || 'Audit sent to contractor';
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Sent to Contractor', rec.comment));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('📤 Audit sent to contractor');
-    
-    const agencyUsername = rec.meta?.agency;
-    if (agencyUsername) {
-      const contractorUser = users.find(u => u.u === agencyUsername);
-      if (contractorUser) {
-        await sendNotification(
-          contractorUser.u,
-          `📋 Audit #${rec.meta?.reportNo || rec.id} is assigned to you. Please review and respond.`,
-          'ncr_open',
-          rec.id,
-          rec.meta?.reportNo || rec.id,
-          currentUser.display
-        );
-      }
-    }
+else if (isAudit()) {
+  if (rec.status !== 'Draft') { toast('⚠️ Audit is not in Draft state'); return; }
+  if (!rec.meta?.agency || rec.meta.agency.length === 0) {
+    toast('⚠️ Please select at least one Agency before submitting');
     return;
   }
+  
+  rec.status = 'Open';
+  rec.comment = document.getElementById('wfComment').value.trim() || 'Audit sent to contractor';
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Sent to Contractor', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('📤 Audit sent to selected agencies');
+
+  // Notify each selected user (contractor and/or exec engineer)
+  for (const username of rec.meta.agency) {
+    const user = users.find(u => u.u === username);
+    if (user) {
+      await sendNotification(
+        user.u,
+        `📋 Audit #${rec.meta?.reportNo || rec.id} is assigned to you. Please review and respond.`,
+        'ncr_open',
+        rec.id,
+        rec.meta?.reportNo || rec.id,
+        currentUser.display
+      );
+    }
+  }
+  return;
+}
+
 
   // === IMIR SUBMIT ===  (MOVED OUTSIDE NCR BLOCK)
   else if (isImir()) {
@@ -2758,26 +2827,27 @@ async function approveRecord() {
     return;
   }
 
-  // === AUDIT APPROVE ===
-  else if (isAudit()) {
-    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-      toast('⛔ Only QA/Exec/Manager can approve audit');
-      return;
-    }
-    if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
-    rec.status = 'Closed';
-    rec.comment = document.getElementById('wfComment').value.trim() || 'Audit Approved and Closed';
-    rec.decisionBy = currentUser.username;
-    rec.decisionByDisplay = currentUser.display;
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Approved & Closed', rec.comment));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('✅ Audit Closed');
-    
-    const agencyUsername = rec.meta?.agency;
-    if (agencyUsername) {
-      const contractorUser = users.find(u => u.u === agencyUsername);
+ // === AUDIT APPROVE ===
+else if (isAudit()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can approve audit');
+    return;
+  }
+  if (rec.status !== 'Under Review') { toast('⚠️ Cannot approve now'); return; }
+  rec.status = 'Closed';
+  rec.comment = document.getElementById('wfComment').value.trim() || 'Audit Approved and Closed';
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Approved & Closed', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('✅ Audit Closed');
+
+  // Notify each selected agency
+  if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+    for (const username of rec.meta.agency) {
+      const contractorUser = users.find(u => u.u === username);
       if (contractorUser) {
         await sendNotification(
           contractorUser.u,
@@ -2789,8 +2859,9 @@ async function approveRecord() {
         );
       }
     }
-    return;
   }
+  return;
+}
   // === IMIR APPROVE ===
 else if (isImir()) {
   if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
@@ -2881,27 +2952,28 @@ async function rejectRecord() {
   }
 
   // === AUDIT REJECT ===
-  else if (isAudit()) {
-    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-      toast('⛔ Only QA/Exec/Manager can reject audit');
-      return;
-    }
-    if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
-    const c = document.getElementById('wfComment').value.trim();
-    if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
-    rec.status = 'Rejected';
-    rec.comment = 'Returned for rework: ' + c;
-    rec.decisionBy = currentUser.username;
-    rec.decisionByDisplay = currentUser.display;
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('↩️ Audit returned to contractor');
-    
-    const agencyUsername = rec.meta?.agency;
-    if (agencyUsername) {
-      const contractorUser = users.find(u => u.u === agencyUsername);
+else if (isAudit()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can reject audit');
+    return;
+  }
+  if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
+  const c = document.getElementById('wfComment').value.trim();
+  if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
+  rec.status = 'Rejected';
+  rec.comment = 'Returned for rework: ' + c;
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('↩️ Audit returned to contractor');
+
+  // Notify each selected agency
+  if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+    for (const username of rec.meta.agency) {
+      const contractorUser = users.find(u => u.u === username);
       if (contractorUser) {
         await sendNotification(
           contractorUser.u,
@@ -2913,8 +2985,9 @@ async function rejectRecord() {
         );
       }
     }
-    return;
   }
+  return;
+}
    // === IMIR REJECT ===
 else if (isImir()) {
   if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
@@ -3035,7 +3108,7 @@ async function launchChecklistFromRfi(templateKey) {
   pendingParentMeta = captureCurrentRfiPrefill();
   openTemplate(templateKey);
 }
-function launchHallmarkChecklist(templateKey) {
+async function launchactivityChecklist(templateKey) {
   if (activeTemplateKey !== 'audit') {
     toast('⚠️ Open an Audit Report first');
     return;
@@ -3048,9 +3121,8 @@ function launchHallmarkChecklist(templateKey) {
     return;
   }
   
-  // Save the audit first
   try {
-    saveReport({ preventDefault() {} });
+    await saveReport({ preventDefault() {} });   // ✅ added await
   } catch (e) {
     toast('❌ Failed to save Audit: ' + e.message);
     return;
@@ -3115,7 +3187,7 @@ function openTemplate(key, reportId = null, reportObj = null) {
       sel.value = pendingLinkedRfiNo;
     }
   }
-    // ★ NEW: For Hallmark checklists, auto-populate the Linked Audit dropdown
+    // ★ NEW: For activity checklists, auto-populate the Linked Audit dropdown
   if (pendingLinkedAuditNo && activeTemplateKey !== 'audit') {
     const sel = document.getElementById('meta_linkedAudit');
     if (sel) {
