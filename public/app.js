@@ -3587,8 +3587,8 @@ function renderKPIResults(data, type, customTitle, customSub) {
 let currentAuditKpiFilter = 'audit_total';
 
 function getAuditRecords() {
-  const all = visibleReports();
-  return all.filter(r => r.templateKey === 'audit');
+  // Ignore global type filter – show all audits the user is allowed to see
+  return savedReports.filter(r => r.templateKey === 'audit' && canUserSeeRecord(r, currentUser));
 }
 
 function updateAuditStats() {
