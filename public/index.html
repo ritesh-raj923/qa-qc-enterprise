@@ -20,6 +20,7 @@
     <div class="menu-item auth-only" data-target="settings" onclick="switchView('settings')">⚙️ Configuration</div>
     <div class="menu-item auth-only" data-target="masters" onclick="switchView('masters')">📚 Master Data</div>
     <div class="menu-item auth-only" data-target="sites" onclick="switchView('sites')">🏗️ Manage Sites</div>
+    <div class="menu-item auth-only" data-target="users" onclick="switchView('users')">👥 Manage Users</div>
     <div class="menu-item auth-only" data-target="auditdashboard" onclick="switchView('auditdashboard')">📊 Audit Dashboard</div>
     <div class="menu-item auth-only" onclick="logout()">🚪 Logout</div>
   </div>
@@ -301,6 +302,39 @@
         </form>
       </div>
     </div>
+    <!-- ← PASTE HERE ↓↓↓ -->
+<!-- ===== VIEW: USER MANAGEMENT (Admin only) ===== -->
+<div id="view-users" class="view">
+  <div class="panel">
+    <div class="topbar">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--blue);">👥 User Management</div>
+        <div class="small">View, approve, or remove registered users.</div>
+      </div>
+    </div>
+    <div id="userListContainer">
+      <div class="kpi-table-wrap">
+        <table class="kpi-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email / Username</th>
+              <th>Role</th>
+              <th>Sites</th>
+              <th>Status</th>
+              <th>Registered</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="userListBody">
+            <tr><td colspan="7" class="kpi-empty">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ← PASTE HERE ↑↑↑ -->
     <!-- ===== VIEW: SITE MANAGEMENT (Admin only) ===== -->
 <div id="view-sites" class="view">
   <div class="panel">
