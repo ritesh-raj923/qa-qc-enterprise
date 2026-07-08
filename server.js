@@ -241,7 +241,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
  // =============================================
 // REGISTRATION
 // =============================================
@@ -284,26 +283,26 @@ app.post('/api/register', async (req, res) => {
         sites = assigned_sites.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
-    // If no sites provided, default to ["*"] for managers/admins, or empty array for others
     if (sites.length === 0) {
       if (role === 'manager' || role === 'consultant' || role === 'admin') {
         sites = ['*'];
       } else {
-        sites = ['Default']; // or you can leave empty
+        sites = ['Default'];
       }
     }
     const sitesJson = JSON.stringify(sites);
 
-    // 7. Insert user (username = email, password = hashed)
+    // 7. Insert user (username = email, password = hashed, created_at = NOW)
     const result = await pool.query(
-      `INSERT INTO users (username, email, password, role, assigned_sites, full_name)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO users (username, email, password, role, assigned_sites, full_name, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
        RETURNING id`,
       [email, email, hashedPassword, role, sitesJson, full_name]
     );
 
+    // Note: new users start with approved = FALSE (default from database)
     res.status(201).json({
-      message: 'User registered successfully. Please login.',
+      message: 'User registered successfully. Please wait for admin approval.',
       userId: result.rows[0].id
     });
 
@@ -312,6 +311,7 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+ 
 // =============================================
 // SITES API
 // =============================================
