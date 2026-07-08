@@ -3240,35 +3240,40 @@ function openTemplate(key, reportId = null, reportObj = null) {
   switchView('form');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-async function openRecord(id) {
-  // First, try to get the record from local cache
+ async function openRecord(id) {
+  // 1. Try to find the record in local cache
   let r = savedReports.find(x => x.id === id);
-  if (!r) { toast('Record not found'); return; }
+  if (!r) {
+    toast('Record not found');
+    return;
+  }
 
-  // If online, fetch the full record from server to get image data
   try {
+    // 2. Fetch the full record from server (includes image data)
     const full = await apiRequest(`/api/reports/${id}`);
 
-// --- Normalise agency for audit reports ---
-let meta = full.meta || {};
-if (full.template_key === 'audit' && meta.agency) {
-  if (typeof meta.agency === 'string') {
-    try {
-      const parsed = JSON.parse(meta.agency);
-      meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
-    } catch {
-      meta.agency = [meta.agency];
+    // 3. Normalise agency for audit reports
+    let meta = full.meta || {};
+    if (full.template_key === 'audit' && meta.agency) {
+      if (typeof meta.agency === 'string') {
+        try {
+          const parsed = JSON.parse(meta.agency);
+          meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
+        } catch {
+          meta.agency = [meta.agency];
+        }
+      } else if (!Array.isArray(meta.agency)) {
+        meta.agency = [meta.agency];
+      }
     }
-  } else if (!Array.isArray(meta.agency)) {
-    meta.agency = [meta.agency];
-  }
-}
+
+    // 4. Build the full report object
     r = {
       id: full.id,
       templateKey: full.template_key,
       templateName: full.template_name,
       formatNo: full.format_no,
-      meta: full.meta || {},
+      meta: meta,                         // use normalised meta
       sections: full.sections || [],
       score: full.score || 0,
       defectsCount: full.defects_count || 0,
@@ -3276,7 +3281,7 @@ if (full.template_key === 'audit' && meta.agency) {
       preparedBy: full.prepared_by || '',
       status: full.status || 'Draft',
       comment: full.comment || '',
-      attachments: full.attachments || [],   // full data is here
+      attachments: full.attachments || [],   // full data with images
       createdBy: full.created_by || '',
       createdByDisplay: full.created_by_display || '',
       decisionBy: full.decision_by || '',
@@ -3287,27 +3292,33 @@ if (full.template_key === 'audit' && meta.agency) {
       siteName: full.site_name || ''
     };
 
-    // ★★★ CRUCIAL: Check permission before opening ★★★
+    // 5. Update the local cache with the full data (so next time it's already there)
+    const idx = savedReports.findIndex(x => x.id === id);
+    if (idx >= 0) savedReports[idx] = r;
+    else savedReports.unshift(r);
+
+    // 6. Permission check
     if (!canUserSeeRecord(r, currentUser)) {
       toast('⛔ Access denied');
       return;
     }
 
-    // ★ PASS the full report directly to openTemplate
+    // 7. Open the template with the full record
     openTemplate(r.templateKey, r.id, r);
     return;
+
   } catch (e) {
-    // If offline, fall back to cached version
+    // 8. Offline fallback – use cached version (images may be missing)
     toast('⚠️ Using cached version – images may not be shown');
-  }
 
-  // Check permissions for cached version (fallback)
-  if (!canUserSeeRecord(r, currentUser)) {
-    toast('⛔ Access denied');
-    return;
-  }
+    // Permission check for cached version
+    if (!canUserSeeRecord(r, currentUser)) {
+      toast('⛔ Access denied');
+      return;
+    }
 
-  openTemplate(r.templateKey, r.id);
+    openTemplate(r.templateKey, r.id);
+  }
 }
 // ============================================================
 // 20. STATS & DASHBOARD
