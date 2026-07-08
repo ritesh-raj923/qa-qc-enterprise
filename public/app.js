@@ -1336,7 +1336,79 @@ async function login() {
     }
   }
 }
+// ============================================================
+// REGISTRATION
+// ============================================================
 
+async function registerUser(ev) {
+  ev.preventDefault();
+  
+  const email = document.getElementById('regEmail').value.trim();
+  const full_name = document.getElementById('regFullName').value.trim();
+  const role = document.getElementById('regRole').value;
+  const assigned_sites_input = document.getElementById('regSites').value.trim();
+  const password = document.getElementById('regPassword').value;
+
+  // Basic validation
+  if (!email || !password || !full_name || !role) {
+    toast('⚠️ Please fill all required fields');
+    return;
+  }
+
+  // Simple email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    toast('⚠️ Please enter a valid email address');
+    return;
+  }
+
+  // Password strength check (minimum 6 characters)
+  if (password.length < 6) {
+    toast('⚠️ Password must be at least 6 characters');
+    return;
+  }
+
+  // Convert sites input to array
+  let assigned_sites = [];
+  if (assigned_sites_input) {
+    assigned_sites = assigned_sites_input.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        full_name, 
+        role, 
+        assigned_sites 
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      toast('❌ ' + (data.error || 'Registration failed'));
+      return;
+    }
+    
+    toast('✅ ' + data.message);
+    
+    // Clear the form
+    document.getElementById('registerForm').reset();
+    
+    // Switch to login view
+    switchView('login');
+    
+    // Pre-fill the login email field
+    document.getElementById('loginUser').value = email;
+    
+  } catch (err) {
+    toast('❌ Network error: ' + err.message);
+  }
+}
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
   localStorage.removeItem('token');
@@ -3931,6 +4003,14 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.matches('.table-textarea,.plain-textarea,.value-input,.table-input,.sig-input')) updateProgress();
 });
+// ADD THIS ↓↓↓
+document.addEventListener('DOMContentLoaded', function() {
+  const regForm = document.getElementById('registerForm');
+  if (regForm) {
+    regForm.addEventListener('submit', registerUser);
+  }
+});
+// ↑↑↑ ADD THIS
 // ---- NOTIFICATION DROPDOWN CLOSE ----
 document.addEventListener('click', function(e) {
   const container = document.getElementById('notifContainer');
