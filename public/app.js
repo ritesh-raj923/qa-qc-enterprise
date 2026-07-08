@@ -3248,11 +3248,6 @@ async function openRecord(id) {
   // If online, fetch the full record from server to get image data
   try {
     const full = await apiRequest(`/api/reports/${id}`);
-    // Convert server fields to match client structure
-    const full = await apiRequest(`/api/reports/${id}`);
-
-// --- Normalise agency for audit reports ---
-    const full = await apiRequest(`/api/reports/${id}`);
 
 // --- Normalise agency for audit reports ---
 let meta = full.meta || {};
