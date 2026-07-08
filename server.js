@@ -201,7 +201,6 @@ async function getReportsForUser(user) {
 // =============================================
 // 3. AUTH APIs
 // =============================================
-
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -210,6 +209,12 @@ app.post('/api/login', async (req, res) => {
     }
     const user = await getUserByUsername(username);
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    
+    // Check if user is approved (new)
+    if (!user.approved) {
+      return res.status(403).json({ error: 'Account pending approval. Please wait for admin approval.' });
+    }
+    
     const valid = bcrypt.compareSync(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
     const token = jwt.sign(
@@ -236,6 +241,7 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
  // =============================================
 // REGISTRATION
 // =============================================
@@ -381,21 +387,39 @@ app.post('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.delete('/api/users/:username', authenticateToken, verifyAdmin, async (req, res) => {
+ app.get('/api/users/all', authenticateToken, verifyAdmin, async (req, res) => {
   try {
-    const { username } = req.params;
-    if (username === 'admin') {
-      return res.status(403).json({ error: 'Cannot delete admin' });
-    }
-    const result = await pool.query("DELETE FROM users WHERE username = $1", [username]);
+    const result = await pool.query(
+      "SELECT id, username, email, role, assigned_sites, full_name, approved, created_at FROM users ORDER BY created_at DESC"
+    );
+    const users = result.rows.map(u => ({
+      ...u,
+      assigned_sites: JSON.parse(u.assigned_sites || '[]')
+    }));
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.put('/api/users/:id/approve', authenticateToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE users SET approved = TRUE WHERE id = $1", [id]);
+    res.json({ message: 'User approved successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.delete('/api/users/:id', authenticateToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("DELETE FROM users WHERE id = $1 AND username != 'admin'", [id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
     res.json({ message: 'User deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // =============================================
 // 4. REPORTS API
 // =============================================
