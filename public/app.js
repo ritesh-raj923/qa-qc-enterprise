@@ -1449,26 +1449,33 @@ async function addSite() {
   const name = input.value.trim();
   if (!name) return toast('⚠️ Please enter a site name');
   try {
+    const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/api/sites`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ name })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to add site');
     toast('✅ Site added');
     input.value = '';
-    loadSiteList(); // refresh the list
-    loadSites(); // refresh registration dropdown (if open)
+    loadSiteList();
+    loadSites();
   } catch (e) {
     toast('❌ ' + e.message);
   }
 }
-
 async function deleteSite(name) {
   if (!confirm(`Delete site "${name}"?`)) return;
   try {
-    const res = await fetch(`${API_BASE}/api/sites/${name}`, { method: 'DELETE' });
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/api/sites/${name}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete site');
     toast('✅ Site deleted');
@@ -1478,6 +1485,7 @@ async function deleteSite(name) {
     toast('❌ ' + e.message);
   }
 }
+
 function logout() {
   if (notificationPollInterval) { clearInterval(notificationPollInterval); notificationPollInterval = null; }
   localStorage.removeItem('token');
