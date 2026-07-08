@@ -306,6 +306,48 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+// =============================================
+// SITES API
+// =============================================
+
+// GET all sites (public - for registration)
+app.get('/api/sites', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT name FROM sites ORDER BY name');
+    res.json(result.rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST - Add a new site (Admin only)
+app.post('/api/sites', authenticateToken, verifyAdmin, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Site name required' });
+  try {
+    await pool.query('INSERT INTO sites (name) VALUES ($1)', [name]);
+    res.status(201).json({ message: 'Site added' });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Site already exists' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE - Remove a site (Admin only)
+app.delete('/api/sites/:name', authenticateToken, verifyAdmin, async (req, res) => {
+  const { name } = req.params;
+  try {
+    await pool.query('DELETE FROM sites WHERE name = $1', [name]);
+    res.json({ message: 'Site deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================
+// USER MANAGEMENT API (Admin only)
+// =============================================
+
 app.get('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
   try {
     const result = await pool.query("SELECT id, username, role, assigned_sites, full_name FROM users");
