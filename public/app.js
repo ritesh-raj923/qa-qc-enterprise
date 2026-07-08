@@ -1179,38 +1179,53 @@ console.log('🔍 [DEBUG] Audits from server:', auditReports.length);
 auditReports.forEach(a => {
   console.log('  Report:', a.meta?.reportNo, 'Agency:', a.meta?.agency);
 });
-    savedReports = (data.reports || []).map(r => {
-      // Strip image data from attachments before storing in localStorage
-      let attachments = (r.attachments || []).map(att => ({
-        name: att.name,
-        type: att.type
-        // data field is removed – only metadata
-      }));
+   savedReports = (data.reports || []).map(r => {
+  // Strip image data from attachments before storing in localStorage
+  let attachments = (r.attachments || []).map(att => ({
+    name: att.name,
+    type: att.type
+    // data field is removed – only metadata
+  }));
 
-      return {
-        id: r.id,
-        templateKey: r.template_key,
-        templateName: r.template_name,
-        formatNo: r.format_no,
-        meta: r.meta || {},
-        sections: r.sections || [],
-        score: r.score || 0,
-        defectsCount: r.defects_count || 0,
-        titleLoc: r.title_loc || '',
-        preparedBy: r.prepared_by || '',
-        status: r.status || 'Draft',
-        comment: r.comment || '',
-        attachments: attachments,
-        createdBy: r.created_by || '',
-        createdByDisplay: r.created_by_display || '',
-        decisionBy: r.decision_by || '',
-        decisionByDisplay: r.decision_by_display || '',
-        savedAt: r.saved_at || '',
-        audit: r.audit || [],
-        raisedFromRfi: r.raised_from_rfi || '',
-        siteName: r.site_name || ''
-      };
-    });
+  // --- Normalise agency for audit reports ---
+  let meta = r.meta || {};
+  if (r.template_key === 'audit' && meta.agency) {
+    if (typeof meta.agency === 'string') {
+      try {
+        const parsed = JSON.parse(meta.agency);
+        meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
+      } catch {
+        meta.agency = [meta.agency];
+      }
+    } else if (!Array.isArray(meta.agency)) {
+      meta.agency = [meta.agency];
+    }
+  }
+
+  return {
+    id: r.id,
+    templateKey: r.template_key,
+    templateName: r.template_name,
+    formatNo: r.format_no,
+    meta: meta,   // ← use the normalised meta
+    sections: r.sections || [],
+    score: r.score || 0,
+    defectsCount: r.defects_count || 0,
+    titleLoc: r.title_loc || '',
+    preparedBy: r.prepared_by || '',
+    status: r.status || 'Draft',
+    comment: r.comment || '',
+    attachments: attachments,
+    createdBy: r.created_by || '',
+    createdByDisplay: r.created_by_display || '',
+    decisionBy: r.decision_by || '',
+    decisionByDisplay: r.decision_by_display || '',
+    savedAt: r.saved_at || '',
+    audit: r.audit || [],
+    raisedFromRfi: r.raised_from_rfi || '',
+    siteName: r.site_name || ''
+  };
+}); 
     notifications = data.notifications || [];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
@@ -1384,16 +1399,25 @@ function canUserSeeRecord(record, user) {
       return true;
     }
 
-    // --- AUDIT visibility (only for selected agencies) ---
-    if (record.templateKey === 'audit') {
-      const agencies = record.meta?.agency;
-      // Check if user is in the selected agencies list
-      if (Array.isArray(agencies) && agencies.includes(user.username)) {
-        return true;
-      }
-      // If not selected, they cannot see it
-      return false;
+ // --- AUDIT visibility (only for selected agencies) ---
+if (record.templateKey === 'audit') {
+  const agencies = record.meta?.agency;
+  // Normalise to array if it's a string
+  let agencyList = agencies;
+  if (typeof agencies === 'string') {
+    // If it's a JSON array string, parse it
+    try {
+      const parsed = JSON.parse(agencies);
+      agencyList = Array.isArray(parsed) ? parsed : [agencies];
+    } catch {
+      agencyList = [agencies];
     }
+  }
+  if (Array.isArray(agencyList) && agencyList.includes(user.username)) {
+    return true;
+  }
+  return false;
+}
 
     // For other non-RFI records (checklists, IMIRs, etc.) – only managers, consultants, QA heads, exec engineers can see
     return user.role === 'manager' || user.role === 'consultant' || user.role === 'qa_head' || user.role === 'exec_engineer';
@@ -3225,6 +3249,25 @@ async function openRecord(id) {
   try {
     const full = await apiRequest(`/api/reports/${id}`);
     // Convert server fields to match client structure
+    const full = await apiRequest(`/api/reports/${id}`);
+
+// --- Normalise agency for audit reports ---
+    const full = await apiRequest(`/api/reports/${id}`);
+
+// --- Normalise agency for audit reports ---
+let meta = full.meta || {};
+if (full.template_key === 'audit' && meta.agency) {
+  if (typeof meta.agency === 'string') {
+    try {
+      const parsed = JSON.parse(meta.agency);
+      meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
+    } catch {
+      meta.agency = [meta.agency];
+    }
+  } else if (!Array.isArray(meta.agency)) {
+    meta.agency = [meta.agency];
+  }
+}
     r = {
       id: full.id,
       templateKey: full.template_key,
@@ -3583,14 +3626,12 @@ function renderKPIResults(data, type, customTitle, customSub) {
 // ============================================================
 // AUDIT DASHBOARD – STATS & RENDERING
 // ============================================================
-
 let currentAuditKpiFilter = 'audit_total';
 
 function getAuditRecords() {
-  // Ignore global type filter – show all audits the user is allowed to see
+  // Ignore global filter – show all audits the user is allowed to see
   return savedReports.filter(r => r.templateKey === 'audit' && canUserSeeRecord(r, currentUser));
 }
-
 function updateAuditStats() {
   const audits = getAuditRecords();
   const total = audits.length;
