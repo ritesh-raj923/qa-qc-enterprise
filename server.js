@@ -236,7 +236,76 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+ // =============================================
+// REGISTRATION
+// =============================================
+app.post('/api/register', async (req, res) => {
+  try {
+    const { email, password, full_name, role, assigned_sites } = req.body;
 
+    // 1. Validate required fields
+    if (!email || !password || !full_name || !role) {
+      return res.status(400).json({ error: 'Email, password, full name, and role are required' });
+    }
+
+    // 2. Validate role against allowed list
+    const allowedRoles = ['engineer', 'exec_engineer', 'qa_head', 'manager', 'consultant', 'admin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // 3. Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // 4. Check if user already exists (by email)
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // 5. Hash password
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    // 6. Build assigned_sites array
+    let sites = [];
+    if (assigned_sites) {
+      if (Array.isArray(assigned_sites)) {
+        sites = assigned_sites;
+      } else if (typeof assigned_sites === 'string') {
+        sites = assigned_sites.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    // If no sites provided, default to ["*"] for managers/admins, or empty array for others
+    if (sites.length === 0) {
+      if (role === 'manager' || role === 'consultant' || role === 'admin') {
+        sites = ['*'];
+      } else {
+        sites = ['Default']; // or you can leave empty
+      }
+    }
+    const sitesJson = JSON.stringify(sites);
+
+    // 7. Insert user (username = email, password = hashed)
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password, role, assigned_sites, full_name)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [email, email, hashedPassword, role, sitesJson, full_name]
+    );
+
+    res.status(201).json({
+      message: 'User registered successfully. Please login.',
+      userId: result.rows[0].id
+    });
+
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 app.get('/api/users', authenticateToken, verifyAdmin, async (req, res) => {
   try {
     const result = await pool.query("SELECT id, username, role, assigned_sites, full_name FROM users");
