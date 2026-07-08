@@ -85,22 +85,24 @@
     </div>
   </div>
 </div>
-    
-     <!-- REGISTRATION VIEW -->
+    <!-- REGISTRATION VIEW -->
 <div id="view-register" class="view" style="display:none;">
   <div class="login-container" style="max-width:420px; margin:40px auto; padding:30px; background:var(--card); border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,0.1);">
     <h2 style="text-align:center; color:var(--blue); margin-bottom:20px;">Create Account</h2>
     <form id="registerForm">
+      <!-- Official Email -->
       <div class="form-group" style="margin-bottom:16px;">
         <label style="display:block; font-weight:600; margin-bottom:4px;">Official Email</label>
         <input type="email" id="regEmail" placeholder="your@company.com" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
       </div>
+
+      <!-- Full Name -->
       <div class="form-group" style="margin-bottom:16px;">
-   <!-- Full Name -->
-<div class="form-group" style="margin-bottom:16px;">
-  <label style="display:block; font-weight:600; margin-bottom:4px;">Full Name</label>
-  <input type="text" id="regFullName" placeholder="John Doe" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
-</div>
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Full Name</label>
+        <input type="text" id="regFullName" placeholder="John Doe" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
+      </div>
+
+      <!-- Role -->
       <div class="form-group" style="margin-bottom:16px;">
         <label style="display:block; font-weight:600; margin-bottom:4px;">Role</label>
         <select id="regRole" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px; background:white;">
@@ -112,22 +114,27 @@
           <option value="consultant">👀 Consultant</option>
         </select>
       </div>
-      <!-- Assigned Sites (dropdown) -->
-<div class="form-group" style="margin-bottom:16px;">
-  <label style="display:block; font-weight:600; margin-bottom:4px;">Assigned Sites <span style="font-weight:400; font-size:12px; color:#888;">(hold Ctrl/Cmd to select multiple)</span></label>
-  <select id="regSites" multiple style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; height:100px; font-size:14px; background:white;">
-    <!-- Options loaded from server -->
-  </select>
-</div>
+
+      <!-- Assigned Sites -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block; font-weight:600; margin-bottom:4px;">Assigned Sites <span style="font-weight:400; font-size:12px; color:#888;">(hold Ctrl/Cmd to select multiple)</span></label>
+        <select id="regSites" multiple style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; height:100px; font-size:14px; background:white;">
+          <!-- Options loaded from server -->
+        </select>
+      </div>
+
+      <!-- Password -->
       <div class="form-group" style="margin-bottom:20px;">
         <label style="display:block; font-weight:600; margin-bottom:4px;">Password</label>
         <input type="password" id="regPassword" placeholder="Choose a strong password" required style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:8px; font-size:14px;">
       </div>
+
       <button type="submit" style="width:100%; padding:12px; background:var(--blue); color:white; border:none; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer;">Sign Up</button>
     </form>
     <p style="text-align:center; margin-top:16px; font-size:14px;">Already have an account? <a href="#" onclick="switchView('login')" style="color:var(--blue); text-decoration:none; font-weight:600;">Login</a></p>
   </div>
 </div>
+
     <!-- ===== VIEW: DASHBOARD ===== -->
     <div id="view-dashboard" class="view">
       <div class="dashboard-grid">
