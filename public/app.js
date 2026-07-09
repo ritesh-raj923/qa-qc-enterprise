@@ -2659,7 +2659,7 @@ function updateWorkflowButtons(rec) {
   const relatedPanel = document.getElementById('relatedChecklistPanel');
   if (panel) panel.style.display = (isRfiFlag || isNcrFlag || isImirFlag || isAudit()) ? 'block' : 'none';
   if (relatedPanel) relatedPanel.style.display = isRfiFlag ? 'block' : 'none';
-  if (!isRfiFlag && !isNcrFlag && !isImirFlag) return;
+ if (!isRfiFlag && !isNcrFlag && !isImirFlag && !isAudit()) return;
 
   const status = rec?.status || 'Draft';
   const meta = rec?.meta || {};
