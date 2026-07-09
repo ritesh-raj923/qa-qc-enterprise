@@ -897,7 +897,10 @@ body.dark-mode .exact-small {
   .hamburger {
     display: inline-block;
   }
-
+   /* Hide admin-only items by default */
+.admin-only {
+  display: none !important;
+}
   /* Sidebar – hidden by default, slides in */
   .sidebar {
     position: fixed;
