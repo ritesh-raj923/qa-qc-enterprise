@@ -341,6 +341,54 @@ body.dark-mode .kpi-status.exec_approved {
   background: #1a5a5a;
   color: #b0e0e0;
 }
+/* ============================================================
+   COMPLIANCE REPORT - DARK MODE
+   ============================================================ */
+body.dark-mode .compliance-exact .exact-table {
+  background: #1a2a3a;
+  border-color: #3a4a5a;
+}
+
+body.dark-mode .compliance-exact .exact-table td,
+body.dark-mode .compliance-exact .exact-table th {
+  background: #1a2a3a;
+  border-color: #3a4a5a;
+  color: #eef4fa;
+}
+
+body.dark-mode .compliance-exact .exact-input,
+body.dark-mode .compliance-exact .exact-select,
+body.dark-mode .compliance-exact .exact-textarea {
+  background: #0d1f3c;
+  color: #eef4fa;
+  border-color: #3a4a5a;
+}
+
+body.dark-mode .compliance-exact .exact-input:focus,
+body.dark-mode .compliance-exact .exact-select:focus,
+body.dark-mode .compliance-exact .exact-textarea:focus {
+  border-color: #8ab6ff;
+  outline: none;
+}
+
+body.dark-mode .compliance-exact .exact-label {
+  background: #1a2a3a !important;
+  color: #eef4fa !important;
+}
+
+body.dark-mode .compliance-exact th {
+  background: #1a2a3a !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .compliance-exact .compliance-table td {
+  border-color: #3a4a5a !important;
+}
+
+body.dark-mode .compliance-exact td[style*="background:#f0f4fa"] {
+  background: #1a3a5a !important;
+  color: #ffffff !important;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
 body { background: linear-gradient(180deg, #f6f9fc 0%, #eef4fa 100%); color: #111; display: flex; min-height: 100vh; }
 
