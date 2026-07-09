@@ -2001,6 +2001,18 @@ if (view === 'sites') { loadSiteList(); }
 if (view === 'users') { loadUsers(); }  
 updateNotificationUI();
 }
+// ============================================================
+// GO BACK FROM ABOUT
+// ============================================================
+function goBackFromAbout() {
+  // If user is logged in, go to dashboard
+  if (currentUser) {
+    switchView('dashboard');
+  } else {
+    // If not logged in, go to login
+    switchView('login');
+  }
+}
 function backFromForm() {
   if (pendingReturnRfiId) {
     const record = savedReports.find(r => r.id === pendingReturnRfiId);
