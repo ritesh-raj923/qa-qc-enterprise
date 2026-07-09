@@ -42,6 +42,7 @@ let currentKpiRows = [];
 let globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
 let notifications = [];
 let notificationPollInterval = null;
+let agencyUsers = [];   // ← ADD THIS
 // Toggle sidebar for mobile
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -539,26 +540,10 @@ function renderNCRExact(report) {
   <td class="exact-label">Package:</td>
   <td>${inputExact('meta_package', m.package)}</td>
   <td class="exact-label">Agency:</td>
-  <td>
-    <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${(() => {
-        let engineers = users.filter(u => u.role === 'engineer');
-        const userSites = currentUser?.assigned_sites || ['*'];
-        if (!userSites.includes('*')) {
-          engineers = engineers.filter(e => {
-            if (!e.assigned_sites) return false;
-            return e.assigned_sites.some(s => userSites.includes(s));
-          });
-        }
-        if (engineers.length === 0) engineers = users.filter(u => u.role === 'engineer');
-        return engineers.map(e => {
-          const checked = (m.agency === e.u) ? 'checked' : '';
-          return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
-                    <input type="radio" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
-                  </label>`;
-        }).join('');
-      })()}
-    </div>
+<td>
+  <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
+    ${generateAgencyRadios(m.agency, 'radio')}
+  </div>
   </td>
 </tr>
       <tr><td class="exact-label">WBS Code:</td><td>${inputExact('meta_wbsCode', m.wbsCode)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location || appConfig.location)}</td></tr>
@@ -1113,23 +1098,19 @@ function getAuditOptions() {
   const options = audits.map(r => r.meta?.reportNo || r.id || '');
   return [...new Set(options)];
 }
-function generateAgencyRadios(currentValue) {
-    // currentValue can be an array or a single string (for backwards compatibility)
+function generateAgencyRadios(currentValue, type = 'checkbox') {
     const selected = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
-    // Include both contractors (engineer) AND execution engineers
-    let recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
-    const userSites = currentUser?.assigned_sites || ['*'];
-    if (!userSites.includes('*')) {
-        recipients = recipients.filter(e => {
-            if (!e.assigned_sites) return false;
-            return e.assigned_sites.some(s => userSites.includes(s));
-        });
+    // Use the dynamic agencyUsers list
+    let recipients = agencyUsers;
+    // Fallback to static users if needed
+    if (!recipients || recipients.length === 0) {
+        recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
     }
-    if (recipients.length === 0) recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    const inputType = type === 'radio' ? 'radio' : 'checkbox';
     return recipients.map(e => {
         const checked = selected.includes(e.u) ? 'checked' : '';
         return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; margin-right:8px;">
-                  <input type="checkbox" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
+                  <input type="${inputType}" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
                 </label>`;
     }).join('');
 }
@@ -1639,6 +1620,20 @@ async function loadSites() {
     }
   } catch (e) {
     console.warn('Could not load sites', e);
+  }
+}
+// ============================================================
+// LOAD AGENCY USERS (for Audit/NCR selection)
+// ============================================================
+async function loadAgencyUsers() {
+  try {
+    const users = await apiRequest('/api/users/agency');
+    agencyUsers = users;
+    console.log('✅ Agency users loaded:', agencyUsers.length);
+  } catch (e) {
+    console.warn('Failed to load agency users:', e);
+    // Fallback to static users if API fails (for backward compatibility)
+    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
   }
 }
 // ============================================================
@@ -3741,6 +3736,12 @@ function openTemplate(key, reportId = null, reportObj = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
   const t = templates[key];
+   // ← ADD THIS ↓↓↓
+  // Load agency users for Audit or NCR
+  if (key === 'audit' || key === 'ncr') {
+    loadAgencyUsers();
+  }
+  // ← ADD THIS ↑↑↑
   // Use reportObj if provided, otherwise look up in savedReports
   const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
    // Auto-populate linked RFI for checklists
