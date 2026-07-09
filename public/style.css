@@ -901,6 +901,10 @@ body.dark-mode .exact-small {
 .admin-only {
   display: none !important;
 }
+ /* Hide manager/admin-only items by default */
+.manager-admin-only {
+  display: none !important;
+} 
   /* Sidebar – hidden by default, slides in */
   .sidebar {
     position: fixed;
