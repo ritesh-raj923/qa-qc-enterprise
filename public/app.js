@@ -327,6 +327,46 @@ const templates = {
     { type: 'textarea', title: 'Non-Compliance VS Compliance' },
     { type: 'signatures', title: 'Audit Signatures', roles: ['Auditor', 'Project Manager', 'QA Head'] }
   ]
+},
+  compliance_report: {
+  formatNo: 'COMPLIANCE / CAPA / 01',
+  menuTitle: 'Compliance Report',
+  title: 'COMPLIANCE REPORT (PART OF CAPA)',
+  dept: 'TECHNICAL AUDIT COMPLIANCE',
+  summary: 'Compliance Report linked to Technical Audit with NCR details, corrections, and images.',
+  metaRows: [
+    [{ l: 'Linked Audit Report:', k: 'linkedAudit', t: 'select', options: [] }],
+    [{ l: 'Project:', k: 'project', d: 'Project Name' }, { l: 'Audit Conducted By:', k: 'auditor' }],
+    [{ l: 'Audit Conducted From:', k: 'auditFrom', t: 'date' }, { l: 'Audit Conducted To:', k: 'auditTo', t: 'date' }],
+    [{ l: 'Audit Report No.:', k: 'auditReportNo' }, { l: 'Auditor Name:', k: 'auditorName' }]
+  ],
+  sections: [
+    {
+      type: 'compliance_table',
+      title: 'Compliance Report (Part of CAPA)',
+      columns: [
+        'Sr. No.',
+        'NCR Nos. (With Details)',
+        'Description',
+        'Image (Before Correction)',
+        'Severity',
+        'Frequency',
+        'Requirement',
+        'Root Cause',
+        'Correction',
+        'Image (After Correction)',
+        'Corrective Action',
+        'Remarks'
+      ],
+      rows: 25 // 25 rows as per your Excel
+    },
+    {
+      type: 'textarea',
+      title: 'Our Commitment',
+      note: 'To deliver cost effective defect free Quality product in time with utmost customer satisfaction along with the first-time right work concept.'
+    },
+    { type: 'signatures', title: 'Signatures', roles: ['Prepared By', 'Reviewed By', 'Approved By'] }
+  ]
 }
 };   
   // ============================================================
@@ -696,6 +736,178 @@ function renderactivityExact(report) {
   </div>`;
   return html;
 } 
+// ============================================================
+// RENDER COMPLIANCE REPORT
+// ============================================================
+function renderComplianceExact(report) {
+  const m = report?.meta || {};
+  const sectionsData = report?.sections || [];
+  const tableData = sectionsData[0] || { rows: [] };
+  const commitmentData = sectionsData[1] || { value: '' };
+  const signaturesData = sectionsData[2] || { entries: [] };
+
+  let html = `
+  <div class="exact-format compliance-exact">
+    <!-- Header -->
+    <table class="exact-table">
+      <tr>
+        <td colspan="4" style="text-align:center; font-size:18px; font-weight:700; padding:10px 4px; background:#f0f4fa;">
+          COMPLIANCE REPORT (PART OF CAPA)
+        </td>
+      </tr>
+      <tr>
+        <td class="exact-label">Project :</td>
+        <td>${inputExact('meta_project', m.project)}</td>
+        <td class="exact-label">Audit Conducted By :</td>
+        <td>${inputExact('meta_auditor', m.auditor)}</td>
+      </tr>
+      <tr>
+        <td class="exact-label">Audit Conducted :</td>
+        <td colspan="3">
+          ${inputExact('meta_auditFrom', m.auditFrom, 'date')} To ${inputExact('meta_auditTo', m.auditTo, 'date')}
+        </td>
+      </tr>
+      <tr>
+        <td class="exact-label">Audit Report No :</td>
+        <td>${inputExact('meta_auditReportNo', m.auditReportNo)}</td>
+        <td class="exact-label">Auditor Name :</td>
+        <td>${inputExact('meta_auditorName', m.auditorName)}</td>
+      </tr>
+    </table>
+
+    <!-- Compliance Table -->
+    <table class="exact-table compliance-table">
+      <thead>
+        <tr>
+          ${['Sr. No.', 'NCR Nos. (With Details)', 'Description', 'Image (Before Correction)', 'Severity', 'Frequency', 'Requirement', 'Root Cause', 'Correction', 'Image (After Correction)', 'Corrective Action', 'Remarks'].map(col => `<th style="font-size:10px; padding:4px 3px; text-align:center;">${col}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${Array.from({ length: 25 }, (_, i) => {
+          const row = (tableData.rows && tableData.rows[i]) || {};
+          return `
+            <tr>
+              <td style="text-align:center; width:4%;">${i + 1}</td>
+              <td style="width:8%;">${inputExact('', row.ncrNo || '')}</td>
+              <td style="width:12%;">${inputExact('', row.description || '')}</td>
+              <td style="width:8%;">
+                <input type="file" accept="image/*" onchange="previewImage(this, 'before_${i}')" style="font-size:10px; width:100%;">
+                <div id="before_${i}" style="margin-top:4px; max-width:80px;"></div>
+              </td>
+              <td style="width:6%;">${inputExact('', row.severity || '', 'select', ['', 'Major', 'Minor', 'Critical'])}</td>
+              <td style="width:6%;">${inputExact('', row.frequency || '', 'select', ['', 'Once', 'Occasional', 'Repeated'])}</td>
+              <td style="width:10%;">${inputExact('', row.requirement || '')}</td>
+              <td style="width:10%;">${inputExact('', row.rootCause || '')}</td>
+              <td style="width:10%;">${inputExact('', row.correction || '')}</td>
+              <td style="width:8%;">
+                <input type="file" accept="image/*" onchange="previewImage(this, 'after_${i}')" style="font-size:10px; width:100%;">
+                <div id="after_${i}" style="margin-top:4px; max-width:80px;"></div>
+              </td>
+              <td style="width:8%;">${inputExact('', row.correctiveAction || '')}</td>
+              <td style="width:10%;">${inputExact('', row.remarks || '')}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+
+    <!-- Commitment -->
+    <table class="exact-table">
+      <tr>
+        <td style="font-weight:700; padding:8px; background:#f0f4fa; font-size:13px;">
+          OUR COMMITMENT:
+        </td>
+        <td style="padding:8px;">
+          ${textExact('compliance_commitment', secVal(report, 1))}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Signatures -->
+    <table class="exact-table compliance-signatures">
+      <tr>
+        <th style="width:33%;">Prepared By</th>
+        <th style="width:33%;">Reviewed By</th>
+        <th style="width:34%;">Approved By</th>
+      </tr>
+      <tr>
+        ${['prepared', 'reviewed', 'approved'].map(role => `
+          <td>
+            <b>Name:</b> <input class="exact-input" data-sign-name-${role}><br>
+            <b>Signature:</b> <input class="exact-input" data-sign-sign-${role}><br>
+            <b>Date:</b> <input type="date" class="exact-input" data-sign-date-${role}>
+          </td>
+        `).join('')}
+      </tr>
+    </table>
+  </div>`;
+
+  return html;
+}
+// ============================================================
+// COLLECT COMPLIANCE SECTIONS
+// ============================================================
+function collectComplianceSectionsExact() {
+  const root = document.querySelector('.compliance-exact');
+  if (!root) return [];
+
+  // Collect table rows
+  const tableRows = Array.from(root.querySelectorAll('.compliance-table tbody tr')).map((tr, idx) => {
+    const inputs = tr.querySelectorAll('input, select, textarea');
+    return {
+      ncrNo: inputs[0]?.value || '',
+      description: inputs[1]?.value || '',
+      severity: inputs[2]?.value || '',
+      frequency: inputs[3]?.value || '',
+      requirement: inputs[4]?.value || '',
+      rootCause: inputs[5]?.value || '',
+      correction: inputs[6]?.value || '',
+      correctiveAction: inputs[7]?.value || '',
+      remarks: inputs[8]?.value || ''
+    };
+  });
+
+  // Collect signatures
+  const sigs = {
+    prepared: {
+      name: root.querySelector('[data-sign-name-prepared]')?.value || '',
+      sign: root.querySelector('[data-sign-sign-prepared]')?.value || '',
+      date: root.querySelector('[data-sign-date-prepared]')?.value || ''
+    },
+    reviewed: {
+      name: root.querySelector('[data-sign-name-reviewed]')?.value || '',
+      sign: root.querySelector('[data-sign-sign-reviewed]')?.value || '',
+      date: root.querySelector('[data-sign-date-reviewed]')?.value || ''
+    },
+    approved: {
+      name: root.querySelector('[data-sign-name-approved]')?.value || '',
+      sign: root.querySelector('[data-sign-sign-approved]')?.value || '',
+      date: root.querySelector('[data-sign-date-approved]')?.value || ''
+    }
+  };
+
+  return [
+    { type: 'compliance_table', rows: tableRows },
+    { type: 'textarea', value: root.querySelector('[data-exact-text="compliance_commitment"]')?.value || '' },
+    { type: 'signatures', entries: [
+      { role: 'Prepared By', name: sigs.prepared.name, sign: sigs.prepared.sign, date: sigs.prepared.date },
+      { role: 'Reviewed By', name: sigs.reviewed.name, sign: sigs.reviewed.sign, date: sigs.reviewed.date },
+      { role: 'Approved By', name: sigs.approved.name, sign: sigs.approved.sign, date: sigs.approved.date }
+    ]}
+  ];
+}
+// Helper to preview images in compliance table
+function previewImage(input, containerId) {
+  const container = document.getElementById(containerId);
+  if (container && input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      container.innerHTML = `<img src="${e.target.result}" style="max-width:80px; max-height:80px; border:1px solid #ddd; border-radius:4px;">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
 function collectNCRSectionsExact() {
   const root = document.querySelector('.ncr-exact');
   if (!root) return [];
@@ -732,6 +944,7 @@ function collectNCRSectionsExact() {
     }] }
   ];
 }
+
 function collectIMIRSectionsExact() {
   const root = document.querySelector('.imir-exact');
   if (!root) return [];
@@ -2032,6 +2245,17 @@ if (activeTemplateKey === 'audit') {
   body.innerHTML += attachmentsHtml;
   renderLinkedactivitys(report);
   populateactivityButtons();
+    // Add Compliance Report button
+  const complianceBtn = document.createElement('button');
+  complianceBtn.type = 'button';
+  complianceBtn.className = 'btn btn-secondary';
+  complianceBtn.innerHTML = '📋 Add Compliance Report';
+  complianceBtn.onclick = () => launchComplianceChecklist(report);
+  complianceBtn.style.marginLeft = '8px';
+  const buttonsContainer = document.getElementById('activityChecklistButtons');
+  if (buttonsContainer) {
+    buttonsContainer.parentNode.appendChild(complianceBtn);
+  }
   return;
 }
   else if (activeTemplateKey && activeTemplateKey.startsWith('activity_')) {
@@ -2041,6 +2265,15 @@ if (activeTemplateKey === 'audit') {
   body.innerHTML += attachmentsHtml;
   return;
 } 
+    // ← PASTE HERE ↓↓↓
+  else if (activeTemplateKey === 'compliance_report') {
+    body.innerHTML = renderComplianceExact(report);
+    updateProgress();
+    const attachmentsHtml = renderAttachments(report?.attachments || []);
+    body.innerHTML += attachmentsHtml;
+    return;
+  }
+  // ← PASTE HERE ↑↑↑
   let html = renderMetaRows(t.metaRows, meta);
   let si = 0;
   t.sections.forEach((sec) => {
@@ -2274,6 +2507,9 @@ function collectSections(t) {
   if (activeTemplateKey && activeTemplateKey.startsWith('activity_')) {
     return collectactivitySectionsExact();
   }
+  if (activeTemplateKey === 'compliance_report') {
+  return collectComplianceSectionsExact();
+}
 
   // For all other templates (rfi, brick, plaster, concrete, etc.)
   const shell = document.getElementById('sheetBody');
@@ -2357,6 +2593,28 @@ function collectSections(t) {
 }
 function collectSectionsForProgress() {
   let total = 0, filled = 0, yes = 0, no = 0;
+
+  // For compliance report: count filled rows in the table
+  if (activeTemplateKey === 'compliance_report') {
+    const rows = document.querySelectorAll('.compliance-table tbody tr');
+    let rowCount = rows.length;
+    let filledRows = 0;
+    rows.forEach(tr => {
+      const inputs = tr.querySelectorAll('input, select, textarea');
+      let hasData = false;
+      inputs.forEach(inp => {
+        if (inp.value && inp.value.trim() !== '') hasData = true;
+      });
+      if (hasData) filledRows++;
+    });
+    return {
+      total: rowCount,
+      filled: filledRows,
+      score: rowCount ? Math.round((filledRows / rowCount) * 100) : 100
+    };
+  }
+
+  // For other templates: count status selects
   document.querySelectorAll('#sheetBody .status-select').forEach(sel => {
     total++;
     if (sel.value) { filled++; if (sel.value === 'Yes') yes++; if (sel.value === 'No') no++; }
@@ -3404,6 +3662,39 @@ async function launchactivityChecklist(templateKey) {
   pendingReturnRfiId = parent.id;
   pendingLinkedAuditNo = reportNo;
   openTemplate(templateKey);
+}
+// ============================================================
+// LAUNCH COMPLIANCE CHECKLIST FROM AUDIT
+// ============================================================
+async function launchComplianceChecklist(auditReport) {
+  if (!auditReport) {
+    toast('⚠️ Please save the Audit first');
+    return;
+  }
+  
+  const reportNo = auditReport.meta?.reportNo || auditReport.id;
+  if (!reportNo) {
+    toast('⚠️ Please enter Report No first');
+    return;
+  }
+  
+  // Save the audit first
+  try {
+    await saveReport({ preventDefault() {} });
+  } catch (e) {
+    toast('❌ Failed to save Audit: ' + e.message);
+    return;
+  }
+  
+  pendingReturnRfiId = auditReport.id;
+  pendingLinkedAuditNo = reportNo;
+  pendingParentMeta = {
+    project: auditReport.meta?.project || '',
+    auditor: auditReport.meta?.auditor || '',
+    auditFrom: auditReport.meta?.auditDate || '',
+    auditorName: auditReport.meta?.auditor || ''
+  };
+  openTemplate('compliance_report');
 }
 
 let pendingLinkedAuditNo = null;  
