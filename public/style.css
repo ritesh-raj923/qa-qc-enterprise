@@ -1060,4 +1060,29 @@ body.dark-mode .exact-small {
     padding: 14px 18px;
     font-size: 16px;
   }
+  /* About page dark mode */
+body.dark-mode #view-about .panel {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+body.dark-mode #view-about p,
+body.dark-mode #view-about li {
+  color: #e0e8f0 !important;
+}
+
+body.dark-mode #view-about h1,
+body.dark-mode #view-about h2,
+body.dark-mode #view-about h4 {
+  color: #ffffff !important;
+}
+
+body.dark-mode #view-about .panel > div {
+  background: var(--card) !important;
+  border-color: var(--line) !important;
+}
+
+body.dark-mode #view-about ol {
+  color: #e0e8f0;
+}
 }
