@@ -1310,6 +1310,10 @@ async function login() {
 document.querySelectorAll('.admin-only').forEach(el => {
   el.style.display = currentUser && currentUser.role === 'admin' ? 'block' : 'none';
 });
+    // Show manager/admin items if user is admin or manager
+document.querySelectorAll('.manager-admin-only').forEach(el => {
+  el.style.display = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 'block' : 'none';
+});
     renderCards();
     await loadFromServer();
     updateStats();
@@ -1578,6 +1582,7 @@ function logout() {
   currentUser = null;
   document.querySelectorAll('.auth-only').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.manager-admin-only').forEach(el => el.style.display = 'none'); // ← ADD THIS
   document.getElementById('notifContainer').style.display = 'none';
   globalFilterState = { project: '', type: '', contractor: '', discipline: '', status: '', fromDate: '', toDate: '', owner: '' };
   switchView('login');
