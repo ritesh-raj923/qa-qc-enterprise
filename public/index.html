@@ -22,6 +22,7 @@
     <div class="menu-item auth-only manager-admin-only" data-target="sites" onclick="switchView('sites')">🏗️ Manage Sites</div> 
     <div class="menu-item auth-only admin-only" data-target="users" onclick="switchView('users')">👥 Manage Users</div>
     <div class="menu-item auth-only" data-target="auditdashboard" onclick="switchView('auditdashboard')">📊 Audit Dashboard</div>
+    <div class="menu-item" data-target="about" onclick="switchView('about')">ℹ️ About</div>
     <div class="menu-item auth-only" onclick="logout()">🚪 Logout</div>
   </div>
 
@@ -351,6 +352,149 @@
     <div id="siteListContainer">
       <ul id="siteList" style="list-style:none; padding:0;"></ul>
     </div>
+  </div>
+</div>
+    <!-- ===== VIEW: ABOUT ===== -->
+<div id="view-about" class="view">
+  <div class="panel" style="max-width: 1200px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div style="text-align:center; padding: 20px 0 10px 0; border-bottom: 2px solid var(--line); margin-bottom: 20px;">
+      <h1 style="color:var(--blue); font-size:28px;">📋 QA/QC Inspection Suite</h1>
+      <p style="color:var(--muted); font-size:14px;">Complete Quality Management System for Construction Projects</p>
+    </div>
+
+    <!-- Overview -->
+    <div style="margin-bottom: 24px;">
+      <h2 style="color:var(--blue); font-size:20px; margin-bottom: 8px;">🏗️ About This Application</h2>
+      <p style="color:#444; font-size:14px; line-height:1.6;">
+        The <strong>QA/QC Inspection Suite</strong> is a comprehensive digital platform designed to streamline 
+        quality management processes in construction projects. It replaces manual, paper-based systems with 
+        automated workflows, real-time collaboration, and secure data management.
+      </p>
+      <p style="color:#444; font-size:14px; line-height:1.6; margin-top:8px;">
+        Built as a <strong>Progressive Web App (PWA)</strong>, it works on desktops, tablets, and mobile phones – 
+        enabling field engineers to log data instantly from any location.
+      </p>
+    </div>
+
+    <!-- Key Features Grid -->
+    <h2 style="color:var(--blue); font-size:20px; margin-bottom: 12px;">⚡ Key Features</h2>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">📄</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">RFI Management</div>
+        <div style="font-size:12px; color:var(--muted);">Submit, review & approve inspections</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">📋</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">NCR Tracking</div>
+        <div style="font-size:12px; color:var(--muted);">Identify & close non-conformances</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">📊</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">Project Audits</div>
+        <div style="font-size:12px; color:var(--muted);">Comprehensive site audits with 56+ checkpoints</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">✅</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">Material Approval</div>
+        <div style="font-size:12px; color:var(--muted);">IMIR submissions & client approval</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">📎</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">Activity Checklists</div>
+        <div style="font-size:12px; color:var(--muted);">Painting, Tiling, Door Frames & more</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;">
+        <div style="font-size:32px;">🔔</div>
+        <div style="font-weight:700; font-size:14px; margin-top:4px;">Real-Time Notifications</div>
+        <div style="font-size:12px; color:var(--muted);">Instant alerts for approvals & assignments</div>
+      </div>
+    </div>
+
+    <!-- Workflow Section -->
+    <h2 style="color:var(--blue); font-size:20px; margin-bottom: 8px;">🔄 Workflow Overview</h2>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:24px;">
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;">
+        <h4 style="color:var(--blue); margin-bottom:4px;">📄 RFI Flow</h4>
+        <p style="font-size:12px; color:#444; line-height:1.5;">
+          <strong>Draft</strong> → <strong>Submitted</strong> → <strong>Approved by Execution</strong> → <strong>Approved/Rejected</strong>
+        </p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;">Contractor submits → Execution Engineer reviews → QA Head approves.</p>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;">
+        <h4 style="color:var(--blue); margin-bottom:4px;">📋 NCR Flow</h4>
+        <p style="font-size:12px; color:#444; line-height:1.5;">
+          <strong>Draft</strong> → <strong>Open</strong> → <strong>Under Review</strong> → <strong>Closed/Rejected</strong>
+        </p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;">QA raises → Contractor responds → QA approves or rejects.</p>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;">
+        <h4 style="color:var(--blue); margin-bottom:4px;">📊 Audit Flow</h4>
+        <p style="font-size:12px; color:#444; line-height:1.5;">
+          <strong>Draft</strong> → <strong>Open</strong> → <strong>Under Review</strong> → <strong>Closed/Rejected</strong>
+        </p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;">Manager/QA raises → Agency responds → Manager/QA approves or rejects.</p>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px;">
+        <h4 style="color:var(--blue); margin-bottom:4px;">✅ IMIR Flow</h4>
+        <p style="font-size:12px; color:#444; line-height:1.5;">
+          <strong>Draft</strong> → <strong>Submitted</strong> → <strong>Approved/Rejected</strong>
+        </p>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;">Material submitted for client approval.</p>
+      </div>
+    </div>
+
+    <!-- Roles Section -->
+    <h2 style="color:var(--blue); font-size:20px; margin-bottom: 8px;">👥 User Roles</h2>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:24px;">
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:24px;">👔</div>
+        <div style="font-weight:700; font-size:14px;">Admin</div>
+        <div style="font-size:11px; color:var(--muted);">Full system control</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:24px;">📊</div>
+        <div style="font-weight:700; font-size:14px;">Manager</div>
+        <div style="font-size:11px; color:var(--muted);">Manage sites & reports</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:24px;">🔧</div>
+        <div style="font-weight:700; font-size:14px;">Execution Engineer</div>
+        <div style="font-size:11px; color:var(--muted);">Review & approve RFIs</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:24px;">👷</div>
+        <div style="font-weight:700; font-size:14px;">Contractor</div>
+        <div style="font-size:11px; color:var(--muted);">Submit RFIs & respond to NCRs</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;">
+        <div style="font-size:24px;">👀</div>
+        <div style="font-weight:700; font-size:14px;">Consultant</div>
+        <div style="font-size:11px; color:var(--muted);">View-only access</div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <h2 style="color:var(--blue); font-size:20px; margin-bottom: 8px;">🚀 How To Get Started</h2>
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:24px;">
+      <ol style="padding-left:20px; font-size:14px; line-height:2; color:#444;">
+        <li><strong>Sign Up</strong> – Create an account with your email, role, and assigned sites.</li>
+        <li><strong>Wait for Approval</strong> – An admin will approve your account.</li>
+        <li><strong>Login</strong> – Access your dashboard and start creating reports.</li>
+        <li><strong>Submit RFI/NCR/Audit</strong> – Follow the automated workflow.</li>
+        <li><strong>Review & Approve</strong> – Based on your role, approve or reject submissions.</li>
+        <li><strong>Track & Report</strong> – Use the Saved Records page to search, filter, and print reports.</li>
+      </ol>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; border-top:1px solid var(--line); padding-top:12px;">
+      <p style="font-size:12px; color:var(--muted);">© 2025 QA/QC Inspection Suite – Built with ❤️ for Construction Quality Management</p>
+      <p style="font-size:11px; color:var(--muted);">Version 3.0 | All Rights Reserved</p>
+    </div>
+
   </div>
 </div>
     <!-- ===== VIEW: FORM / RECORD EDITOR ===== -->
