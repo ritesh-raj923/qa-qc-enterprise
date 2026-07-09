@@ -420,6 +420,49 @@ app.delete('/api/users/:id', authenticateToken, verifyAdmin, async (req, res) =>
     res.status(500).json({ error: err.message });
   }
 });
+// ← PASTE HERE ↓↓↓
+// =============================================
+// GET AGENCY USERS (for Audit/NCR selection)
+// =============================================
+app.get('/api/users/agency', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = req.user;
+    let siteFilter = '';
+    let params = [];
+
+    // Determine site access
+    const assignedSites = JSON.parse(currentUser.assigned_sites || '[]');
+    if (!assignedSites.includes('*')) {
+      // For users with specific sites, only return users from those sites
+      const placeholders = assignedSites.map((_, i) => `$${i + 1}`).join(',');
+      siteFilter = `AND (assigned_sites::jsonb ?| ARRAY[${placeholders}])`;
+      params = assignedSites;
+    }
+
+    // Query: only engineers and exec_engineers who are approved
+    const query = `
+      SELECT username, full_name, role, assigned_sites
+      FROM users
+      WHERE (role = 'engineer' OR role = 'exec_engineer')
+        AND approved = true
+        ${siteFilter}
+      ORDER BY full_name
+    `;
+
+    const result = await pool.query(query, params);
+    const users = result.rows.map(u => ({
+      u: u.username,
+      name: u.full_name || u.username,
+      role: u.role,
+      assigned_sites: JSON.parse(u.assigned_sites || '[]')
+    }));
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// ← PASTE HERE ↑↑↑
 // =============================================
 // 4. REPORTS API
 // =============================================
