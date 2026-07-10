@@ -1130,7 +1130,21 @@ body.dark-mode #view-about .panel > div {
   background: var(--card) !important;
   border-color: var(--line) !important;
 }
+/* Audit Records table dark mode */
+body.dark-mode .parent-audit-row td {
+  background: #1a2a3a !important;
+  color: #eef4fa !important;
+}
 
+body.dark-mode .parent-audit-row td .badge {
+  background: #2a4a6a;
+  color: #fff;
+}
+
+body.dark-mode .child-row td {
+  background: #0d1f3c !important;
+  color: #c0d0e0 !important;
+}
 body.dark-mode #view-about ol {
   color: #e0e8f0;
 }
