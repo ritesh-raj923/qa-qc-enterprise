@@ -1990,7 +1990,12 @@ function switchView(view) {
     document.getElementById('appTitle').innerText = 'QA/QC Inspection Suite';
     document.getElementById('appSub').innerText = 'Secure Access';
   }
-  if (view === 'auditdashboard') { updateAuditStats(); renderAuditHistory(); if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); }
+if (view === 'auditdashboard') { 
+  updateAuditStats(); 
+  renderAuditHistory(); 
+  if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); 
+  renderAuditRecords();   // ← ADD THIS
+}
 if (view === 'register') { loadSites(); }   // ← ADD THIS
 if (view === 'sites') { loadSiteList(); } 
 if (view === 'users') { loadUsers(); }  
@@ -4268,7 +4273,96 @@ function renderAuditKPIResults(data, type, customTitle, customSub) {
     </tr>
   `}).join('');
 }
+// ============================================================
+// RENDER AUDIT RECORDS WITH LINKED DOCUMENTS
+// ============================================================
+function renderAuditRecords() {
+  const tbody = document.getElementById('auditRecordsBody');
+  const badge = document.getElementById('auditRecordCountBadge');
+  if (!tbody) return;
 
+  // Get all audits the user can see
+  const audits = savedReports.filter(r => r.templateKey === 'audit' && canUserSeeRecord(r, currentUser));
+
+  if (audits.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="kpi-empty">No audits found.</td></tr>';
+    if (badge) badge.textContent = '0 records';
+    return;
+  }
+
+  if (badge) badge.textContent = audits.length + ' records';
+
+  let html = '';
+
+  audits.forEach(audit => {
+    const auditId = audit.id;
+    const auditNo = audit.meta?.reportNo || auditId;
+
+    // Find linked documents: activity checklists and compliance reports
+    const linkedDocs = savedReports.filter(r => {
+      if (r.templateKey === audit.templateKey) return false; // skip itself
+      // Match by linkedAudit field
+      const linkedAudit = r.meta?.linkedAudit || '';
+      return linkedAudit === auditNo || linkedAudit === auditId;
+    });
+
+    // Separate by type
+    const checklists = linkedDocs.filter(r => r.templateKey && r.templateKey.startsWith('activity_'));
+    const complianceReports = linkedDocs.filter(r => r.templateKey === 'compliance_report');
+    const otherDocs = linkedDocs.filter(r => !r.templateKey.startsWith('activity_') && r.templateKey !== 'compliance_report');
+
+    // Parent row
+    const statusBadge = badgeForStatus(audit.status || 'Draft');
+    const dateStr = fmtDateTime(audit.savedAt || audit.meta?.auditDate || '');
+    html += `
+      <tr class="parent-audit-row" style="background:#f8faff; font-weight:600;">
+        <td><b>${esc(auditNo)}</b></td>
+        <td>${esc(audit.meta?.project || audit.titleLoc || '-')}</td>
+        <td>${statusBadge}</td>
+        <td>${esc(audit.meta?.auditor || '-')}</td>
+        <td>${dateStr}</td>
+        <td>
+          <span class="badge info">${linkedDocs.length} linked</span>
+          ${checklists.length ? `<span class="badge ok">📋 ${checklists.length} Checklists</span>` : ''}
+          ${complianceReports.length ? `<span class="badge mid">📄 ${complianceReports.length} Compliance</span>` : ''}
+        </td>
+        <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="openRecord('${audit.id}')">Open</button></td>
+      </tr>
+    `;
+
+    // Child rows for linked documents
+    if (linkedDocs.length > 0) {
+      linkedDocs.forEach(doc => {
+        const docStatus = badgeForStatus(doc.status || 'Draft');
+        const docDate = fmtDateTime(doc.savedAt || doc.meta?.date || '');
+        const docName = doc.templateName || doc.templateKey || 'Unknown';
+        const docType = doc.templateKey?.startsWith('activity_') ? '📋 Checklist' :
+                        doc.templateKey === 'compliance_report' ? '📄 Compliance Report' : '📎 Other';
+
+        html += `
+          <tr class="child-row" style="background:#f7fbfd;">
+            <td style="padding-left:28px;">↳ ${esc(docName)}</td>
+            <td>${esc(doc.meta?.project || doc.titleLoc || '-')}</td>
+            <td>${docStatus}</td>
+            <td>${esc(doc.preparedBy || '-')}</td>
+            <td>${docDate}</td>
+            <td><span class="small">${docType}</span></td>
+            <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="openRecord('${doc.id}')">Open</button></td>
+          </tr>
+        `;
+      });
+    } else {
+      // If no linked docs, show a row indicating none
+      html += `
+        <tr class="child-row" style="background:#fafafa;">
+          <td colspan="7" style="padding-left:28px; color:#888; font-style:italic;">No linked documents</td>
+        </tr>
+      `;
+    }
+  });
+
+  tbody.innerHTML = html;
+}
 function renderAuditHistory() {
   // This is called by switchView – it uses the same KPI table above.
   // No separate table needed – the KPI table is the main table.
