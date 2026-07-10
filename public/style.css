@@ -1130,20 +1130,30 @@ body.dark-mode #view-about .panel > div {
   background: var(--card) !important;
   border-color: var(--line) !important;
 }
-/* Audit Records table dark mode */
-body.dark-mode .parent-audit-row td {
+/* Audit Records page dark mode */
+body.dark-mode #view-auditrecords .parent-audit-row td {
   background: #1a2a3a !important;
   color: #eef4fa !important;
 }
 
-body.dark-mode .parent-audit-row td .badge {
-  background: #2a4a6a;
-  color: #fff;
-}
-
-body.dark-mode .child-row td {
+body.dark-mode #view-auditrecords .child-row td {
   background: #0d1f3c !important;
   color: #c0d0e0 !important;
+}
+
+body.dark-mode #view-auditrecords .badge.info {
+  background: #1a3a5a;
+  color: #ffffff;
+}
+
+body.dark-mode #view-auditrecords .badge.ok {
+  background: #1a5a3a;
+  color: #b0f0c0;
+}
+
+body.dark-mode #view-auditrecords .badge.mid {
+  background: #5a4a2a;   
+  color: #f0e080;
 }
 body.dark-mode #view-about ol {
   color: #e0e8f0;
