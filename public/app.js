@@ -4282,7 +4282,14 @@ function renderAuditRecords() {
   if (!tbody) return;
 
   // Get all audits the user can see
-  const audits = savedReports.filter(r => r.templateKey === 'audit' && canUserSeeRecord(r, currentUser));
+  let audits = savedReports.filter(r => r.templateKey === 'audit' && canUserSeeRecord(r, currentUser));
+
+  // Sort by saved date (newest first)
+  audits.sort((a, b) => {
+    const dateA = new Date(a.savedAt || a.meta?.auditDate || 0);
+    const dateB = new Date(b.savedAt || b.meta?.auditDate || 0);
+    return dateB - dateA;  // descending
+  });
 
   if (audits.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="kpi-empty">No audits found.</td></tr>';
@@ -4301,12 +4308,18 @@ function renderAuditRecords() {
     // Find linked documents: activity checklists and compliance reports
     const linkedDocs = savedReports.filter(r => {
       if (r.templateKey === audit.templateKey) return false; // skip itself
-      // Match by linkedAudit field
       const linkedAudit = r.meta?.linkedAudit || '';
       return linkedAudit === auditNo || linkedAudit === auditId;
     });
 
-    // Separate by type
+    // Sort linked docs by saved date too (optional)
+    linkedDocs.sort((a, b) => {
+      const dateA = new Date(a.savedAt || a.meta?.date || 0);
+      const dateB = new Date(b.savedAt || b.meta?.date || 0);
+      return dateB - dateA;
+    });
+
+    // Separate by type (for display)
     const checklists = linkedDocs.filter(r => r.templateKey && r.templateKey.startsWith('activity_'));
     const complianceReports = linkedDocs.filter(r => r.templateKey === 'compliance_report');
     const otherDocs = linkedDocs.filter(r => !r.templateKey.startsWith('activity_') && r.templateKey !== 'compliance_report');
@@ -4314,17 +4327,19 @@ function renderAuditRecords() {
     // Parent row
     const statusBadge = badgeForStatus(audit.status || 'Draft');
     const dateStr = fmtDateTime(audit.savedAt || audit.meta?.auditDate || '');
+    const linkedCount = linkedDocs.length;
+
     html += `
       <tr class="parent-audit-row" style="background:#f8faff; font-weight:600;">
         <td><b>${esc(auditNo)}</b></td>
         <td>${esc(audit.meta?.project || audit.titleLoc || '-')}</td>
         <td>${statusBadge}</td>
         <td>${esc(audit.meta?.auditor || '-')}</td>
-        <td>${dateStr}</td>
+        <td style="white-space:nowrap;">${dateStr}</td>
         <td>
-          <span class="badge info">${linkedDocs.length} linked</span>
-          ${checklists.length ? `<span class="badge ok">📋 ${checklists.length} Checklists</span>` : ''}
-          ${complianceReports.length ? `<span class="badge mid">📄 ${complianceReports.length} Compliance</span>` : ''}
+          <span class="badge info">${linkedCount} linked</span>
+          ${checklists.length ? `<span class="badge ok">📋 ${checklists.length}</span>` : ''}
+          ${complianceReports.length ? `<span class="badge mid">📄 ${complianceReports.length}</span>` : ''}
         </td>
         <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="openRecord('${audit.id}')">Open</button></td>
       </tr>
@@ -4345,14 +4360,13 @@ function renderAuditRecords() {
             <td>${esc(doc.meta?.project || doc.titleLoc || '-')}</td>
             <td>${docStatus}</td>
             <td>${esc(doc.preparedBy || '-')}</td>
-            <td>${docDate}</td>
+            <td style="white-space:nowrap;">${docDate}</td>
             <td><span class="small">${docType}</span></td>
             <td><button class="btn btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="openRecord('${doc.id}')">Open</button></td>
           </tr>
         `;
       });
     } else {
-      // If no linked docs, show a row indicating none
       html += `
         <tr class="child-row" style="background:#fafafa;">
           <td colspan="7" style="padding-left:28px; color:#888; font-style:italic;">No linked documents</td>
