@@ -212,6 +212,31 @@
             <h3 id="auditKpiPanelTitle">All Audits</h3>
             <p id="auditKpiPanelSub">Showing all audit records.</p>
           </div>
+          <!-- Audit Records with Linked Documents -->
+<div id="auditRecordsSection" class="panel" style="margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="color:var(--blue); font-size:18px;">📋 All Audit Records with Linked Documents</h3>
+    <span class="badge info" id="auditRecordCountBadge">0 records</span>
+  </div>
+  <div id="auditRecordsContainer">
+    <table class="kpi-table">
+      <thead>
+        <tr>
+          <th>Report No.</th>
+          <th>Project / Location</th>
+          <th>Status</th>
+          <th>Auditor</th>
+          <th>Saved Date/Time</th>
+          <th>Linked Documents</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="auditRecordsBody">
+        <tr><td colspan="7" class="kpi-empty">No audits found.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
           <div class="kpi-toolbar">
             <span class="kpi-chip" id="auditActiveFilterChip">Active Filter: All</span>
             <span class="kpi-count" id="auditRecordCount">0 records</span>
