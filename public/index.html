@@ -178,41 +178,6 @@
       <div class="cards" id="templateCards"></div>
     </div>
 
-    <!-- ===== VIEW: AUDIT DASHBOARD ===== -->
-    <div id="view-auditdashboard" class="view">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h2 style="color:var(--blue); font-size:20px;">📋 Audit Dashboard</h2>
-        <button class="btn btn-primary" onclick="openTemplate('audit')">➕ New Project Audit</button>
-      </div>
-      <div class="dashboard-grid" id="auditStatsGrid">
-        <div class="stat active-kpi" data-audit-kpi="audit_total" onclick="filterAuditKPI('audit_total')">
-          <div class="label">📋 Total Audits</div>
-          <div class="value" id="auditTotal">0</div>
-        </div>
-        <div class="stat warn" data-audit-kpi="audit_pending" onclick="filterAuditKPI('audit_pending')">
-          <div class="label">⏳ Pending Audits</div>
-          <div class="value" id="auditPending">0</div>
-        </div>
-        <div class="stat ok" data-audit-kpi="audit_approved" onclick="filterAuditKPI('audit_approved')">
-          <div class="label">✅ Approved Audits</div>
-          <div class="value" id="auditApproved">0</div>
-        </div>
-        <div class="stat alert" data-audit-kpi="audit_rejected" onclick="filterAuditKPI('audit_rejected')">
-          <div class="label">❌ Rejected Audits</div>
-          <div class="value" id="auditRejected">0</div>
-        </div>
-        <div class="stat" data-audit-kpi="audit_closed" onclick="filterAuditKPI('audit_closed')">
-          <div class="label">🔒 Closed Audits</div>
-          <div class="value" id="auditClosed">0</div>
-        </div>
-      </div>
-      <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
-      <div id="auditKpiResultSection" class="panel kpi-panel">
-        <div class="kpi-panel-head">
-          <div class="kpi-title-wrap">
-            <h3 id="auditKpiPanelTitle">All Audits</h3>
-            <p id="auditKpiPanelSub">Showing all audit records.</p>
-          </div>
 <!-- ===== VIEW: AUDIT DASHBOARD ===== -->
 <div id="view-auditdashboard" class="view">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -278,7 +243,36 @@
         </div>
       </div>
     </div>
-
+    <!-- ===== VIEW: AUDIT RECORDS ===== -->
+<div id="view-auditrecords" class="view">
+  <div class="panel" style="padding:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+      <div>
+        <h2 style="color:var(--blue); font-size:20px;">📋 Saved Audit Records</h2>
+        <p class="small" style="color:var(--muted);">All audit reports with their linked documents (checklists & compliance reports)</p>
+      </div>
+      <span class="badge info" id="auditRecordCountBadgeV2">0 records</span>
+    </div>
+    <div id="auditRecordsContainerV2">
+      <table class="kpi-table">
+        <thead>
+          <tr>
+            <th style="width:15%;">Report No.</th>
+            <th style="width:18%;">Project / Location</th>
+            <th style="width:12%;">Status</th>
+            <th style="width:12%;">Auditor</th>
+            <th style="width:17%;">Saved Date/Time</th>
+            <th style="width:14%;">Linked Documents</th>
+            <th style="width:12%;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="auditRecordsBodyV2">
+          <tr><td colspan="7" class="kpi-empty">Loading audit records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
     <!-- ===== VIEW: HISTORY ===== -->
     <div id="view-history" class="view">
       <div class="history-wrap">
