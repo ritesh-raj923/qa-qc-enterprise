@@ -22,6 +22,7 @@
     <div class="menu-item auth-only manager-admin-only" data-target="sites" onclick="switchView('sites')">🏗️ Manage Sites</div> 
     <div class="menu-item auth-only admin-only" data-target="users" onclick="switchView('users')">👥 Manage Users</div>
     <div class="menu-item auth-only" data-target="auditdashboard" onclick="switchView('auditdashboard')">📊 Audit Dashboard</div>
+    <div class="menu-item auth-only" data-target="auditrecords" onclick="switchView('auditrecords')">📋 Audit Records</div>
     <div class="menu-item" data-target="about" onclick="switchView('about')">ℹ️ About</div>
     <div class="menu-item auth-only" onclick="logout()">🚪 Logout</div>
   </div>
@@ -212,29 +213,56 @@
             <h3 id="auditKpiPanelTitle">All Audits</h3>
             <p id="auditKpiPanelSub">Showing all audit records.</p>
           </div>
-          <!-- Audit Records with Linked Documents -->
-<div id="auditRecordsSection" class="panel" style="margin-top:20px;">
+<!-- ===== VIEW: AUDIT DASHBOARD ===== -->
+<div id="view-auditdashboard" class="view">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h3 style="color:var(--blue); font-size:18px;">📋 All Audit Records with Linked Documents</h3>
-    <span class="badge info" id="auditRecordCountBadge">0 records</span>
+    <h2 style="color:var(--blue); font-size:20px;">📋 Audit Dashboard</h2>
+    <button class="btn btn-primary" onclick="openTemplate('audit')">➕ New Project Audit</button>
   </div>
-  <div id="auditRecordsContainer">
-    <table class="kpi-table">
-      <thead>
-        <tr>
-          <th>Report No.</th>
-          <th>Project / Location</th>
-          <th>Status</th>
-          <th>Auditor</th>
-          <th>Saved Date/Time</th>
-          <th>Linked Documents</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="auditRecordsBody">
-        <tr><td colspan="7" class="kpi-empty">No audits found.</td></tr>
-      </tbody>
-    </table>
+  <div class="dashboard-grid" id="auditStatsGrid">
+    <div class="stat active-kpi" data-audit-kpi="audit_total" onclick="filterAuditKPI('audit_total')">
+      <div class="label">📋 Total Audits</div>
+      <div class="value" id="auditTotal">0</div>
+    </div>
+    <div class="stat warn" data-audit-kpi="audit_pending" onclick="filterAuditKPI('audit_pending')">
+      <div class="label">⏳ Pending Audits</div>
+      <div class="value" id="auditPending">0</div>
+    </div>
+    <div class="stat ok" data-audit-kpi="audit_approved" onclick="filterAuditKPI('audit_approved')">
+      <div class="label">✅ Approved Audits</div>
+      <div class="value" id="auditApproved">0</div>
+    </div>
+    <div class="stat alert" data-audit-kpi="audit_rejected" onclick="filterAuditKPI('audit_rejected')">
+      <div class="label">❌ Rejected Audits</div>
+      <div class="value" id="auditRejected">0</div>
+    </div>
+    <div class="stat" data-audit-kpi="audit_closed" onclick="filterAuditKPI('audit_closed')">
+      <div class="label">🔒 Closed Audits</div>
+      <div class="value" id="auditClosed">0</div>
+    </div>
+  </div>
+  <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
+  <div id="auditKpiResultSection" class="panel kpi-panel">
+    <div class="kpi-panel-head">
+      <div class="kpi-title-wrap">
+        <h3 id="auditKpiPanelTitle">All Audits</h3>
+        <p id="auditKpiPanelSub">Showing all audit records.</p>
+      </div>
+      <div class="kpi-toolbar">
+        <span class="kpi-chip" id="auditActiveFilterChip">Active Filter: All</span>
+        <span class="kpi-count" id="auditRecordCount">0 records</span>
+      </div>
+    </div>
+    <div class="kpi-table-wrap">
+      <table class="kpi-table">
+        <thead>
+          <tr><th>Report No.</th><th>Project / Location</th><th>Status</th><th>Auditor</th><th>Owner</th><th>Saved Date</th><th>Action</th></tr>
+        </thead>
+        <tbody id="auditKpiResultBody">
+          <tr><td colspan="7" class="kpi-empty">No audit records found.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
           <div class="kpi-toolbar">
