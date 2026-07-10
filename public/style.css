@@ -945,14 +945,15 @@ body.dark-mode .exact-small {
   .hamburger {
     display: inline-block;
   }
-   /* Hide admin-only items by default */
+/* Hide admin-only items by default */
 .admin-only {
-  display: none !important;
+  display: none;
 }
- /* Hide manager/admin-only items by default */
+
+/* Hide manager/admin-only items by default */
 .manager-admin-only {
-  display: none !important;
-} 
+  display: none;
+}
   /* Sidebar – hidden by default, slides in */
   .sidebar {
     position: fixed;
