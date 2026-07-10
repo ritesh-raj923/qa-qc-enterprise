@@ -1990,16 +1990,20 @@ function switchView(view) {
     document.getElementById('appTitle').innerText = 'QA/QC Inspection Suite';
     document.getElementById('appSub').innerText = 'Secure Access';
   }
-if (view === 'auditdashboard') { 
-  updateAuditStats(); 
-  renderAuditHistory(); 
-  if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); 
-  renderAuditRecords();   // ← ADD THIS
-}
-if (view === 'register') { loadSites(); }   // ← ADD THIS
-if (view === 'sites') { loadSiteList(); } 
-if (view === 'users') { loadUsers(); }  
-updateNotificationUI();
+  if (view === 'auditdashboard') { 
+    updateAuditStats(); 
+    renderAuditHistory(); 
+    if (currentAuditKpiFilter) filterAuditKPI(currentAuditKpiFilter); 
+    // REMOVED: renderAuditRecords() - now on its own page
+  }
+  if (view === 'auditrecords') { 
+    renderAuditRecords('auditRecordsBodyV2', 'auditRecordCountBadgeV2'); 
+  }
+  if (view === 'register') { loadSites(); }
+  if (view === 'sites') { loadSiteList(); }
+  if (view === 'users') { loadUsers(); }
+  if (view === 'about') { /* nothing needed */ }
+  updateNotificationUI();
 }
 // ============================================================
 // GO BACK FROM ABOUT
@@ -4276,9 +4280,9 @@ function renderAuditKPIResults(data, type, customTitle, customSub) {
 // ============================================================
 // RENDER AUDIT RECORDS WITH LINKED DOCUMENTS
 // ============================================================
-function renderAuditRecords() {
-  const tbody = document.getElementById('auditRecordsBody');
-  const badge = document.getElementById('auditRecordCountBadge');
+function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'auditRecordCountBadgeV2') {
+  const tbody = document.getElementById(containerId);
+  const badge = document.getElementById(badgeId);
   if (!tbody) return;
 
   // Get all audits the user can see
@@ -4288,7 +4292,7 @@ function renderAuditRecords() {
   audits.sort((a, b) => {
     const dateA = new Date(a.savedAt || a.meta?.auditDate || 0);
     const dateB = new Date(b.savedAt || b.meta?.auditDate || 0);
-    return dateB - dateA;  // descending
+    return dateB - dateA;
   });
 
   if (audits.length === 0) {
@@ -4305,29 +4309,27 @@ function renderAuditRecords() {
     const auditId = audit.id;
     const auditNo = audit.meta?.reportNo || auditId;
 
-    // Find linked documents: activity checklists and compliance reports
+    // Find linked documents
     const linkedDocs = savedReports.filter(r => {
-      if (r.templateKey === audit.templateKey) return false; // skip itself
+      if (r.templateKey === audit.templateKey) return false;
       const linkedAudit = r.meta?.linkedAudit || '';
       return linkedAudit === auditNo || linkedAudit === auditId;
     });
 
-    // Sort linked docs by saved date too (optional)
+    // Sort linked docs by saved date (newest first)
     linkedDocs.sort((a, b) => {
       const dateA = new Date(a.savedAt || a.meta?.date || 0);
       const dateB = new Date(b.savedAt || b.meta?.date || 0);
       return dateB - dateA;
     });
 
-    // Separate by type (for display)
     const checklists = linkedDocs.filter(r => r.templateKey && r.templateKey.startsWith('activity_'));
     const complianceReports = linkedDocs.filter(r => r.templateKey === 'compliance_report');
-    const otherDocs = linkedDocs.filter(r => !r.templateKey.startsWith('activity_') && r.templateKey !== 'compliance_report');
+    const linkedCount = linkedDocs.length;
 
     // Parent row
     const statusBadge = badgeForStatus(audit.status || 'Draft');
     const dateStr = fmtDateTime(audit.savedAt || audit.meta?.auditDate || '');
-    const linkedCount = linkedDocs.length;
 
     html += `
       <tr class="parent-audit-row" style="background:#f8faff; font-weight:600;">
