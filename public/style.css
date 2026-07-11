@@ -1158,4 +1158,13 @@ body.dark-mode #view-auditrecords .badge.mid {
 body.dark-mode #view-about ol {
   color: #e0e8f0;
 }
+ /* RFI Chart Dark Mode */
+body.dark-mode #rfiChartSection {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+body.dark-mode #rfiChartSection h3 {
+  color: #ffffff;
+} 
 }
