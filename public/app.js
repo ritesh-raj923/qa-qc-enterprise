@@ -1982,7 +1982,7 @@ function switchView(view) {
       badge.innerText = roleMap[currentUser.role] || 'System Active';
     } else { badge.innerText = '🔒 Not Logged In'; }
   }
-  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); }
+  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiStatusChart(); }
   if (view === 'history') { renderHistory(); }
   if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
   if (view === 'masters') { populateMastersForm(); }
@@ -3919,7 +3919,85 @@ function updateStats() {
   document.getElementById('imirPending').innerText = imirPending;
 
   if (currentKpiFilter) filterKPI(currentKpiFilter);
+  renderRfiStatusChart();   // ← ADD THIS
   updateNotificationUI();
+}
+// ============================================================
+// RFI STATUS BAR CHART
+// ============================================================
+let rfiChartInstance = null;
+
+function renderRfiStatusChart() {
+  const canvas = document.getElementById('rfiStatusChart');
+  if (!canvas) return;
+
+  // Get all RFIs the user can see
+  const allReports = visibleReports();
+  const rfis = allReports.filter(r => r.templateKey === 'rfi');
+
+  // Count by status
+  const statuses = ['Draft', 'Submitted', 'Under Review', 'Approved by Execution', 'Approved', 'Approved with Comment', 'Rejected', 'Closed'];
+  const counts = statuses.map(status => rfis.filter(r => (r.status || 'Draft') === status).length);
+
+  // Update badge count
+  const badge = document.getElementById('rfiChartCount');
+  if (badge) badge.textContent = rfis.length + ' RFIs';
+
+  // Destroy previous chart instance if exists
+  if (rfiChartInstance) {
+    rfiChartInstance.destroy();
+    rfiChartInstance = null;
+  }
+
+  // Create new chart
+  const ctx = canvas.getContext('2d');
+  rfiChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: statuses,
+      datasets: [{
+        label: 'Number of RFIs',
+        data: counts,
+        backgroundColor: [
+          '#f0a202', // Draft
+          '#2a6a9a', // Submitted
+          '#8a6a2a', // Under Review
+          '#1a5a5a', // Approved by Execution
+          '#1f9d55', // Approved
+          '#5a4a2a', // Approved with Comment
+          '#d64545', // Rejected
+          '#184e8c'  // Closed
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + ' RFI(s)';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { size: 10 } }
+        }
+      }
+    }
+  });
 }
 function recordDateKey(rec) {
   const raw = rec.meta?.date || rec.savedAt || '';
