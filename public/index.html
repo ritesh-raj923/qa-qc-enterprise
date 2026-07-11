@@ -7,6 +7,7 @@
   <!-- External styles and manifest -->
    <link rel="stylesheet" href="style.css?v=3">
   <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <!-- ===== SIDEBAR ===== -->
@@ -157,6 +158,14 @@
         <div class="stat warn" data-kpi="imir_pending" onclick="filterKPI('imir_pending')"><div class="label">⏳ IMIR Pending</div><div class="value" id="imirPending">0</div></div>
       </div>
       <div class="small" style="margin-bottom:12px;">Click any stat above to filter the list below.</div>
+      <!-- RFI Status Chart -->
+<div id="rfiChartSection" class="panel" style="margin-top:16px; padding:16px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="color:var(--blue); font-size:18px;">📊 RFI Status Distribution</h3>
+    <span class="badge info" id="rfiChartCount">0 RFIs</span>
+  </div>
+  <canvas id="rfiStatusChart" style="width:100%; max-height:300px;"></canvas>
+</div>
       <div id="kpiResultSection" class="panel kpi-panel">
         <div class="kpi-panel-head">
           <div class="kpi-title-wrap">
