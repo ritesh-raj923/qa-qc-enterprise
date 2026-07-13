@@ -3631,7 +3631,6 @@ async function rejectRecord() {
     }
     return;
   }
-}
   // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
