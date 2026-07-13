@@ -3568,66 +3568,68 @@ async function rejectRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('↩️ NCR returned to contractor');
+
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy) {
-  await sendNotification(parentRfi.createdBy, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
-}
+        await sendNotification(parentRfi.createdBy, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
       }
     }
     return;
   }
 
   // === AUDIT REJECT ===
-else if (isAudit()) {
-  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-    toast('⛔ Only QA/Exec/Manager can reject audit');
-    return;
-  }
-  if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
-  const c = document.getElementById('wfComment').value.trim();
-  if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
-  rec.status = 'Rejected';
-  rec.comment = 'Returned for rework: ' + c;
-  rec.decisionBy = currentUser.username;
-  rec.decisionByDisplay = currentUser.display;
-  rec.savedAt = new Date().toISOString();
-  rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
-  toast('↩️ Audit returned to contractor');
-
-  // Notify each selected agency
-  if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
-    for (const username of rec.meta.agency) {
-      await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+  else if (isAudit()) {
+    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+      toast('⛔ Only QA/Exec/Manager can reject audit');
+      return;
     }
-  }
-  return;
-}
-   // === IMIR REJECT ===
-else if (isImir()) {
-  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-    toast('⛔ Only QA/Exec/Manager can reject IMIR');
+    if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
+    const c = document.getElementById('wfComment').value.trim();
+    if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
+    rec.status = 'Rejected';
+    rec.comment = 'Returned for rework: ' + c;
+    rec.decisionBy = currentUser.username;
+    rec.decisionByDisplay = currentUser.display;
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('↩️ Audit returned to contractor');
+
+    // Notify each selected agency
+    if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+      for (const username of rec.meta.agency) {
+        await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+      }
+    }
     return;
   }
-  if (rec.status !== 'Submitted') { toast('⚠️ Cannot reject now'); return; }
-  const c = document.getElementById('wfComment').value.trim();
-  if (!c) { toast('⚠️ Enter rejection comment'); return; }
-  rec.status = 'Rejected';
-  rec.comment = c;
-  rec.decisionBy = currentUser.username;
-  rec.decisionByDisplay = currentUser.display;
-  rec.savedAt = new Date().toISOString();
-  rec.audit.push(getAuditNow('Rejected', c));
-  await updateReportOnServer(rec);
-  updateWorkflowButtons(rec);
-  toast('❌ IMIR Rejected');
-  if (rec.createdBy) {
-    await sendNotification(rec.createdBy, `❌ IMIR #${rec.meta?.imirNo || rec.id} Rejected by ${currentUser.display}`, 'rejected', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+
+  // === IMIR REJECT ===
+  else if (isImir()) {
+    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+      toast('⛔ Only QA/Exec/Manager can reject IMIR');
+      return;
+    }
+    if (rec.status !== 'Submitted') { toast('⚠️ Cannot reject now'); return; }
+    const c = document.getElementById('wfComment').value.trim();
+    if (!c) { toast('⚠️ Enter rejection comment'); return; }
+    rec.status = 'Rejected';
+    rec.comment = c;
+    rec.decisionBy = currentUser.username;
+    rec.decisionByDisplay = currentUser.display;
+    rec.savedAt = new Date().toISOString();
+    rec.audit.push(getAuditNow('Rejected', c));
+    await updateReportOnServer(rec);
+    updateWorkflowButtons(rec);
+    toast('❌ IMIR Rejected');
+    if (rec.createdBy) {
+      await sendNotification(rec.createdBy, `❌ IMIR #${rec.meta?.imirNo || rec.id} Rejected by ${currentUser.display}`, 'rejected', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+    }
+    return;
   }
-  return;
 }
   // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
