@@ -1520,6 +1520,15 @@ document.querySelectorAll('.admin-only').forEach(el => {
 document.querySelectorAll('.manager-admin-only').forEach(el => {
   el.style.display = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 'block' : 'none';
 });
+    // --- ADD THIS ---
+try {
+  allUsersCache = await apiRequest('/api/users/all');
+} catch (e) {
+  console.warn('Could not fetch users for cache:', e);
+  allUsersCache = users;
+}
+// --- END ADD ---
+
     renderCards();
     await loadFromServer();
     updateStats();
@@ -3147,6 +3156,9 @@ async function approveForQA() {
   await updateReportOnServer(rec);
   updateWorkflowButtons(rec);
   toast('📋 RFI approved for QA review');
+   // --- ADD THIS LINE ---
+  const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
+  // --- END ADD ---
 const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
 for (const qa of qaHeads) {
   await sendNotification(qa.username || qa.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
@@ -3203,16 +3215,17 @@ async function raiseNCRFromRFI() {
     audit: [getAuditNow('Created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''), '')],
     raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
   };
-  try {
-    await syncReportToServer(newNCR, true);
-    toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
-    if (rfi.createdBy) {
-  await sendNotification(rfi.createdBy, `📋 NCR #${ncrMeta.ncrNo} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
-}
-    openTemplate('ncr', ncrId);
-  } catch(e) {
-    toast('❌ Failed to create NCR: ' + e.message);
+const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
+try {
+  await syncReportToServer(newNCR, true);
+  toast('📋 NCR created from RFI #' + docNo);
+  if (rfi.createdBy) {
+    await sendNotification(rfi.createdBy, `📋 NCR #${ncrMeta.ncrNo} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
   }
+  openTemplate('ncr', ncrId);
+} catch(e) {
+  toast('❌ Failed to create NCR: ' + e.message);
+}
 }
 async function submitRecord() {
   const rec = currentRecord();
@@ -3342,6 +3355,7 @@ for (const approver of approvers) {
   updateWorkflowButtons(rec);
   setChecklistButtonsState(rec);
   toast('📤 Submitted');
+}
 async function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
@@ -3392,21 +3406,11 @@ for (const exec of execUsers) {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📩 Audit response submitted for review');
-    
+    const docNo = rec.meta?.reportNo || rec.id || 'Unknown';
     const approvers = allUsersCache.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
 for (const approver of approvers) {
   await sendNotification(approver.username || approver.u, `📋 Audit #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
 }
-    for (const approver of approvers) {
-      await sendNotification(
-        approver.u,
-        `📋 Audit #${docNo} response submitted by Contractor for review`,
-        'ncr_submitted',
-        rec.id,
-        docNo,
-        currentUser.display
-      );
-    }
     return;
   }
 
@@ -3441,6 +3445,8 @@ async function approveRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('✅ NCR Closed');
+    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
+const parentRfi = linkedRfiId ? savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId)) : null;
    if (parentRfi && parentRfi.createdBy) {
   await sendNotification(
     parentRfi.createdBy,
@@ -3566,7 +3572,6 @@ async function rejectRecord() {
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy) {
-        if (parentRfi && parentRfi.createdBy) {
   await sendNotification(parentRfi.createdBy, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
 }
       }
@@ -3596,12 +3601,7 @@ else if (isAudit()) {
   // Notify each selected agency
   if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
     for (const username of rec.meta.agency) {
-     // Inside the loop over rec.meta.agency
-if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
-  for (const username of rec.meta.agency) {
-    await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
-  }
-}
+      await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
     }
   }
   return;
