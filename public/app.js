@@ -2024,7 +2024,7 @@ function switchView(view) {
       badge.innerText = roleMap[currentUser.role] || 'System Active';
     } else { badge.innerText = '🔒 Not Logged In'; }
   }
-  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiStatusChart(); }
+ if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiChart('rfi'); }
   if (view === 'history') { renderHistory(); }
   if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
   if (view === 'masters') { populateMastersForm(); }
