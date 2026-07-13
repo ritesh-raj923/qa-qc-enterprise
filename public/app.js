@@ -3350,6 +3350,7 @@ for (const approver of approvers) {
       await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   }
+  
   // --- END of your new code ---
 
   updateWorkflowButtons(rec);
