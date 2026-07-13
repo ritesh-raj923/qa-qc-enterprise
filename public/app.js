@@ -1100,21 +1100,25 @@ function getAuditOptions() {
 }
 function generateAgencyRadios(currentValue, type = 'checkbox') {
     const selected = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
-    // Use the dynamic agencyUsers list
-    let recipients = agencyUsers;
-    // Fallback to static users if needed
-    if (!recipients || recipients.length === 0) {
-        recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    // Ensure agencyUsers is an array
+    let recipients = Array.isArray(agencyUsers) ? agencyUsers : [];
+    // If still empty, fallback to static users (with proper fields)
+    if (!recipients.length) {
+        recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
+            username: u.u || u.username || u.id,
+            displayName: u.name || u.full_name || u.u,
+            role: u.role,
+            sites: u.assigned_sites || []
+        }));
     }
     const inputType = type === 'radio' ? 'radio' : 'checkbox';
-    
+
     return recipients.map(user => {
         const checked = selected.includes(user.username) ? 'checked' : '';
-        // Build display string: "RK (Contractor - Site A)"
         const roleLabel = user.role === 'engineer' ? 'Contractor' : 'Execution Engineer';
         const siteLabel = user.sites.length ? user.sites.join(', ') : 'No Site';
         const displayText = `${user.displayName} (${roleLabel} - ${siteLabel})`;
-        
+
         return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; margin-right:8px;">
                   <input type="${inputType}" name="meta_agency" value="${user.username}" ${checked}> 
                   ${esc(displayText)}
@@ -1635,38 +1639,43 @@ async function loadSites() {
 async function loadAgencyUsers() {
   try {
     const users = await apiRequest('/api/users/agency');
-    // users is array of { id, username, full_name, role, assigned_sites, ... }
+    // users is array of objects – guess field names
+    let filtered = users.filter(u => {
+      const role = u.role || u.role_name || '';
+      return role === 'engineer' || role === 'exec_engineer';
+    });
 
-    // 1. Filter by role: only engineers (contractor) and exec_engineers
-    let filtered = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
-
-    // 2. Apply site‑based visibility if currentUser is Exec or QA Head
+    // Apply site-based filtering
     if (currentUser && (currentUser.role === 'exec_engineer' || currentUser.role === 'qa_head')) {
       const userSites = currentUser.assigned_sites || [];
-      // If user has assigned sites, only show users that share at least one site
       if (userSites.length > 0) {
         filtered = filtered.filter(u => {
-          const uSites = u.assigned_sites || [];
+          const uSites = u.assigned_sites || u.sites || [];
           return uSites.some(s => userSites.includes(s));
         });
       }
     }
-    // Managers and Admins see all (no further filter)
 
-    // 3. Enrich each user with a display name and site info (for rendering)
+    // Normalise each user – try multiple field names
     agencyUsers = filtered.map(u => ({
       id: u.id,
-      username: u.username,       // raw value to send to backend
-      displayName: u.full_name || u.username,
-      role: u.role,
-      sites: u.assigned_sites || []
+      username: u.username || u.user || u.email || u.id,
+      displayName: u.full_name || u.display_name || u.name || u.fullname || u.username || u.user || 'Unknown',
+      role: u.role || u.role_name || '',
+      sites: u.assigned_sites || u.sites || []
     }));
 
     console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
   } catch (e) {
     console.warn('Failed to load agency users:', e);
-    // Fallback to static list (if any)
-    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    // Fallback to static users (make sure they have name and u)
+    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
+      id: u.id,
+      username: u.u || u.username || u.id,
+      displayName: u.name || u.full_name || u.u,
+      role: u.role,
+      sites: u.assigned_sites || []
+    }));
   }
 }
 // ============================================================
@@ -3800,14 +3809,14 @@ function applyPendingChecklistPrefill() {
 // ============================================================
 // 19. OPEN TEMPLATE / RECORD
 // ============================================================
-function openTemplate(key, reportId = null, reportObj = null) {
+async function openTemplate(key, reportId = null, reportObj = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
   const t = templates[key];
    // ← ADD THIS ↓↓↓
   // Load agency users for Audit or NCR
   if (key === 'audit' || key === 'ncr') {
-    loadAgencyUsers();
+    await loadAgencyUsers();   // <-- ADDED 'await' HERE
   }
   // ← ADD THIS ↑↑↑
   // Use reportObj if provided, otherwise look up in savedReports
