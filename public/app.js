@@ -44,7 +44,6 @@ let notifications = [];
 let notificationPollInterval = null;
 let agencyUsers = [];   // ← ADD THIS
 let allUsersCache = []; // Stores all users from server
-let selectedAuditAgencies = [];
 // Toggle sidebar for mobile
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -2299,7 +2298,7 @@ function renderSheet(t, report) {
     return;
  }
   // ★ ADD THIS:
-if (activeTemplateKey === 'audit') {
+else if (activeTemplateKey === 'audit') {
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
       <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
@@ -2309,52 +2308,20 @@ if (activeTemplateKey === 'audit') {
     </div>
   `;
   body.innerHTML = agencyHtml + renderAuditExact(report);
-    // --- Add change listener to agency checkboxes ---
-  // First, reset the global array
-  selectedAuditAgencies = [];
-  
-  // Get all agency checkboxes inside the body
-  const checkboxes = body.querySelectorAll('input[name="meta_agency"]');
-  
-  // If any checkboxes are pre-checked (when editing an existing audit), add them to the array
-  checkboxes.forEach(cb => {
-    if (cb.checked) {
-      selectedAuditAgencies.push(cb.value);
-    }
-    
-    // Add change event listener to update the global array
-    cb.addEventListener('change', function(e) {
-      if (this.checked) {
-        // Add value if not already present
-        if (!selectedAuditAgencies.includes(this.value)) {
-          selectedAuditAgencies.push(this.value);
-        }
-      } else {
-        // Remove value
-        selectedAuditAgencies = selectedAuditAgencies.filter(v => v !== this.value);
-      }
-      console.log('📌 Selected agencies updated:', selectedAuditAgencies);
-    });
-  });
-  
-  console.log('📌 Initial selected agencies:', selectedAuditAgencies);
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
   renderLinkedactivitys(report);
   populateactivityButtons();
-    // Add Compliance Report button
-  // Remove any existing compliance button (to avoid duplicates)
+  // Add Compliance Report button
   const existingComplianceBtn = document.getElementById('complianceBtnUnique');
   if (existingComplianceBtn) existingComplianceBtn.remove();
-
   const complianceBtn = document.createElement('button');
   complianceBtn.type = 'button';
   complianceBtn.className = 'btn btn-secondary';
   complianceBtn.innerHTML = '📋 Add Compliance Report';
-  complianceBtn.id = 'complianceBtnUnique';   // give it a fixed ID
+  complianceBtn.id = 'complianceBtnUnique';
   complianceBtn.style.marginLeft = '8px';
-  // Use addEventListener with a named function to avoid stacking (optional)
   complianceBtn.addEventListener('click', function handler() {
     launchComplianceChecklist(report);
   });
@@ -2589,13 +2556,14 @@ function collectMeta(t) {
     }
   }
 
-   // ★ FIXED: For AUDIT, read from the global array (bypasses DOM issue)
-  if (activeTemplateKey === 'audit') {
-    // Use the global variable that is updated via change events
-    meta.agency = selectedAuditAgencies;
-    console.log('🔍 [AUDIT] Agencies from global array:', selectedAuditAgencies);
-  }
-
+   if (activeTemplateKey === 'audit') {
+    const checkedBoxes = document.querySelectorAll('#sheetBody input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedBoxes)
+        .map(cb => cb.value)
+        .filter(v => v && v.trim() !== '');
+    meta.agency = agencies;
+    console.log('🔍 [AUDIT] Agencies from DOM:', agencies);
+}
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
