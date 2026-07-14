@@ -4875,4 +4875,9 @@ if (localStorage.getItem(DARK_MODE_KEY) === 'true') {
 // Toggle on click
 if (darkModeToggle) {
   darkModeToggle.addEventListener('click', function() {
-    document.body.classList.toggleI'm having a hard time fulfilling your request. Can I help you with something else instead?
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem(DARK_MODE_KEY, isDark);
+    darkModeToggle.textContent = isDark ? '☀️' : '🌙';
+  });
+}
