@@ -1107,17 +1107,10 @@ function generateAgencyRadios(currentValue, type = 'checkbox') {
         recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
     }
     const inputType = type === 'radio' ? 'radio' : 'checkbox';
-    
-    return recipients.map(user => {
-        const checked = selected.includes(user.username) ? 'checked' : '';
-        // Build display string: "RK (Contractor - Site A)"
-        const roleLabel = user.role === 'engineer' ? 'Contractor' : 'Execution Engineer';
-        const siteLabel = user.sites.length ? user.sites.join(', ') : 'No Site';
-        const displayText = `${user.displayName} (${roleLabel} - ${siteLabel})`;
-        
+    return recipients.map(e => {
+        const checked = selected.includes(e.u) ? 'checked' : '';
         return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; margin-right:8px;">
-                  <input type="${inputType}" name="meta_agency" value="${user.username}" ${checked}> 
-                  ${esc(displayText)}
+                  <input type="${inputType}" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
                 </label>`;
     }).join('');
 }
@@ -1630,42 +1623,16 @@ async function loadSites() {
   }
 }
 // ============================================================
-// LOAD AGENCY USERS (for Audit/NCR selection) – with filtering & enrichment
+// LOAD AGENCY USERS (for Audit/NCR selection)
 // ============================================================
 async function loadAgencyUsers() {
   try {
     const users = await apiRequest('/api/users/agency');
-    // users is array of { id, username, full_name, role, assigned_sites, ... }
-
-    // 1. Filter by role: only engineers (contractor) and exec_engineers
-    let filtered = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
-
-    // 2. Apply site‑based visibility if currentUser is Exec or QA Head
-    if (currentUser && (currentUser.role === 'exec_engineer' || currentUser.role === 'qa_head')) {
-      const userSites = currentUser.assigned_sites || [];
-      // If user has assigned sites, only show users that share at least one site
-      if (userSites.length > 0) {
-        filtered = filtered.filter(u => {
-          const uSites = u.assigned_sites || [];
-          return uSites.some(s => userSites.includes(s));
-        });
-      }
-    }
-    // Managers and Admins see all (no further filter)
-
-    // 3. Enrich each user with a display name and site info (for rendering)
-    agencyUsers = filtered.map(u => ({
-      id: u.id,
-      username: u.username,       // raw value to send to backend
-      displayName: u.full_name || u.username,
-      role: u.role,
-      sites: u.assigned_sites || []
-    }));
-
-    console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
+    agencyUsers = users;
+    console.log('✅ Agency users loaded:', agencyUsers.length);
   } catch (e) {
     console.warn('Failed to load agency users:', e);
-    // Fallback to static list (if any)
+    // Fallback to static users if API fails (for backward compatibility)
     agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
   }
 }
@@ -2295,20 +2262,12 @@ if (activeTemplateKey === 'audit') {
   renderLinkedactivitys(report);
   populateactivityButtons();
     // Add Compliance Report button
-  // Remove any existing compliance button (to avoid duplicates)
-  const existingComplianceBtn = document.getElementById('complianceBtnUnique');
-  if (existingComplianceBtn) existingComplianceBtn.remove();
-
   const complianceBtn = document.createElement('button');
   complianceBtn.type = 'button';
   complianceBtn.className = 'btn btn-secondary';
   complianceBtn.innerHTML = '📋 Add Compliance Report';
-  complianceBtn.id = 'complianceBtnUnique';   // give it a fixed ID
+  complianceBtn.onclick = () => launchComplianceChecklist(report);
   complianceBtn.style.marginLeft = '8px';
-  // Use addEventListener with a named function to avoid stacking (optional)
-  complianceBtn.addEventListener('click', function handler() {
-    launchComplianceChecklist(report);
-  });
   const buttonsContainer = document.getElementById('activityChecklistButtons');
   if (buttonsContainer) {
     buttonsContainer.parentNode.appendChild(complianceBtn);
@@ -2829,14 +2788,6 @@ async function saveReport(ev) {
   }
 
   if (!validateForm(meta)) return;
-    // --- AUDIT: ensure at least one agency is selected ---
-  if (activeTemplateKey === 'audit') {
-    const agencies = meta.agency || [];
-    if (!Array.isArray(agencies) || agencies.length === 0) {
-      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
-      return;
-    }
-  }
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -3736,23 +3687,13 @@ async function launchComplianceChecklist(auditReport) {
     toast('⚠️ Please save the Audit first');
     return;
   }
-
+  
   const reportNo = auditReport.meta?.reportNo || auditReport.id;
   if (!reportNo) {
     toast('⚠️ Please enter Report No first');
     return;
   }
-
-  // ---- CHECK IF COMPLIANCE REPORT IS ALREADY LINKED ----
-  const alreadyLinked = savedReports.some(r =>
-    r.templateKey === 'compliance_report' &&
-    (r.meta?.linkedAudit === reportNo || r.meta?.linkedAudit === auditReport.id)
-  );
-  if (alreadyLinked) {
-    toast('ℹ️ A Compliance Report is already linked to this Audit. Open it from the Audit Records page.');
-    return;   // prevent duplicate
-  }
-
+  
   // Save the audit first
   try {
     await saveReport({ preventDefault() {} });
@@ -3760,7 +3701,7 @@ async function launchComplianceChecklist(auditReport) {
     toast('❌ Failed to save Audit: ' + e.message);
     return;
   }
-
+  
   pendingReturnRfiId = auditReport.id;
   pendingLinkedAuditNo = reportNo;
   pendingParentMeta = {
