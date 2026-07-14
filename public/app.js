@@ -2298,21 +2298,45 @@ function renderSheet(t, report) {
     return;
  }
   // ★ ADD THIS:
-else if (activeTemplateKey === 'audit') {
+ else if (activeTemplateKey === 'audit') {
+  // Build the agency selection HTML with checkboxes
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
       <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
       <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
         ${generateAgencyRadios(report?.meta?.agency || '')}
       </div>
+      <!-- ★★★ HIDDEN INPUT to store selected agencies ★★★ -->
+      <input type="hidden" id="meta_agency_hidden" value='${JSON.stringify(report?.meta?.agency || [])}'>
     </div>
   `;
   body.innerHTML = agencyHtml + renderAuditExact(report);
+
+  // Attach change listeners to update the hidden input
+  const checkboxes = body.querySelectorAll('input[name="meta_agency"]');
+  const hiddenInput = document.getElementById('meta_agency_hidden');
+  
+  function updateHiddenInput() {
+    const checked = Array.from(document.querySelectorAll('input[name="meta_agency"]:checked'))
+      .map(cb => cb.value)
+      .filter(v => v && v.trim() !== '');
+    hiddenInput.value = JSON.stringify(checked);
+    console.log('🔄 Agencies updated in hidden input:', checked);
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateHiddenInput);
+  });
+
+  // Initialise hidden input with any pre-checked values
+  updateHiddenInput();
+
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
   renderLinkedactivitys(report);
   populateactivityButtons();
+  
   // Add Compliance Report button
   const existingComplianceBtn = document.getElementById('complianceBtnUnique');
   if (existingComplianceBtn) existingComplianceBtn.remove();
@@ -2556,13 +2580,18 @@ function collectMeta(t) {
     }
   }
 
-   if (activeTemplateKey === 'audit') {
-    const checkedBoxes = document.querySelectorAll('#sheetBody input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedBoxes)
-        .map(cb => cb.value)
-        .filter(v => v && v.trim() !== '');
-    meta.agency = agencies;
-    console.log('🔍 [AUDIT] Agencies from DOM:', agencies);
+  if (activeTemplateKey === 'audit') {
+  const hidden = document.getElementById('meta_agency_hidden');
+  if (hidden) {
+    try {
+      meta.agency = JSON.parse(hidden.value);
+    } catch (e) {
+      meta.agency = [];
+    }
+  } else {
+    meta.agency = [];
+  }
+  console.log('🔍 [collectMeta] Audit agency from hidden input:', meta.agency);
 }
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
@@ -2826,16 +2855,6 @@ async function saveReport(ev) {
   
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
-
-  // ★★★ FIX: For audit, read agencies directly from DOM ★★★
-  if (activeTemplateKey === 'audit') {
-    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedBoxes)
-        .map(cb => cb.value)
-        .filter(v => v && v.trim() !== '');
-    meta.agency = agencies;
-    console.log('🔍 [saveReport] Direct agencies from DOM:', agencies);
-  }
 
   if (activeTemplateKey === 'audit') {
     console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
