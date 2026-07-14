@@ -642,7 +642,6 @@ function renderAuditExact(report) {
       <tr><td class="exact-label" style="width:16%;">Report No:</td><td colspan="5">${inputExact('meta_reportNo', m.reportNo)}</td></tr>
       <tr><td class="exact-label">Project:</td><td colspan="2">${inputExact('meta_project', m.project)}</td><td class="exact-label" style="width:14%;">Audit Date  :</td><td colspan="2">${inputExact('meta_auditDate', m.auditDate, 'date')}</td></tr>
       <tr><td class="exact-label">Client:</td><td colspan="2">${inputExact('meta_client', m.client)}</td><td class="exact-label">Auditor:</td><td colspan="2">${inputExact('meta_auditor', m.auditor)}</td></tr>
-      <tr><td class="exact-label">Consultant:</td><td colspan="2">${inputExact('meta_consultant', m.consultant)}</td><td class="exact-label">Nature Of Contractor:</td><td colspan="2">${inputExact('meta_contractorNature', m.contractorNature)}</td></tr>
       <tr><td class="exact-label">Project Value:</td><td colspan="2">${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Assessment dates:</td><td colspan="2">${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
       <tr><td class="exact-label">Client address:</td><td colspan="2">${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Reporting dates:</td><td colspan="2">${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
       <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
@@ -699,7 +698,7 @@ function renderactivityExact(report) {
       <tr><th colspan="4" class="exact-main-title">${esc(report?.templateName || 'activity CHECKLIST')}</th></tr>
       <tr><td class="exact-label">Linked Audit Report:</td><td colspan="3">${inputExact('meta_linkedAudit', m.linkedAudit, 'select', getAuditOptions())}</td></tr>
       <tr><td class="exact-label">Project:</td><td>${inputExact('meta_project', m.project)}</td><td class="exact-label">Audit Date:</td><td>${inputExact('meta_date', m.date, 'date')}</td></tr>
-      <tr><td class="exact-label">Contractor:</td><td>${inputExact('meta_contractor', m.contractor)}</td><td class="exact-label">Location:</td><td>${inputExact('meta_location', m.location)}</td></tr>
+      </td></tr>
     </table>
 
     <table class="exact-table activity-checklist">
@@ -1649,13 +1648,10 @@ async function loadSites() {
 async function loadAgencyUsers() {
   try {
     const users = await apiRequest('/api/users/agency');
-    // users is array of objects – guess field names
     let filtered = users.filter(u => {
       const role = u.role || u.role_name || '';
       return role === 'engineer' || role === 'exec_engineer';
     });
-
-    // Apply site-based filtering
     if (currentUser && (currentUser.role === 'exec_engineer' || currentUser.role === 'qa_head')) {
       const userSites = currentUser.assigned_sites || [];
       if (userSites.length > 0) {
@@ -1665,8 +1661,6 @@ async function loadAgencyUsers() {
         });
       }
     }
-
-    // Normalise each user – try multiple field names
     agencyUsers = filtered.map(u => ({
       id: u.id,
       username: u.username || u.user || u.email || u.id,
@@ -1674,11 +1668,9 @@ async function loadAgencyUsers() {
       role: u.role || u.role_name || '',
       sites: u.assigned_sites || u.sites || []
     }));
-
     console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
   } catch (e) {
     console.warn('Failed to load agency users:', e);
-    // Fallback to static users (make sure they have name and u)
     agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
       id: u.id,
       username: u.u || u.username || u.id,
@@ -2727,23 +2719,19 @@ function validateForm(meta) {
   } else if (activeTemplateKey === 'ncr') {
     if (!meta.project) req.push('Project');
     if (!meta.ncrNo) req.push('NCR No.');
-    if (!meta.agency) req.push('Agency');   // ← add this back
+    if (!meta.agency) req.push('Agency');
     if (!meta.ncrDate) req.push('NCR Date');
   } else if (activeTemplateKey === 'imir') {
     if (!meta.client) req.push('Client');
     if (!meta.package) req.push('Package/System');
     if (!meta.date) req.push('Date');
-  } 
-   else if (activeTemplateKey === 'audit') {
+  } else if (activeTemplateKey === 'audit') {
+    // ★ AGENCY CHECK REMOVED – only format fields remain ★
     if (!meta.project) req.push('Project');
     if (!meta.reportNo) req.push('Report No.');
     if (!meta.auditor) req.push('Auditor');
     if (!meta.auditDate) req.push('Audit Date');
-    if (!meta.agency || (Array.isArray(meta.agency) && meta.agency.length === 0)) {
-        req.push('At least one Agency (Contractor/Execution Engineer)');
-    }
-}
- else {
+  } else {
     if (!meta.project) req.push('Project');
     if (!meta.contractor) req.push('Contractor');
     if (!meta.date) req.push('Date');
@@ -2826,15 +2814,15 @@ async function saveReport(ev) {
   const t = templates[activeTemplateKey];
   if (!t) return;
  const meta = collectMeta(t);
-    // ★★★ THE MASTER FIX – Read agencies directly from the DOM ★★★
-  if (activeTemplateKey === 'audit') {
-    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedBoxes)
-      .map(cb => cb.value)
-      .filter(v => v && v.trim() !== '');
-    meta.agency = agencies;
-    console.log('🔍 [saveReport] Overriding agency with DOM values:', meta.agency);
-  }
+ // ★★★ Inject agencies from the DOM (if any are checked) ★★★
+if (activeTemplateKey === 'audit') {
+  const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+  const agencies = Array.from(checkedBoxes)
+    .map(cb => cb.value)
+    .filter(v => v && v.trim() !== '');
+  meta.agency = agencies; // ← This sets the agencies without blocking save
+  console.log('🔍 [saveReport] Agencies captured:', meta.agency);
+}
   
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
@@ -2869,32 +2857,6 @@ async function saveReport(ev) {
     meta.imirNo = 'IMIR-' + String(appConfig.imirCounter || 1).padStart(3, '0');
     appConfig.imirCounter = (appConfig.imirCounter || 1) + 1;
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
-  }
-
-  // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
-  if (activeTemplateKey === 'audit') {
-    let agencies = meta.agency || [];
-    
-    // Ensure it's an array
-    if (!Array.isArray(agencies)) {
-      agencies = [agencies];
-    }
-    
-    // FILTER OUT: undefined, 'undefined', empty strings, and emails
-    const validAgencies = agencies.filter(a => 
-      a && 
-      a !== 'undefined' && 
-      a.trim() !== '' &&
-      !a.includes('@')
-    );
-    
-    if (validAgencies.length === 0) {
-      toast('⚠️ Please select at least one valid Agency (Contractor/Execution Engineer).');
-      return;
-    }
-    
-    // Overwrite meta.agency with the cleaned, valid array
-    meta.agency = validAgencies;
   }
 
   const sections = collectSections(t);
