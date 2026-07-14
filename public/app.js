@@ -1100,17 +1100,28 @@ function getAuditOptions() {
 }
 function generateAgencyRadios(currentValue, type = 'checkbox') {
     const selected = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
-    // Use the dynamic agencyUsers list
-    let recipients = agencyUsers;
-    // Fallback to static users if needed
-    if (!recipients || recipients.length === 0) {
-        recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    // Ensure agencyUsers is an array
+    let recipients = Array.isArray(agencyUsers) ? agencyUsers : [];
+    // If still empty, fallback to static users (with proper fields)
+    if (!recipients.length) {
+        recipients = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
+            username: u.u || u.username || u.id,
+            displayName: u.name || u.full_name || u.u,
+            role: u.role,
+            sites: u.assigned_sites || []
+        }));
     }
     const inputType = type === 'radio' ? 'radio' : 'checkbox';
-    return recipients.map(e => {
-        const checked = selected.includes(e.u) ? 'checked' : '';
+
+    return recipients.map(user => {
+        const checked = selected.includes(user.username) ? 'checked' : '';
+        const roleLabel = user.role === 'engineer' ? 'Contractor' : 'Execution Engineer';
+        const siteLabel = user.sites.length ? user.sites.join(', ') : 'No Site';
+        const displayText = `${user.displayName} (${roleLabel} - ${siteLabel})`;
+
         return `<label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; margin-right:8px;">
-                  <input type="${inputType}" name="meta_agency" value="${e.u}" ${checked}> ${esc(e.name)}
+                  <input type="${inputType}" name="meta_agency" value="${user.username}" ${checked}> 
+                  ${esc(displayText)}
                 </label>`;
     }).join('');
 }
@@ -1623,17 +1634,48 @@ async function loadSites() {
   }
 }
 // ============================================================
-// LOAD AGENCY USERS (for Audit/NCR selection)
+// LOAD AGENCY USERS (for Audit/NCR selection) – with filtering & enrichment
 // ============================================================
 async function loadAgencyUsers() {
   try {
     const users = await apiRequest('/api/users/agency');
-    agencyUsers = users;
-    console.log('✅ Agency users loaded:', agencyUsers.length);
+    // users is array of objects – guess field names
+    let filtered = users.filter(u => {
+      const role = u.role || u.role_name || '';
+      return role === 'engineer' || role === 'exec_engineer';
+    });
+
+    // Apply site-based filtering
+    if (currentUser && (currentUser.role === 'exec_engineer' || currentUser.role === 'qa_head')) {
+      const userSites = currentUser.assigned_sites || [];
+      if (userSites.length > 0) {
+        filtered = filtered.filter(u => {
+          const uSites = u.assigned_sites || u.sites || [];
+          return uSites.some(s => userSites.includes(s));
+        });
+      }
+    }
+
+    // Normalise each user – try multiple field names
+    agencyUsers = filtered.map(u => ({
+      id: u.id,
+      username: u.username || u.user || u.email || u.id,
+      displayName: u.full_name || u.display_name || u.name || u.fullname || u.username || u.user || 'Unknown',
+      role: u.role || u.role_name || '',
+      sites: u.assigned_sites || u.sites || []
+    }));
+
+    console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
   } catch (e) {
     console.warn('Failed to load agency users:', e);
-    // Fallback to static users if API fails (for backward compatibility)
-    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer');
+    // Fallback to static users (make sure they have name and u)
+    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
+      id: u.id,
+      username: u.u || u.username || u.id,
+      displayName: u.name || u.full_name || u.u,
+      role: u.role,
+      sites: u.assigned_sites || []
+    }));
   }
 }
 // ============================================================
@@ -1982,7 +2024,7 @@ function switchView(view) {
       badge.innerText = roleMap[currentUser.role] || 'System Active';
     } else { badge.innerText = '🔒 Not Logged In'; }
   }
-  if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiStatusChart(); }
+ if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiChart('rfi'); }
   if (view === 'history') { renderHistory(); }
   if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
   if (view === 'masters') { populateMastersForm(); }
@@ -2262,12 +2304,20 @@ if (activeTemplateKey === 'audit') {
   renderLinkedactivitys(report);
   populateactivityButtons();
     // Add Compliance Report button
+  // Remove any existing compliance button (to avoid duplicates)
+  const existingComplianceBtn = document.getElementById('complianceBtnUnique');
+  if (existingComplianceBtn) existingComplianceBtn.remove();
+
   const complianceBtn = document.createElement('button');
   complianceBtn.type = 'button';
   complianceBtn.className = 'btn btn-secondary';
   complianceBtn.innerHTML = '📋 Add Compliance Report';
-  complianceBtn.onclick = () => launchComplianceChecklist(report);
+  complianceBtn.id = 'complianceBtnUnique';   // give it a fixed ID
   complianceBtn.style.marginLeft = '8px';
+  // Use addEventListener with a named function to avoid stacking (optional)
+  complianceBtn.addEventListener('click', function handler() {
+    launchComplianceChecklist(report);
+  });
   const buttonsContainer = document.getElementById('activityChecklistButtons');
   if (buttonsContainer) {
     buttonsContainer.parentNode.appendChild(complianceBtn);
@@ -2788,6 +2838,14 @@ async function saveReport(ev) {
   }
 
   if (!validateForm(meta)) return;
+    // --- AUDIT: ensure at least one agency is selected ---
+  if (activeTemplateKey === 'audit') {
+    const agencies = meta.agency || [];
+    if (!Array.isArray(agencies) || agencies.length === 0) {
+      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
+      return;
+    }
+  }
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -3687,13 +3745,23 @@ async function launchComplianceChecklist(auditReport) {
     toast('⚠️ Please save the Audit first');
     return;
   }
-  
+
   const reportNo = auditReport.meta?.reportNo || auditReport.id;
   if (!reportNo) {
     toast('⚠️ Please enter Report No first');
     return;
   }
-  
+
+  // ---- CHECK IF COMPLIANCE REPORT IS ALREADY LINKED ----
+  const alreadyLinked = savedReports.some(r =>
+    r.templateKey === 'compliance_report' &&
+    (r.meta?.linkedAudit === reportNo || r.meta?.linkedAudit === auditReport.id)
+  );
+  if (alreadyLinked) {
+    toast('ℹ️ A Compliance Report is already linked to this Audit. Open it from the Audit Records page.');
+    return;   // prevent duplicate
+  }
+
   // Save the audit first
   try {
     await saveReport({ preventDefault() {} });
@@ -3701,7 +3769,7 @@ async function launchComplianceChecklist(auditReport) {
     toast('❌ Failed to save Audit: ' + e.message);
     return;
   }
-  
+
   pendingReturnRfiId = auditReport.id;
   pendingLinkedAuditNo = reportNo;
   pendingParentMeta = {
@@ -3741,14 +3809,14 @@ function applyPendingChecklistPrefill() {
 // ============================================================
 // 19. OPEN TEMPLATE / RECORD
 // ============================================================
-function openTemplate(key, reportId = null, reportObj = null) {
+async function openTemplate(key, reportId = null, reportObj = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
   const t = templates[key];
    // ← ADD THIS ↓↓↓
   // Load agency users for Audit or NCR
   if (key === 'audit' || key === 'ncr') {
-    loadAgencyUsers();
+    await loadAgencyUsers();   // <-- ADDED 'await' HERE
   }
   // ← ADD THIS ↑↑↑
   // Use reportObj if provided, otherwise look up in savedReports
