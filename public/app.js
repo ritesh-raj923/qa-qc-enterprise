@@ -2823,10 +2823,22 @@ async function saveReport(ev) {
   const t = templates[activeTemplateKey];
   if (!t) return;
   const meta = collectMeta(t);
+  
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
+
+  // ★★★ FIX: For audit, read agencies directly from DOM ★★★
   if (activeTemplateKey === 'audit') {
-    console.log('🔍 [DEBUG] Audit agency:', meta.agency);
+    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedBoxes)
+        .map(cb => cb.value)
+        .filter(v => v && v.trim() !== '');
+    meta.agency = agencies;
+    console.log('🔍 [saveReport] Direct agencies from DOM:', agencies);
+  }
+
+  if (activeTemplateKey === 'audit') {
+    console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
   }
 
   // --- NCR edit check ---
@@ -2857,7 +2869,7 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-    // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
+  // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
   if (activeTemplateKey === 'audit') {
     let agencies = meta.agency || [];
     
@@ -2866,12 +2878,12 @@ async function saveReport(ev) {
       agencies = [agencies];
     }
     
-    // FILTER OUT: undefined, 'undefined', empty strings, and emails (just in case)
+    // FILTER OUT: undefined, 'undefined', empty strings, and emails
     const validAgencies = agencies.filter(a => 
       a && 
       a !== 'undefined' && 
       a.trim() !== '' &&
-      !a.includes('@') // prevents email addresses from slipping in
+      !a.includes('@')
     );
     
     if (validAgencies.length === 0) {
@@ -2882,6 +2894,7 @@ async function saveReport(ev) {
     // Overwrite meta.agency with the cleaned, valid array
     meta.agency = validAgencies;
   }
+
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -2923,7 +2936,7 @@ async function saveReport(ev) {
     } // end for
   } // end if
 
-  // --- Merge with existing attachments (OUTSIDE the loop) ---
+  // --- Merge with existing attachments ---
   const existingAttachments = existing?.attachments || [];
   const mergedAttachments = [...existingAttachments, ...attachmentData];
 
