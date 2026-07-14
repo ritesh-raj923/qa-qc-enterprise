@@ -2550,15 +2550,6 @@ function collectMeta(t) {
       meta.agency = '';
     }
   }
-
-if (activeTemplateKey === 'audit') {
-  const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-  const agencies = Array.from(checkedBoxes)
-    .map(cb => cb.value)
-    .filter(v => v && v.trim() !== '');
-  meta.agency = agencies;
-  console.log('🔍 [collectMeta] Audit agency from checkboxes:', meta.agency);
-} 
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2813,23 +2804,28 @@ async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
   if (!t) return;
- const meta = collectMeta(t);
- // ★★★ Inject agencies from the DOM (if any are checked) ★★★
-if (activeTemplateKey === 'audit') {
-  const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-  const agencies = Array.from(checkedBoxes)
-    .map(cb => cb.value)
-    .filter(v => v && v.trim() !== '');
-  meta.agency = agencies; // ← This sets the agencies without blocking save
-  console.log('🔍 [saveReport] Agencies captured:', meta.agency);
-}
-  
+
+  // 1. Collect standard meta fields
+  const meta = collectMeta(t);
+
+  // 2. ★★★ FORCE CAPTURE AGENCIES FROM DOM (for audit only) ★★★
+  if (activeTemplateKey === 'audit') {
+    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedBoxes)
+      .map(cb => cb.value)
+      .filter(v => v && v.trim() !== '');
+    meta.agency = agencies;
+    console.log('🔍 [saveReport] Agencies captured:', meta.agency);
+
+    // ★★★ BLOCK SAVE IF NO AGENCY SELECTED ★★★
+    if (meta.agency.length === 0) {
+      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
+      return;
+    }
+  }
+
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
-
-  if (activeTemplateKey === 'audit') {
-    console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
-  }
 
   // --- NCR edit check ---
   if (activeTemplateKey === 'ncr') {
@@ -2843,7 +2839,7 @@ if (activeTemplateKey === 'audit') {
     }
   }
 
-  // --- AUDIT edit check (NEW) ---
+  // --- AUDIT edit check ---
   if (activeTemplateKey === 'audit') {
     const rec = currentRecord();
     if (!canEditAudit(rec)) {
@@ -2859,6 +2855,9 @@ if (activeTemplateKey === 'audit') {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
+  // --- (Removed broken lines: meta.agency = validAgencies; and extra }) ---
+
+  // 3. Collect sections and build the row object
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -2877,8 +2876,7 @@ if (activeTemplateKey === 'audit') {
         toast('⚠️ File ' + file.name + ' exceeds 2MB limit – skipped.');
         continue;
       }
-      let blobToEncode = file; // default to original
-
+      let blobToEncode = file;
       if (file.type && file.type.startsWith('image/')) {
         try {
           blobToEncode = await compressImage(file, 800, 0.7);
@@ -2887,23 +2885,17 @@ if (activeTemplateKey === 'audit') {
           blobToEncode = file;
         }
       }
-
-      console.log('Reading file:', file.name, file.size);
       const data = await readFileAsBase64(blobToEncode);
-      console.log('File data length:', data.length);
-
       attachmentData.push({
         name: file.name,
         type: file.type,
         data: data
       });
-    } // end for
-  } // end if
+    }
+  }
 
-  // --- Merge with existing attachments ---
   const existingAttachments = existing?.attachments || [];
   const mergedAttachments = [...existingAttachments, ...attachmentData];
-
   const raisedFromRfi = meta.raisedFromRfi || existing?.raisedFromRfi || '';
 
   // --- Build the row object ---
@@ -2960,7 +2952,6 @@ if (activeTemplateKey === 'audit') {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-    // Re-render the current sheet to show newly uploaded attachments
     renderSheet(t, row);
     updateStats();
     renderHistory();
@@ -2969,7 +2960,6 @@ if (activeTemplateKey === 'audit') {
     toast('❌ Save failed: ' + e.message);
   }
 }
-
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
