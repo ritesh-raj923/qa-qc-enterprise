@@ -2779,6 +2779,7 @@ function canEditNCR(rec) {
 }
 // ★★★ PASTE HERE ★★★
 // ===== canEditAudit – allows contractors/exec engineers to edit when status is Open or Rejected =====
+// ===== canEditAudit – allows QA Head/Manager/Admin to edit any draft/open audit =====
 function canEditAudit(rec) {
   if (!rec) {
     // New audit: allow creation if user is QA/Exec/Manager/Admin
@@ -2788,7 +2789,15 @@ function canEditAudit(rec) {
   // Cannot edit when closed, approved, or under review
   if (status === 'Closed' || status === 'Approved' || status === 'Under Review') return false;
 
-  // Creator (manager/QA) can edit in Draft, Open, Rejected (they are the owner)
+  // --- ADD THIS BLOCK: QA Head, Manager, Admin can edit any draft/open/rejected audit ---
+  if (currentUser?.role === 'qa_head' || currentUser?.role === 'manager' || currentUser?.role === 'admin') {
+    // They can edit in Draft, Open, or Rejected
+    if (status === 'Draft' || status === 'Open' || status === 'Rejected') {
+      return true;
+    }
+  }
+
+  // Creator (manager/QA/exec) can edit in Draft, Open, Rejected (they are the owner)
   if (rec.createdBy === currentUser?.username) return true;
 
   // For recipients (contractor/exec engineer): can edit only if they are in the selected agencies list
