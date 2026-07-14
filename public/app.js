@@ -43,7 +43,6 @@ let globalFilterState = { project: '', type: '', contractor: '', discipline: '',
 let notifications = [];
 let notificationPollInterval = null;
 let agencyUsers = [];   // ← ADD THIS
-let allUsersCache = []; // Stores all users from server
 // Toggle sidebar for mobile
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -1520,15 +1519,6 @@ document.querySelectorAll('.admin-only').forEach(el => {
 document.querySelectorAll('.manager-admin-only').forEach(el => {
   el.style.display = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 'block' : 'none';
 });
-    // --- ADD THIS ---
-try {
-  allUsersCache = await apiRequest('/api/users/all');
-} catch (e) {
-  console.warn('Could not fetch users for cache:', e);
-  allUsersCache = users;
-}
-// --- END ADD ---
-
     renderCards();
     await loadFromServer();
     updateStats();
@@ -2298,7 +2288,7 @@ function renderSheet(t, report) {
     return;
  }
   // ★ ADD THIS:
-else if (activeTemplateKey === 'audit') {
+if (activeTemplateKey === 'audit') {
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
       <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
@@ -2313,15 +2303,18 @@ else if (activeTemplateKey === 'audit') {
   body.innerHTML += attachmentsHtml;
   renderLinkedactivitys(report);
   populateactivityButtons();
-  // Add Compliance Report button
+    // Add Compliance Report button
+  // Remove any existing compliance button (to avoid duplicates)
   const existingComplianceBtn = document.getElementById('complianceBtnUnique');
   if (existingComplianceBtn) existingComplianceBtn.remove();
+
   const complianceBtn = document.createElement('button');
   complianceBtn.type = 'button';
   complianceBtn.className = 'btn btn-secondary';
   complianceBtn.innerHTML = '📋 Add Compliance Report';
-  complianceBtn.id = 'complianceBtnUnique';
+  complianceBtn.id = 'complianceBtnUnique';   // give it a fixed ID
   complianceBtn.style.marginLeft = '8px';
+  // Use addEventListener with a named function to avoid stacking (optional)
   complianceBtn.addEventListener('click', function handler() {
     launchComplianceChecklist(report);
   });
@@ -2532,6 +2525,7 @@ function renderLinkedactivitys(auditReport) {
 }
  // ============================================================
 // 15. DATA COLLECTION
+// ============================================================
 function collectMeta(t) {
   const meta = {};
   
@@ -2552,17 +2546,13 @@ function collectMeta(t) {
     if (checkedAgency) {
       meta.agency = checkedAgency.value;
     } else {
-      meta.agency = '';
+      meta.agency = ''; // ensure it's empty if none selected
     }
   }
-
-   if (activeTemplateKey === 'audit') {
-    const checkedBoxes = document.querySelectorAll('#sheetBody input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedBoxes)
-        .map(cb => cb.value)
-        .filter(v => v && v.trim() !== '');
-    meta.agency = agencies;
-    console.log('🔍 [AUDIT] Agencies from DOM:', agencies);
+  if (activeTemplateKey === 'audit') {
+    const checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedAgencies).map(el => el.value);
+    meta.agency = agencies; // store as array
 }
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
@@ -2575,7 +2565,6 @@ function collectMeta(t) {
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
   return meta;
 }
-
 function collectSections(t) {
   // Early returns for special template types
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
@@ -2780,7 +2769,6 @@ function canEditNCR(rec) {
 }
 // ★★★ PASTE HERE ★★★
 // ===== canEditAudit – allows contractors/exec engineers to edit when status is Open or Rejected =====
-// ===== canEditAudit – allows QA Head/Manager/Admin to edit any draft/open audit =====
 function canEditAudit(rec) {
   if (!rec) {
     // New audit: allow creation if user is QA/Exec/Manager/Admin
@@ -2790,15 +2778,7 @@ function canEditAudit(rec) {
   // Cannot edit when closed, approved, or under review
   if (status === 'Closed' || status === 'Approved' || status === 'Under Review') return false;
 
-  // --- ADD THIS BLOCK: QA Head, Manager, Admin can edit any draft/open/rejected audit ---
-  if (currentUser?.role === 'qa_head' || currentUser?.role === 'manager' || currentUser?.role === 'admin') {
-    // They can edit in Draft, Open, or Rejected
-    if (status === 'Draft' || status === 'Open' || status === 'Rejected') {
-      return true;
-    }
-  }
-
-  // Creator (manager/QA/exec) can edit in Draft, Open, Rejected (they are the owner)
+  // Creator (manager/QA) can edit in Draft, Open, Rejected (they are the owner)
   if (rec.createdBy === currentUser?.username) return true;
 
   // For recipients (contractor/exec engineer): can edit only if they are in the selected agencies list
@@ -2823,22 +2803,10 @@ async function saveReport(ev) {
   const t = templates[activeTemplateKey];
   if (!t) return;
   const meta = collectMeta(t);
-  
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
-
-  // ★★★ FIX: For audit, read agencies directly from DOM ★★★
   if (activeTemplateKey === 'audit') {
-    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedBoxes)
-        .map(cb => cb.value)
-        .filter(v => v && v.trim() !== '');
-    meta.agency = agencies;
-    console.log('🔍 [saveReport] Direct agencies from DOM:', agencies);
-  }
-
-  if (activeTemplateKey === 'audit') {
-    console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
+    console.log('🔍 [DEBUG] Audit agency:', meta.agency);
   }
 
   // --- NCR edit check ---
@@ -2869,32 +2837,15 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-  // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
+  if (!validateForm(meta)) return;
+    // --- AUDIT: ensure at least one agency is selected ---
   if (activeTemplateKey === 'audit') {
-    let agencies = meta.agency || [];
-    
-    // Ensure it's an array
-    if (!Array.isArray(agencies)) {
-      agencies = [agencies];
-    }
-    
-    // FILTER OUT: undefined, 'undefined', empty strings, and emails
-    const validAgencies = agencies.filter(a => 
-      a && 
-      a !== 'undefined' && 
-      a.trim() !== '' &&
-      !a.includes('@')
-    );
-    
-    if (validAgencies.length === 0) {
-      toast('⚠️ Please select at least one valid Agency (Contractor/Execution Engineer).');
+    const agencies = meta.agency || [];
+    if (!Array.isArray(agencies) || agencies.length === 0) {
+      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
       return;
     }
-    
-    // Overwrite meta.agency with the cleaned, valid array
-    meta.agency = validAgencies;
   }
-
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -2936,7 +2887,7 @@ async function saveReport(ev) {
     } // end for
   } // end if
 
-  // --- Merge with existing attachments ---
+  // --- Merge with existing attachments (OUTSIDE the loop) ---
   const existingAttachments = existing?.attachments || [];
   const mergedAttachments = [...existingAttachments, ...attachmentData];
 
@@ -3179,13 +3130,11 @@ async function approveForQA() {
   await updateReportOnServer(rec);
   updateWorkflowButtons(rec);
   toast('📋 RFI approved for QA review');
-   // --- ADD THIS LINE ---
-  const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-  // --- END ADD ---
-const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-for (const qa of qaHeads) {
-  await sendNotification(qa.username || qa.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
-}
+  const qaHeadUser = users.find(u => u.role === 'qa_head');
+  if (qaHeadUser) {
+    const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
+    await sendNotification(qaHeadUser.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
+  }
 }
 
 async function raiseNCRFromRFI() {
@@ -3238,17 +3187,18 @@ async function raiseNCRFromRFI() {
     audit: [getAuditNow('Created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''), '')],
     raisedFromRfi: rfiMeta.rfiNo || rfi.id || ''
   };
-const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
-try {
-  await syncReportToServer(newNCR, true);
-  toast('📋 NCR created from RFI #' + docNo);
-  if (rfi.createdBy) {
-    await sendNotification(rfi.createdBy, `📋 NCR #${ncrMeta.ncrNo} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
+  try {
+    await syncReportToServer(newNCR, true);
+    toast('📋 NCR created from RFI #' + (rfiMeta.rfiNo || rfi.id || ''));
+    const contractorUser = users.find(u => u.username === rfi.createdBy);
+    if (contractorUser) {
+      const docNo = rfiMeta.rfiNo || rfi.id || 'Unknown';
+      await sendNotification(contractorUser.u, `📋 NCR #${ncrMeta.ncrNo} raised from your RFI #${docNo} by ${currentUser.display}`, 'new_ncr', ncrId, docNo, currentUser.display);
+    }
+    openTemplate('ncr', ncrId);
+  } catch(e) {
+    toast('❌ Failed to create NCR: ' + e.message);
   }
-  openTemplate('ncr', ncrId);
-} catch(e) {
-  toast('❌ Failed to create NCR: ' + e.message);
-}
 }
 async function submitRecord() {
   const rec = currentRecord();
@@ -3265,27 +3215,31 @@ async function submitRecord() {
     updateWorkflowButtons(rec);
     toast('📤 NCR sent to contractor');
 
-const agencyUsername = rec.meta?.agency;
-if (agencyUsername) {
-  await sendNotification(
-    agencyUsername,  // directly use the username
-    `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
-    'ncr_open',
-    rec.id,
-    rec.meta?.ncrNo || rec.id,
-    currentUser.display
-  );
-}
-   if (parentRfi && parentRfi.createdBy) {
-  await sendNotification(
-    parentRfi.createdBy,  // direct
-    `NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
-    'ncr_open',
-    rec.id,
-    rec.meta?.ncrNo || rec.id,
-    currentUser.display
-  );
-}
+    const agencyUsername = rec.meta?.agency;
+    if (agencyUsername) {
+      const contractorUser = users.find(u => u.u === agencyUsername);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
+          'ncr_open',
+          rec.id,
+          rec.meta?.ncrNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+    // Existing linked‑RFI logic
+    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
+    if (linkedRfiId) {
+      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
+      if (parentRfi && parentRfi.createdBy) {
+        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
+        if (contractorUser) {
+          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`, 'ncr_open', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
+        }
+      }
+    }
     return;
   }
   // === AUDIT SUBMIT ===
@@ -3304,17 +3258,19 @@ else if (isAudit()) {
   updateWorkflowButtons(rec);
   toast('📤 Audit sent to selected agencies');
 
-   // Notify each selected user (contractor and/or exec engineer)
+  // Notify each selected user (contractor and/or exec engineer)
   for (const username of rec.meta.agency) {
-    // ✅ Directly pass the username - no lookup needed
-    await sendNotification(
-      username,  // <-- CHANGED HERE
-      `📋 Audit #${rec.meta?.reportNo || rec.id} is assigned to you. Please review and respond.`,
-      'ncr_open',
-      rec.id,
-      rec.meta?.reportNo || rec.id,
-      currentUser.display
-    );
+    const user = users.find(u => u.u === username);
+    if (user) {
+      await sendNotification(
+        user.u,
+        `📋 Audit #${rec.meta?.reportNo || rec.id} is assigned to you. Please review and respond.`,
+        'ncr_open',
+        rec.id,
+        rec.meta?.reportNo || rec.id,
+        currentUser.display
+      );
+    }
   }
   return;
 }
@@ -3332,11 +3288,10 @@ else if (isAudit()) {
     toast('📤 IMIR submitted for approval');
     
     // Notify QA/Exec
-   // Get role-based recipients from dynamic cache
-const approvers = allUsersCache.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
-for (const approver of approvers) {
-  await sendNotification(approver.username || approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
-}
+    const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
+    for (const approver of approvers) {
+      await sendNotification(approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+    }
     return;
   }
 
@@ -3348,34 +3303,19 @@ for (const approver of approvers) {
   rec.savedAt = new Date().toISOString();
 
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
+  const execUser = users.find(u => u.role === 'exec_engineer');
+  const qaHeadUser = users.find(u => u.role === 'qa_head');
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
 
   await updateReportOnServer(rec);
-
-  // --- START of your new code (paste here) ---
   if (routing === 'Direct to QA Head') {
-    const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-    for (const qa of qaHeads) {
-      await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
-    }
+    if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
   } else if (routing === 'Execution Engineer → QA Head') {
-    const execs = allUsersCache.filter(u => u.role === 'exec_engineer');
-    for (const exec of execs) {
-      await sendNotification(exec.username || exec.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
-    }
+    if (execUser) await sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
   } else if (routing === 'Both') {
-    const execs = allUsersCache.filter(u => u.role === 'exec_engineer');
-    const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-    for (const exec of execs) {
-      await sendNotification(exec.username || exec.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
-    }
-    for (const qa of qaHeads) {
-      await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
-    }
+    if (execUser) await sendNotification(execUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
+    if (qaHeadUser) await sendNotification(qaHeadUser.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
   }
-  
-  // --- END of your new code ---
-
   updateWorkflowButtons(rec);
   setChecklistButtonsState(rec);
   toast('📤 Submitted');
@@ -3401,15 +3341,11 @@ async function markUnderReview() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📩 Response submitted for review');
-   const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-const execUsers = allUsersCache.filter(u => u.role === 'exec_engineer');
-const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
-for (const qa of qaHeads) {
-  await sendNotification(qa.username || qa.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
-for (const exec of execUsers) {
-  await sendNotification(exec.username || exec.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
+    const qaHeadUser = users.find(u => u.role === 'qa_head');
+    const execUser = users.find(u => u.role === 'exec_engineer');
+    const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
+    if (qaHeadUser) await sendNotification(qaHeadUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+    if (execUser) await sendNotification(execUser.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
     return;
   }
 
@@ -3430,11 +3366,19 @@ for (const exec of execUsers) {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📩 Audit response submitted for review');
+    
+    const approvers = users.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
     const docNo = rec.meta?.reportNo || rec.id || 'Unknown';
-    const approvers = allUsersCache.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
-for (const approver of approvers) {
-  await sendNotification(approver.username || approver.u, `📋 Audit #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
+    for (const approver of approvers) {
+      await sendNotification(
+        approver.u,
+        `📋 Audit #${docNo} response submitted by Contractor for review`,
+        'ncr_submitted',
+        rec.id,
+        docNo,
+        currentUser.display
+      );
+    }
     return;
   }
 
@@ -3470,17 +3414,15 @@ async function approveRecord() {
     updateWorkflowButtons(rec);
     toast('✅ NCR Closed');
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
-const parentRfi = linkedRfiId ? savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId)) : null;
-   if (parentRfi && parentRfi.createdBy) {
-  await sendNotification(
-    parentRfi.createdBy,
-    `NCR #${rec.meta?.ncrNo || rec.id} has been Approved & Closed by ${currentUser.display}`,
-    'closed_ncr',
-    rec.id,
-    rec.meta?.ncrNo || rec.id,
-    currentUser.display
-  );
-}
+    if (linkedRfiId) {
+      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
+      if (parentRfi && parentRfi.createdBy) {
+        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
+        if (contractorUser) {
+          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} has been Approved & Closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
+        }
+      }
+    }
     return;
   }
 
@@ -3502,18 +3444,21 @@ else if (isAudit()) {
   toast('✅ Audit Closed');
 
   // Notify each selected agency
-if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
-  for (const username of rec.meta.agency) {
-    await sendNotification(
-      username,
-      `✅ Audit #${rec.meta?.reportNo || rec.id} has been Approved & Closed by ${currentUser.display}`,
-      'closed_ncr',
-      rec.id,
-      rec.meta?.reportNo || rec.id,
-      currentUser.display
-    );
+  if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+    for (const username of rec.meta.agency) {
+      const contractorUser = users.find(u => u.u === username);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `✅ Audit #${rec.meta?.reportNo || rec.id} has been Approved & Closed by ${currentUser.display}`,
+          'closed_ncr',
+          rec.id,
+          rec.meta?.reportNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
   }
-}
   return;
 }
   // === IMIR APPROVE ===
@@ -3592,68 +3537,79 @@ async function rejectRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('↩️ NCR returned to contractor');
-
     const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
     if (linkedRfiId) {
       const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
       if (parentRfi && parentRfi.createdBy) {
-        await sendNotification(parentRfi.createdBy, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
+        const contractorUser = users.find(u => u.username === parentRfi.createdBy);
+        if (contractorUser) {
+          await sendNotification(contractorUser.u, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
+        }
       }
     }
     return;
   }
 
   // === AUDIT REJECT ===
-  else if (isAudit()) {
-    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-      toast('⛔ Only QA/Exec/Manager can reject audit');
-      return;
-    }
-    if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
-    const c = document.getElementById('wfComment').value.trim();
-    if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
-    rec.status = 'Rejected';
-    rec.comment = 'Returned for rework: ' + c;
-    rec.decisionBy = currentUser.username;
-    rec.decisionByDisplay = currentUser.display;
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('↩️ Audit returned to contractor');
+else if (isAudit()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can reject audit');
+    return;
+  }
+  if (rec.status !== 'Under Review') { toast('⚠️ Cannot reject now'); return; }
+  const c = document.getElementById('wfComment').value.trim();
+  if (!c) { toast('⚠️ Enter rejection/return comment'); return; }
+  rec.status = 'Rejected';
+  rec.comment = 'Returned for rework: ' + c;
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Returned to Contractor', rec.comment));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('↩️ Audit returned to contractor');
 
-    // Notify each selected agency
-    if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
-      for (const username of rec.meta.agency) {
-        await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+  // Notify each selected agency
+  if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+    for (const username of rec.meta.agency) {
+      const contractorUser = users.find(u => u.u === username);
+      if (contractorUser) {
+        await sendNotification(
+          contractorUser.u,
+          `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`,
+          'rejected',
+          rec.id,
+          rec.meta?.reportNo || rec.id,
+          currentUser.display
+        );
       }
     }
+  }
+  return;
+}
+   // === IMIR REJECT ===
+else if (isImir()) {
+  if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
+    toast('⛔ Only QA/Exec/Manager can reject IMIR');
     return;
   }
-
-  // === IMIR REJECT ===
-  else if (isImir()) {
-    if (!(canApprove() || isExecEngineer() || currentUser?.role === 'manager')) {
-      toast('⛔ Only QA/Exec/Manager can reject IMIR');
-      return;
-    }
-    if (rec.status !== 'Submitted') { toast('⚠️ Cannot reject now'); return; }
-    const c = document.getElementById('wfComment').value.trim();
-    if (!c) { toast('⚠️ Enter rejection comment'); return; }
-    rec.status = 'Rejected';
-    rec.comment = c;
-    rec.decisionBy = currentUser.username;
-    rec.decisionByDisplay = currentUser.display;
-    rec.savedAt = new Date().toISOString();
-    rec.audit.push(getAuditNow('Rejected', c));
-    await updateReportOnServer(rec);
-    updateWorkflowButtons(rec);
-    toast('❌ IMIR Rejected');
-    if (rec.createdBy) {
-      await sendNotification(rec.createdBy, `❌ IMIR #${rec.meta?.imirNo || rec.id} Rejected by ${currentUser.display}`, 'rejected', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
-    }
-    return;
+  if (rec.status !== 'Submitted') { toast('⚠️ Cannot reject now'); return; }
+  const c = document.getElementById('wfComment').value.trim();
+  if (!c) { toast('⚠️ Enter rejection comment'); return; }
+  rec.status = 'Rejected';
+  rec.comment = c;
+  rec.decisionBy = currentUser.username;
+  rec.decisionByDisplay = currentUser.display;
+  rec.savedAt = new Date().toISOString();
+  rec.audit.push(getAuditNow('Rejected', c));
+  await updateReportOnServer(rec);
+  updateWorkflowButtons(rec);
+  toast('❌ IMIR Rejected');
+  if (rec.createdBy) {
+    await sendNotification(rec.createdBy, `❌ IMIR #${rec.meta?.imirNo || rec.id} Rejected by ${currentUser.display}`, 'rejected', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
   }
+  return;
+}
   // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
@@ -3865,11 +3821,6 @@ async function openTemplate(key, reportId = null, reportObj = null) {
   // ← ADD THIS ↑↑↑
   // Use reportObj if provided, otherwise look up in savedReports
   const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
-    // Reset selected agencies when opening an audit
-  selectedAuditAgencies = [];
-  if (key === 'audit' && report && report.meta?.agency) {
-    selectedAuditAgencies = Array.isArray(report.meta.agency) ? [...report.meta.agency] : [report.meta.agency];
-  }
    // Auto-populate linked RFI for checklists
   if (pendingLinkedRfiNo && activeTemplateKey !== 'rfi') {
     const sel = document.getElementById('meta_linkedRfi');
@@ -4827,13 +4778,6 @@ async function init() {
         return;
       }
       currentUser = user;
-      // Inside init(), after currentUser = user;
-try {
-  allUsersCache = await apiRequest('/api/users/all');
-} catch (e) {
-  console.warn('Could not fetch users for cache:', e);
-  allUsersCache = users; // fallback to static
-}
       document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
       await loadFromServer();
       renderCards();
