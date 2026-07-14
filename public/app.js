@@ -2299,7 +2299,7 @@ function renderSheet(t, report) {
  }
   // ★ ADD THIS:
 else if (activeTemplateKey === 'audit') {
-  // Build the agency selection HTML with checkboxes only
+  // Build the agency selection HTML with checkboxes ONLY
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
       <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
@@ -2309,8 +2309,6 @@ else if (activeTemplateKey === 'audit') {
     </div>
   `;
   body.innerHTML = agencyHtml + renderAuditExact(report);
-
-  // --- No hidden input, no listeners – we read directly at save time ---
 
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
@@ -2827,7 +2825,16 @@ async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
   if (!t) return;
-  const meta = collectMeta(t);
+ const meta = collectMeta(t);
+    // ★★★ THE MASTER FIX – Read agencies directly from the DOM ★★★
+  if (activeTemplateKey === 'audit') {
+    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedBoxes)
+      .map(cb => cb.value)
+      .filter(v => v && v.trim() !== '');
+    meta.agency = agencies;
+    console.log('🔍 [saveReport] Overriding agency with DOM values:', meta.agency);
+  }
   
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
