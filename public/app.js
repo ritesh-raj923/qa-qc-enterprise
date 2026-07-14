@@ -44,6 +44,7 @@ let notifications = [];
 let notificationPollInterval = null;
 let agencyUsers = [];   // ← ADD THIS
 let allUsersCache = []; // Stores all users from server
+let selectedAuditAgencies = [];
 // Toggle sidebar for mobile
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -2308,6 +2309,35 @@ if (activeTemplateKey === 'audit') {
     </div>
   `;
   body.innerHTML = agencyHtml + renderAuditExact(report);
+    // --- Add change listener to agency checkboxes ---
+  // First, reset the global array
+  selectedAuditAgencies = [];
+  
+  // Get all agency checkboxes inside the body
+  const checkboxes = body.querySelectorAll('input[name="meta_agency"]');
+  
+  // If any checkboxes are pre-checked (when editing an existing audit), add them to the array
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      selectedAuditAgencies.push(cb.value);
+    }
+    
+    // Add change event listener to update the global array
+    cb.addEventListener('change', function(e) {
+      if (this.checked) {
+        // Add value if not already present
+        if (!selectedAuditAgencies.includes(this.value)) {
+          selectedAuditAgencies.push(this.value);
+        }
+      } else {
+        // Remove value
+        selectedAuditAgencies = selectedAuditAgencies.filter(v => v !== this.value);
+      }
+      console.log('📌 Selected agencies updated:', selectedAuditAgencies);
+    });
+  });
+  
+  console.log('📌 Initial selected agencies:', selectedAuditAgencies);
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
@@ -2559,24 +2589,11 @@ function collectMeta(t) {
     }
   }
 
-  // ★ FIXED: For AUDIT, read the agency from checkboxes
+   // ★ FIXED: For AUDIT, read from the global array (bypasses DOM issue)
   if (activeTemplateKey === 'audit') {
-    // Use a more robust query selector
-    let checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
-    
-    // If no checkboxes found in the main document, search inside the audit form
-    if (checkedAgencies.length === 0) {
-      const auditSection = document.querySelector('.audit-exact');
-      if (auditSection) {
-        checkedAgencies = auditSection.querySelectorAll('input[name="meta_agency"]:checked');
-      }
-    }
-    
-    const agencies = Array.from(checkedAgencies).map(el => el.value);
-    meta.agency = agencies;
-    
-    // DEBUG: Log for verification
-    console.log('🔍 [AUDIT] Agencies collected:', agencies);
+    // Use the global variable that is updated via change events
+    meta.agency = selectedAuditAgencies;
+    console.log('🔍 [AUDIT] Agencies from global array:', selectedAuditAgencies);
   }
 
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
@@ -3867,6 +3884,11 @@ async function openTemplate(key, reportId = null, reportObj = null) {
   // ← ADD THIS ↑↑↑
   // Use reportObj if provided, otherwise look up in savedReports
   const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
+    // Reset selected agencies when opening an audit
+  selectedAuditAgencies = [];
+  if (key === 'audit' && report && report.meta?.agency) {
+    selectedAuditAgencies = Array.isArray(report.meta.agency) ? [...report.meta.agency] : [report.meta.agency];
+  }
    // Auto-populate linked RFI for checklists
   if (pendingLinkedRfiNo && activeTemplateKey !== 'rfi') {
     const sel = document.getElementById('meta_linkedRfi');
