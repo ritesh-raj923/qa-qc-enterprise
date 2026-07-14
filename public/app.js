@@ -2535,7 +2535,6 @@ function renderLinkedactivitys(auditReport) {
 }
  // ============================================================
 // 15. DATA COLLECTION
-// ============================================================
 function collectMeta(t) {
   const meta = {};
   
@@ -2556,14 +2555,30 @@ function collectMeta(t) {
     if (checkedAgency) {
       meta.agency = checkedAgency.value;
     } else {
-      meta.agency = ''; // ensure it's empty if none selected
+      meta.agency = '';
     }
   }
+
+  // ★ FIXED: For AUDIT, read the agency from checkboxes
   if (activeTemplateKey === 'audit') {
-    const checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
+    // Use a more robust query selector
+    let checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
+    
+    // If no checkboxes found in the main document, search inside the audit form
+    if (checkedAgencies.length === 0) {
+      const auditSection = document.querySelector('.audit-exact');
+      if (auditSection) {
+        checkedAgencies = auditSection.querySelectorAll('input[name="meta_agency"]:checked');
+      }
+    }
+    
     const agencies = Array.from(checkedAgencies).map(el => el.value);
-    meta.agency = agencies; // store as array
-}
+    meta.agency = agencies;
+    
+    // DEBUG: Log for verification
+    console.log('🔍 [AUDIT] Agencies collected:', agencies);
+  }
+
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2575,6 +2590,7 @@ function collectMeta(t) {
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
   return meta;
 }
+
 function collectSections(t) {
   // Early returns for special template types
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
