@@ -1667,13 +1667,14 @@ async function loadAgencyUsers() {
     }
 
     // Normalise each user – try multiple field names
-    agencyUsers = filtered.map(u => ({
-      id: u.id,
-      username: u.username || u.user || u.email || u.id,
-      displayName: u.full_name || u.display_name || u.name || u.fullname || u.username || u.user || 'Unknown',
-      role: u.role || u.role_name || '',
-      sites: u.assigned_sites || u.sites || []
-    }));
+   agencyUsers = filtered.map(u => ({
+  id: u.id,
+  // ★★★ The server returns the username as 'u' ★★★
+  username: u.u || u.username || u.user || u.email || u.id,
+  displayName: u.name || u.full_name || u.display_name || u.fullname || u.username || u.user || 'Unknown',
+  role: u.role || u.role_name || '',
+  sites: u.assigned_sites || u.sites || []
+}));
 
     console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
   } catch (e) {
