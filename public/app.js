@@ -3521,6 +3521,20 @@ const parentRfi = linkedRfiId ? savedReports.find(r => r.templateKey === 'rfi' &
     currentUser.display
   );
 }
+    // Also notify the assigned agency/agencies
+const agencyUsernames = Array.isArray(rec.meta?.agency) ? rec.meta.agency : (rec.meta?.agency ? [rec.meta.agency] : []);
+for (const username of agencyUsernames) {
+  if (username && username !== parentRfi?.createdBy) { // avoid duplicate if same person
+    await sendNotification(
+      username,
+      `✅ NCR #${rec.meta?.ncrNo || rec.id} has been Approved & Closed by ${currentUser.display}`,
+      'closed_ncr',
+      rec.id,
+      rec.meta?.ncrNo || rec.id,
+      currentUser.display
+    );
+  }
+}
     return;
   }
 
@@ -3640,6 +3654,20 @@ async function rejectRecord() {
         await sendNotification(parentRfi.createdBy, `NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.ncrNo || rec.id, currentUser.display);
       }
     }
+    // Also notify the assigned agency/agencies
+const agencyUsernames = Array.isArray(rec.meta?.agency) ? rec.meta.agency : (rec.meta?.agency ? [rec.meta.agency] : []);
+for (const username of agencyUsernames) {
+  if (username && username !== parentRfi?.createdBy) {
+    await sendNotification(
+      username,
+      `↩️ NCR #${rec.meta?.ncrNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`,
+      'rejected',
+      rec.id,
+      rec.meta?.ncrNo || rec.id,
+      currentUser.display
+    );
+  }
+}
     return;
   }
 
@@ -3668,6 +3696,10 @@ async function rejectRecord() {
         await sendNotification(username, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
       }
     }
+    const creator = rec.createdBy;
+if (creator && !rec.meta?.agency?.includes(creator)) {
+  await sendNotification(creator, `↩️ Audit #${rec.meta?.reportNo || rec.id} returned for rework by ${currentUser.display}. Comment: ${c}`, 'rejected', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+}
     return;
   }
 
@@ -3723,6 +3755,18 @@ async function closeRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('🔒 Closed');
+   // Notify creator and agencies
+const creator = rec.createdBy;
+if (creator) {
+  await sendNotification(creator, `Audit #${rec.meta?.reportNo || rec.id} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+}
+if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+  for (const username of rec.meta.agency) {
+    if (username !== creator) {
+      await sendNotification(username, `Audit #${rec.meta?.reportNo || rec.id} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+    }
+  }
+}
     return;
   }
 
