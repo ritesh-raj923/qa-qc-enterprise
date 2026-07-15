@@ -2298,7 +2298,8 @@ function renderSheet(t, report) {
     return;
  }
   // ★ ADD THIS:
-if (activeTemplateKey === 'audit') {
+else if (activeTemplateKey === 'audit') {
+  // Build the agency selection HTML with checkboxes only
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
       <label style="font-weight:700; display:block; margin-bottom: 4px;">Select Agency (Contractor) for this Audit:</label>
@@ -2308,23 +2309,24 @@ if (activeTemplateKey === 'audit') {
     </div>
   `;
   body.innerHTML = agencyHtml + renderAuditExact(report);
+
+  // --- No hidden input, no listeners – we read directly at save time ---
+
   updateProgress();
   const attachmentsHtml = renderAttachments(report?.attachments || []);
   body.innerHTML += attachmentsHtml;
   renderLinkedactivitys(report);
   populateactivityButtons();
-    // Add Compliance Report button
-  // Remove any existing compliance button (to avoid duplicates)
+
+  // Add Compliance Report button
   const existingComplianceBtn = document.getElementById('complianceBtnUnique');
   if (existingComplianceBtn) existingComplianceBtn.remove();
-
   const complianceBtn = document.createElement('button');
   complianceBtn.type = 'button';
   complianceBtn.className = 'btn btn-secondary';
   complianceBtn.innerHTML = '📋 Add Compliance Report';
-  complianceBtn.id = 'complianceBtnUnique';   // give it a fixed ID
+  complianceBtn.id = 'complianceBtnUnique';
   complianceBtn.style.marginLeft = '8px';
-  // Use addEventListener with a named function to avoid stacking (optional)
   complianceBtn.addEventListener('click', function handler() {
     launchComplianceChecklist(report);
   });
@@ -2535,7 +2537,6 @@ function renderLinkedactivitys(auditReport) {
 }
  // ============================================================
 // 15. DATA COLLECTION
-// ============================================================
 function collectMeta(t) {
   const meta = {};
   
@@ -2556,14 +2557,18 @@ function collectMeta(t) {
     if (checkedAgency) {
       meta.agency = checkedAgency.value;
     } else {
-      meta.agency = ''; // ensure it's empty if none selected
+      meta.agency = '';
     }
   }
-  if (activeTemplateKey === 'audit') {
-    const checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
-    const agencies = Array.from(checkedAgencies).map(el => el.value);
-    meta.agency = agencies; // store as array
-}
+
+if (activeTemplateKey === 'audit') {
+  const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+  const agencies = Array.from(checkedBoxes)
+    .map(cb => cb.value)
+    .filter(v => v && v.trim() !== '');
+  meta.agency = agencies;
+  console.log('🔍 [collectMeta] Audit agency from checkboxes:', meta.agency);
+} 
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2575,6 +2580,7 @@ function collectMeta(t) {
   if (!meta.routing) meta.routing = 'Execution Engineer → QA Head';
   return meta;
 }
+
 function collectSections(t) {
   // Early returns for special template types
   if (activeTemplateKey === 'ncr') return collectNCRSectionsExact();
@@ -2779,6 +2785,7 @@ function canEditNCR(rec) {
 }
 // ★★★ PASTE HERE ★★★
 // ===== canEditAudit – allows contractors/exec engineers to edit when status is Open or Rejected =====
+// ===== canEditAudit – allows QA Head/Manager/Admin to edit any draft/open audit =====
 function canEditAudit(rec) {
   if (!rec) {
     // New audit: allow creation if user is QA/Exec/Manager/Admin
@@ -2788,7 +2795,15 @@ function canEditAudit(rec) {
   // Cannot edit when closed, approved, or under review
   if (status === 'Closed' || status === 'Approved' || status === 'Under Review') return false;
 
-  // Creator (manager/QA) can edit in Draft, Open, Rejected (they are the owner)
+  // --- ADD THIS BLOCK: QA Head, Manager, Admin can edit any draft/open/rejected audit ---
+  if (currentUser?.role === 'qa_head' || currentUser?.role === 'manager' || currentUser?.role === 'admin') {
+    // They can edit in Draft, Open, or Rejected
+    if (status === 'Draft' || status === 'Open' || status === 'Rejected') {
+      return true;
+    }
+  }
+
+  // Creator (manager/QA/exec) can edit in Draft, Open, Rejected (they are the owner)
   if (rec.createdBy === currentUser?.username) return true;
 
   // For recipients (contractor/exec engineer): can edit only if they are in the selected agencies list
@@ -2813,10 +2828,12 @@ async function saveReport(ev) {
   const t = templates[activeTemplateKey];
   if (!t) return;
   const meta = collectMeta(t);
+  
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
+
   if (activeTemplateKey === 'audit') {
-    console.log('🔍 [DEBUG] Audit agency:', meta.agency);
+    console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
   }
 
   // --- NCR edit check ---
@@ -2847,7 +2864,7 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-    // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
+  // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
   if (activeTemplateKey === 'audit') {
     let agencies = meta.agency || [];
     
@@ -2856,12 +2873,12 @@ async function saveReport(ev) {
       agencies = [agencies];
     }
     
-    // FILTER OUT: undefined, 'undefined', empty strings, and emails (just in case)
+    // FILTER OUT: undefined, 'undefined', empty strings, and emails
     const validAgencies = agencies.filter(a => 
       a && 
       a !== 'undefined' && 
       a.trim() !== '' &&
-      !a.includes('@') // prevents email addresses from slipping in
+      !a.includes('@')
     );
     
     if (validAgencies.length === 0) {
@@ -2872,6 +2889,7 @@ async function saveReport(ev) {
     // Overwrite meta.agency with the cleaned, valid array
     meta.agency = validAgencies;
   }
+
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -2913,7 +2931,7 @@ async function saveReport(ev) {
     } // end for
   } // end if
 
-  // --- Merge with existing attachments (OUTSIDE the loop) ---
+  // --- Merge with existing attachments ---
   const existingAttachments = existing?.attachments || [];
   const mergedAttachments = [...existingAttachments, ...attachmentData];
 
@@ -3350,6 +3368,7 @@ for (const approver of approvers) {
       await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   }
+  
   // --- END of your new code ---
 
   updateWorkflowButtons(rec);
@@ -3630,7 +3649,6 @@ async function rejectRecord() {
     }
     return;
   }
-}
   // === RFI ===
   const c = document.getElementById('wfComment').value.trim();
   if (!c) { toast('⚠️ Enter rejection comment'); return; }
