@@ -541,7 +541,24 @@ app.get('/api/users/agency', authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// =============================================
+// GET USERS BY ROLE (for notifications)
+// =============================================
+app.get('/api/users/role/:role', authenticateToken, async (req, res) => {
+  try {
+    const { role } = req.params;
+    const result = await pool.query(
+      "SELECT username, full_name, role FROM users WHERE role = $1 AND approved = true",
+      [role]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // ← PASTE HERE ↑↑↑
+
 // =============================================
 // 4. REPORTS API
 // =============================================
@@ -810,7 +827,11 @@ app.get('/api/data', authenticateToken, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'QA/QC Enterprise Server is running!' });
 });
- // Save push subscription for the logged-in user
+
+// =============================================
+// 8. PUSH SUBSCRIPTION (moved before catch-all)
+// =============================================
+// Save push subscription for the logged-in user
 app.post('/api/push/subscribe', authenticateToken, (req, res) => {
   try {
     const { subscription } = req.body;
@@ -828,8 +849,9 @@ app.post('/api/push/subscribe', authenticateToken, (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 // =============================================
-// 8. SERVE FRONTEND (SPA catch‑all)
+// 9. SERVE FRONTEND (SPA catch‑all)
 // =============================================
 
 // Important: this must come AFTER all API routes
@@ -838,7 +860,7 @@ app.get('*', (req, res) => {
 });
 
 // =============================================
-// 9. START SERVER
+// 10. START SERVER
 // =============================================
 
 app.listen(PORT, async () => {
