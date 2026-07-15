@@ -192,9 +192,35 @@ function parseReportRow(row) {
 }
 
 async function getReportsForUser(user) {
-  const filter = buildSiteFilter(user);
-  let query = `SELECT * FROM reports ${filter.sql} ORDER BY saved_at DESC`;
-  const result = await pool.query(query, filter.params);
+  const username = user.username;
+  const sites = user.assigned_sites || '[]';
+  let assigned = [];
+  try { assigned = JSON.parse(sites); } catch (e) { assigned = []; }
+
+  // If user has '*' site access, return all reports
+  if (assigned.includes('*')) {
+    const result = await pool.query('SELECT * FROM reports ORDER BY saved_at DESC');
+    return result.rows.map(parseReportRow);
+  }
+
+  // Build site condition
+  const placeholders = assigned.map((_, i) => `$${i + 1}`).join(',');
+  const siteCondition = `(site_name IN (${placeholders}) OR site_name = '*')`;
+  const params = [...assigned];
+
+  // Add agency condition: check if username is in meta.agency array
+  // Use JSONB operator '?' to test if the array contains the username
+  const query = `
+    SELECT * FROM reports
+    WHERE (
+      ${siteCondition}
+      OR (meta IS NOT NULL AND meta::jsonb->'agency' ? $${params.length + 1})
+    )
+    ORDER BY saved_at DESC
+  `;
+  params.push(username);
+
+  const result = await pool.query(query, params);
   return result.rows.map(parseReportRow);
 }
 
