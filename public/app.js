@@ -1354,22 +1354,12 @@ if (row.templateKey === 'audit') {
   } else {
     await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
-
-  // --- Create a "light" copy for localStorage (strip image data) ---
-  const lightRow = JSON.parse(JSON.stringify(row));
-  if (lightRow.attachments) {
-    lightRow.attachments = lightRow.attachments.map(att => ({
-      name: att.name,
-      type: att.type
-      // data field removed – only metadata
-    }));
-  }
-
-  // Update local cache with the light version
-  const idx = savedReports.findIndex(r => r.id === row.id);
-  if (idx >= 0) savedReports[idx] = lightRow;
-  else savedReports.unshift(lightRow);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+  
+ // --- Store the full report in local cache (including attachments data) ---
+const idx = savedReports.findIndex(r => r.id === row.id);
+if (idx >= 0) savedReports[idx] = row;
+else savedReports.unshift(row);
+ localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
 
   updateStats(); renderHistory(); updateNotificationUI();
 }
@@ -1386,12 +1376,8 @@ auditReports.forEach(a => {
   console.log('  Report:', a.meta?.reportNo, 'Agency:', a.meta?.agency);
 });
    savedReports = (data.reports || []).map(r => {
-  // Strip image data from attachments before storing in localStorage
-  let attachments = (r.attachments || []).map(att => ({
-    name: att.name,
-    type: att.type
-    // data field is removed – only metadata
-  }));
+  // Strip image data from attachments before storing in localStorag
+     let attachments = r.attachments || [];
 
   // --- Normalise agency for audit reports ---
   let meta = r.meta || {};
@@ -2992,32 +2978,34 @@ async function saveReport(ev) {
 
   // --- Save to server ---
   try {
-    const isNew = !savedReports.find(r => r.id === id);
-    await syncReportToServer(row, isNew);
-    activeReportId = id;
-    if (activeTemplateKey === 'rfi') {
-      pendingReturnRfiId = id;
-      pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
-      pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
-      renderLinkedNCRs();
-    }
-    updateWorkflowButtons(row);
-    setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
-    toast('✅ Saved successfully');
-   // ★★★ RELOAD FROM SERVER TO GET THE LATEST SAVED DATA ★★★
-await loadFromServer();  // this refreshes `savedReports` from the server
-const refreshedRow = savedReports.find(r => r.id === row.id);
-if (refreshedRow) {
-  renderSheet(t, refreshedRow);
-} else {
-  renderSheet(t, row); // fallback
-}
-updateStats();
-renderHistory();
-updateNotificationUI();
-  } catch(e) {
-    toast('❌ Save failed: ' + e.message);
+ // --- Save to server ---
+try {
+  const isNew = !savedReports.find(r => r.id === id);
+  await syncReportToServer(row, isNew);
+  activeReportId = id;
+  if (activeTemplateKey === 'rfi') {
+    pendingReturnRfiId = id;
+    pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
+    pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
+    renderLinkedNCRs();
   }
+  updateWorkflowButtons(row);
+  setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
+  toast('✅ Saved successfully');
+
+  // ★★★ FORCE REFRESH FROM SERVER TO GET THE LATEST DATA ★★★
+  await loadFromServer(); // reloads all reports with full attachments
+  const refreshedRow = savedReports.find(r => r.id === row.id);
+  if (refreshedRow) {
+    renderSheet(t, refreshedRow);
+  } else {
+    renderSheet(t, row); // fallback
+  }
+  updateStats();
+  renderHistory();
+  updateNotificationUI();
+} catch(e) {
+  toast('❌ Save failed: ' + e.message);
 }
 
 async function deleteReport(id) {
