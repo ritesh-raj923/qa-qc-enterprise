@@ -1903,6 +1903,10 @@ function canUserSeeRecord(record, user) {
 
  // --- AUDIT visibility (only for selected agencies) ---
 if (record.templateKey === 'audit') {
+  console.log('🔍 [canUserSeeRecord] audit id:', record.id);
+  console.log('  - agency list:', record.meta?.agency);
+  console.log('  - current user:', user.username);
+
   // Managers and consultants see all audits
   if (user.role === 'manager' || user.role === 'consultant') {
     return true;
@@ -2304,6 +2308,7 @@ function renderSheet(t, report) {
  }
   // ★ ADD THIS:
 else if (activeTemplateKey === 'audit') {
+  console.log('🔍 [renderSheet] audit report meta.agency:', report?.meta?.agency);
   // Build the agency selection HTML with checkboxes only
   const agencyHtml = `
     <div style="margin-bottom: 12px; padding: 10px; background: #f0f4fa; border: 1px solid #dbe4ee; border-radius: 6px;">
@@ -2969,10 +2974,17 @@ async function saveReport(ev) {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-    renderSheet(t, row);
-    updateStats();
-    renderHistory();
-    updateNotificationUI();
+   // ★★★ RELOAD FROM SERVER TO GET THE LATEST SAVED DATA ★★★
+await loadFromServer();  // this refreshes `savedReports` from the server
+const refreshedRow = savedReports.find(r => r.id === row.id);
+if (refreshedRow) {
+  renderSheet(t, refreshedRow);
+} else {
+  renderSheet(t, row); // fallback
+}
+updateStats();
+renderHistory();
+updateNotificationUI();
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
   }
