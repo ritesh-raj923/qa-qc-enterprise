@@ -41,29 +41,30 @@ self.addEventListener('activate', event => {
 
 // Fetch event – serve from cache, fall back to network
 self.addEventListener('fetch', event => {
+  // 🔥 Skip API requests – always go to network
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For static assets (HTML, CSS, JS, images) – use cache-first
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit – return the cached version
         if (response) {
           return response;
         }
-        // Otherwise, fetch from network
-        return fetch(event.request).then(
-          response => {
-            // Check if we received a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            // Clone the response and cache it for next time
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
+        return fetch(event.request).then(response => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-        );
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+          return response;
+        });
       })
   );
 });
