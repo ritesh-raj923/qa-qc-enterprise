@@ -19,7 +19,40 @@ async function apiRequest(url, options = {}) {
   }
   return res.json();
 }
+// ============================================================
+// PUSH NOTIFICATIONS – SUBSCRIPTION
+// ============================================================
 
+// Helper: convert VAPID public key from base64 to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Subscribe to push notifications
+async function subscribeToPush() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const VAPID_PUBLIC_KEY = 'BHzbOyM647Z8uN1xLiWNeONBNd0PP0zSRBEhWeebb6klyAGzzpm4snfC1dzmB6ZTS8UF7bljJrHDYA2SxdbehJo';   // <-- REPLACE THIS
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    await apiRequest('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription })
+    });
+    console.log('✅ Push subscription saved');
+  } catch (error) {
+    console.warn('❌ Push subscription failed:', error);
+  }
+}
 // ============================================================
 // 2. DATA LAYER (localStorage cache + server as source of truth)
 // ============================================================
@@ -1517,6 +1550,11 @@ try {
 
     renderCards();
     await loadFromServer();
+    // --- Subscribe to push notifications (if permission granted) ---
+    if (Notification.permission === 'granted') {
+      await subscribeToPush( );
+    }
+    // --- end push subscription ---
     updateStats();
     updateNotificationUI();
     startNotificationPolling();
