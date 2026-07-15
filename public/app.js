@@ -543,7 +543,7 @@ function renderNCRExact(report) {
   <td class="exact-label">Agency:</td>
 <td>
   <div class="exact-radio-line" style="display:flex; flex-wrap:wrap; gap:8px;">
-    ${generateAgencyRadios(m.agency, 'radio')}
+   ${generateAgencyRadios(m.agency, 'checkbox')}
   </div>
   </td>
 </tr>
@@ -1897,11 +1897,17 @@ function canUserSeeRecord(record, user) {
 
     // --- NCR visibility ---
    if (record.templateKey === 'ncr' && 
-    (user.role === 'engineer' || user.role === 'exec_engineer') && 
-    record.meta?.agency === user.username) {
-  return true;
+    (user.role === 'engineer' || user.role === 'exec_engineer')) {
+  const agency = record.meta?.agency;
+  // If it's a string (old data), compare directly; if array, check includes
+  if (Array.isArray(agency) && agency.includes(user.username)) {
+    return true;
+  }
+  if (typeof agency === 'string' && agency === user.username) {
+    return true;
+  }
+  return false;
 }
-
  // --- AUDIT visibility (only for selected agencies) ---
 if (record.templateKey === 'audit') {
   console.log('🔍 [canUserSeeRecord] audit id:', record.id);
@@ -2563,14 +2569,14 @@ function collectMeta(t) {
   });
 
   // ★ NEW: For NCR, read the agency from radio buttons
-  if (activeTemplateKey === 'ncr') {
-    const checkedAgency = document.querySelector('input[name="meta_agency"]:checked');
-    if (checkedAgency) {
-      meta.agency = checkedAgency.value;
-    } else {
-      meta.agency = '';
-    }
-  } 
+ if (activeTemplateKey === 'ncr') {
+  const checkedAgencies = document.querySelectorAll('input[name="meta_agency"]:checked');
+  const agencies = Array.from(checkedAgencies)
+    .map(cb => cb.value)
+    .filter(v => v && v.trim() !== '');
+  meta.agency = agencies; // now an array
+  console.log('🔍 [collectMeta] NCR agencies:', meta.agency);
+}
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2731,9 +2737,11 @@ function validateForm(meta) {
   } else if (activeTemplateKey === 'ncr') {
     if (!meta.project) req.push('Project');
     if (!meta.ncrNo) req.push('NCR No.');
-    if (!meta.agency) req.push('Agency');   // ← add this back
+    if (!meta.agency || (Array.isArray(meta.agency) && meta.agency.length === 0)) {
+        req.push('At least one Agency');
+    }
     if (!meta.ncrDate) req.push('NCR Date');
-  } else if (activeTemplateKey === 'imir') {
+} else if (activeTemplateKey === 'imir') {
     if (!meta.client) req.push('Client');
     if (!meta.package) req.push('Package/System');
     if (!meta.date) req.push('Date');
@@ -2779,8 +2787,11 @@ function canEditNCR(rec) {
 
   // Contractors (engineer/exec_engineer) can edit ONLY if they are the assigned agency
   if (isContractor) {
-    // Allow editing if the NCR is assigned to them and status is Open or Rejected
-    if (rec.meta?.agency === user.username) {
+    const agency = rec.meta?.agency;
+    if (Array.isArray(agency) && agency.includes(user.username)) {
+      return status === 'Open' || status === 'Rejected';
+    }
+    if (typeof agency === 'string' && agency === user.username) {
       return status === 'Open' || status === 'Rejected';
     }
     return false;
@@ -3256,16 +3267,18 @@ async function submitRecord() {
     updateWorkflowButtons(rec);
     toast('📤 NCR sent to contractor');
 
-const agencyUsername = rec.meta?.agency;
-if (agencyUsername) {
-  await sendNotification(
-    agencyUsername,  // directly use the username
-    `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
-    'ncr_open',
-    rec.id,
-    rec.meta?.ncrNo || rec.id,
-    currentUser.display
-  );
+const agencyUsernames = Array.isArray(rec.meta?.agency) ? rec.meta.agency : (rec.meta?.agency ? [rec.meta.agency] : []);
+for (const username of agencyUsernames) {
+  if (username) {
+    await sendNotification(
+      username,
+      `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
+      'ncr_open',
+      rec.id,
+      rec.meta?.ncrNo || rec.id,
+      currentUser.display
+    );
+  }
 }
    if (parentRfi && parentRfi.createdBy) {
   await sendNotification(
