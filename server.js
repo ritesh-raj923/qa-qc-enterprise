@@ -5,10 +5,20 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const webpush = require('web-push');   // <-- ADD THIS
+
+// --- ADD THIS BLOCK ---
+webpush.setVapidDetails(
+  `mailto:${process.env.VAPID_EMAIL}`,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 const app = express();
+// In-memory store for push subscriptions
+// For production, replace this with a database table
+let pushSubscriptions = {}; // key: username, value: array of subscription objects
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key_here_change_in_production';
-
 // --- Middleware ---
 app.use(cors({
   // Allow all origins (adjust for production if needed)
@@ -737,6 +747,25 @@ app.post('/api/notifications', authenticateToken, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8)`,
       [id, recipient_username, message, type || 'info', rfi_id || '', rfi_no || '', sender, created_at]
     );
+       // --- PUSH NOTIFICATIONS ---
+    const recipientSubs = pushSubscriptions[recipient_username] || [];
+    for (const sub of recipientSubs) {
+      try {
+        await webpush.sendNotification(sub, JSON.stringify({
+          title: 'QA/QC Suite',
+          body: message,
+          icon: '/icon.png',
+          data: { rfi_id, rfi_no }
+        }));
+      } catch (err) {
+        if (err.statusCode === 410) {
+          pushSubscriptions[recipient_username] = pushSubscriptions[recipient_username].filter(s => s.endpoint !== sub.endpoint);
+        } else {
+          console.warn('Push send failed:', err.message);
+        }
+      }
+    }
+    
     res.status(201).json({ message: 'Notification sent', id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -781,7 +810,24 @@ app.get('/api/data', authenticateToken, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'QA/QC Enterprise Server is running!' });
 });
+ // Save push subscription for the logged-in user
+app.post('/api/push/subscribe', authenticateToken, (req, res) => {
+  try {
+    const { subscription } = req.body;
+    // Assume your auth middleware sets `req.user` with a `username` property
+    const username = req.user.username;
 
+    if (!pushSubscriptions[username]) pushSubscriptions[username] = [];
+    // Remove older subscription with same endpoint to avoid duplicates
+    pushSubscriptions[username] = pushSubscriptions[username].filter(s => s.endpoint !== subscription.endpoint);
+    pushSubscriptions[username].push(subscription);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Push subscription error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // =============================================
 // 8. SERVE FRONTEND (SPA catch‑all)
 // =============================================
