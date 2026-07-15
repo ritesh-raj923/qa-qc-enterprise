@@ -1895,17 +1895,22 @@ function canUserSeeRecord(record, user) {
     }
 
     // --- NCR visibility ---
-    if (record.templateKey === 'ncr' && user.role === 'engineer' && record.meta?.agency === user.username) {
-      return true;
-    }
+   if (record.templateKey === 'ncr' && 
+    (user.role === 'engineer' || user.role === 'exec_engineer') && 
+    record.meta?.agency === user.username) {
+  return true;
+}
 
  // --- AUDIT visibility (only for selected agencies) ---
 if (record.templateKey === 'audit') {
+  // Managers and consultants see all audits
+  if (user.role === 'manager' || user.role === 'consultant') {
+    return true;
+  }
+
   const agencies = record.meta?.agency;
-  // Normalise to array if it's a string
   let agencyList = agencies;
   if (typeof agencies === 'string') {
-    // If it's a JSON array string, parse it
     try {
       const parsed = JSON.parse(agencies);
       agencyList = Array.isArray(parsed) ? parsed : [agencies];
@@ -2559,16 +2564,7 @@ function collectMeta(t) {
     } else {
       meta.agency = '';
     }
-  }
-
-if (activeTemplateKey === 'audit') {
-  const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
-  const agencies = Array.from(checkedBoxes)
-    .map(cb => cb.value)
-    .filter(v => v && v.trim() !== '');
-  meta.agency = agencies;
-  console.log('🔍 [collectMeta] Audit agency from checkboxes:', meta.agency);
-} 
+  } 
   // 2. Collect any additional inputs inside #sheetBody with id="meta_*"
   document.querySelectorAll('#sheetBody [id^="meta_"]').forEach(el => {
     const key = el.id.replace(/^meta_/, '');
@@ -2741,9 +2737,6 @@ function validateForm(meta) {
     if (!meta.reportNo) req.push('Report No.');
     if (!meta.auditor) req.push('Auditor');
     if (!meta.auditDate) req.push('Audit Date');
-    if (!meta.agency || (Array.isArray(meta.agency) && meta.agency.length === 0)) {
-        req.push('At least one Agency (Contractor/Execution Engineer)');
-    }
 }
  else {
     if (!meta.project) req.push('Project');
@@ -2827,14 +2820,28 @@ async function saveReport(ev) {
   ev.preventDefault();
   const t = templates[activeTemplateKey];
   if (!t) return;
+
+  // 1. Collect standard meta fields
   const meta = collectMeta(t);
-  
+
+  // ★★★ CAPTURE AGENCIES FROM DOM (for audit only) ★★★
+  if (activeTemplateKey === 'audit') {
+    const checkedBoxes = document.querySelectorAll('input[name="meta_agency"]:checked');
+    const agencies = Array.from(checkedBoxes)
+      .map(cb => cb.value)
+      .filter(v => v && v.trim() !== '');
+    meta.agency = agencies;
+    console.log('🔍 [saveReport] Agencies captured:', meta.agency);
+
+    // ★★★ MANDATORY VALIDATION – blocks save if none selected ★★★
+    if (meta.agency.length === 0) {
+      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
+      return;
+    }
+  }
+
   // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
-
-  if (activeTemplateKey === 'audit') {
-    console.log('🔍 [DEBUG] Audit agency (after fix):', meta.agency);
-  }
 
   // --- NCR edit check ---
   if (activeTemplateKey === 'ncr') {
@@ -2848,7 +2855,7 @@ async function saveReport(ev) {
     }
   }
 
-  // --- AUDIT edit check (NEW) ---
+  // --- AUDIT edit check ---
   if (activeTemplateKey === 'audit') {
     const rec = currentRecord();
     if (!canEditAudit(rec)) {
@@ -2864,32 +2871,10 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-  // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
-  if (activeTemplateKey === 'audit') {
-    let agencies = meta.agency || [];
-    
-    // Ensure it's an array
-    if (!Array.isArray(agencies)) {
-      agencies = [agencies];
-    }
-    
-    // FILTER OUT: undefined, 'undefined', empty strings, and emails
-    const validAgencies = agencies.filter(a => 
-      a && 
-      a !== 'undefined' && 
-      a.trim() !== '' &&
-      !a.includes('@')
-    );
-    
-    if (validAgencies.length === 0) {
-      toast('⚠️ Please select at least one valid Agency (Contractor/Execution Engineer).');
-      return;
-    }
-    
-    // Overwrite meta.agency with the cleaned, valid array
-    meta.agency = validAgencies;
-  }
+  // ★★★ DELETE THE OLD VALIDATION BLOCK – the one that filtered 'validAgencies' ★★★
+  // (It used to be here – we've removed it entirely)
 
+  // 3. Collect sections and build the row object
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
   const id = activeReportId || ('rep_' + Date.now());
@@ -2908,8 +2893,7 @@ async function saveReport(ev) {
         toast('⚠️ File ' + file.name + ' exceeds 2MB limit – skipped.');
         continue;
       }
-      let blobToEncode = file; // default to original
-
+      let blobToEncode = file;
       if (file.type && file.type.startsWith('image/')) {
         try {
           blobToEncode = await compressImage(file, 800, 0.7);
@@ -2918,23 +2902,17 @@ async function saveReport(ev) {
           blobToEncode = file;
         }
       }
-
-      console.log('Reading file:', file.name, file.size);
       const data = await readFileAsBase64(blobToEncode);
-      console.log('File data length:', data.length);
-
       attachmentData.push({
         name: file.name,
         type: file.type,
         data: data
       });
-    } // end for
-  } // end if
+    }
+  }
 
-  // --- Merge with existing attachments ---
   const existingAttachments = existing?.attachments || [];
   const mergedAttachments = [...existingAttachments, ...attachmentData];
-
   const raisedFromRfi = meta.raisedFromRfi || existing?.raisedFromRfi || '';
 
   // --- Build the row object ---
@@ -2991,7 +2969,6 @@ async function saveReport(ev) {
     updateWorkflowButtons(row);
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
-    // Re-render the current sheet to show newly uploaded attachments
     renderSheet(t, row);
     updateStats();
     renderHistory();
