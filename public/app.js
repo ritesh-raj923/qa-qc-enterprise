@@ -3001,10 +3001,10 @@ try {
   updateStats();
   renderHistory();
   updateNotificationUI();
-} catch(e) {
-  toast('❌ Save failed: ' + e.message);
+ } catch(e) {
+   toast('❌ Save failed: ' + e.message);
+ }
 }
-
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
