@@ -67,3 +67,55 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+// ============================================================
+// PUSH NOTIFICATIONS HANDLERS (ADDED)
+// ============================================================
+
+self.addEventListener('push', event => {
+  try {
+    const data = event.data.json();
+    const options = {
+      body: data.body || 'New notification',
+      icon: data.icon || '/icon.png',
+      badge: '/badge.png',
+      vibrate: [200, 100, 200],
+      data: data.data || {},
+      actions: [
+        { action: 'open', title: 'Open App' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
+    };
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'QA/QC Suite', options)
+    );
+  } catch (error) {
+    console.error('Push notification error:', error);
+  }
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const action = event.action;
+  const rfiId = event.notification.data?.rfi_id || 
+                event.notification.data?.rfiId || 
+                event.notification.data?.id;
+  if (action === 'dismiss') return;
+  
+  let url = '/';
+  if (rfiId) {
+    // If your app uses hash routing (e.g., /#record/123):
+    url = `/#record/${rfiId}`;
+    // If it uses query params, use: url = `/?record=${rfiId}`;
+  }
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientsArr => {
+        for (const client of clientsArr) {
+          if (client.url.includes(url) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        return clients.openWindow(url);
+      })
+  );
+});
