@@ -2758,28 +2758,34 @@ function getAuditNow(action, comment) {
 function currentRecord() { return activeReportId ? savedReports.find(r => r.id === activeReportId) : null; }
 
 // ===== canEditNCR – allows contractors to edit Submitted, Open, Rejected =====
+// ===== canEditNCR – allows contractors and exec engineers to edit if assigned =====
 function canEditNCR(rec) {
   if (!rec) {
-    // New NCR: allow creation if user is QA/Exec/Admin
-    return currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
+    // New NCR: allow creation if user is QA/Exec/Manager/Admin
+    return currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'manager' || currentUser?.role === 'admin';
   }
   const status = rec.status || 'Draft';
-  const isContractor = currentUser?.role === 'engineer';
-  const isQAExec = currentUser?.role === 'qa_head' || currentUser?.role === 'exec_engineer' || currentUser?.role === 'admin';
+  const user = currentUser;
+  const isContractor = user?.role === 'engineer' || user?.role === 'exec_engineer';
+  const isQAExec = user?.role === 'qa_head' || user?.role === 'exec_engineer' || user?.role === 'manager' || user?.role === 'admin';
+
+  // Cannot edit if closed or approved
   if (status === 'Closed' || status === 'Approved') return false;
+
+  // QA/Exec/Manager/Admin can edit Draft, Open, Rejected, Under Review
+  if (isQAExec) {
+    return status === 'Draft' || status === 'Open' || status === 'Rejected' || status === 'Under Review';
+  }
+
+  // Contractors (engineer/exec_engineer) can edit ONLY if they are the assigned agency
   if (isContractor) {
-    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
-    if (linkedRfiId) {
-      const parentRfi = savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId));
-      if (parentRfi && parentRfi.createdBy === currentUser.username) {
-        return (status === 'Open' || status === 'Rejected' || status === 'Submitted');
-      }
+    // Allow editing if the NCR is assigned to them and status is Open or Rejected
+    if (rec.meta?.agency === user.username) {
+      return status === 'Open' || status === 'Rejected';
     }
     return false;
   }
-  if (isQAExec) {
-    return (status === 'Draft' || status === 'Under Review');
-  }
+
   return false;
 }
 // ★★★ PASTE HERE ★★★
@@ -3370,11 +3376,12 @@ async function markUnderReview() {
   if (!rec) { toast('⚠️ Open record first'); return; }
 
   // === NCR ===
-  if (isNcr()) {
-    if (currentUser?.role !== 'engineer') {
-      toast('⛔ Only contractor can submit NCR response');
-      return;
-    }
+ if (isNcr()) {
+  // ★★★ Allow BOTH engineer AND exec_engineer to submit ★★★
+  if (currentUser?.role !== 'engineer' && currentUser?.role !== 'exec_engineer') {
+    toast('⛔ Only contractor or execution engineer can submit NCR response');
+    return;
+  }
     if (rec.status !== 'Open' && rec.status !== 'Rejected') {
       toast('⚠️ Cannot submit this NCR');
       return;
