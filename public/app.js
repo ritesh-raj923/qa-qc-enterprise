@@ -2085,6 +2085,18 @@ function goBackFromAbout() {
     switchView('login');
   }
 }
+// ============================================================
+// REFRESH CURRENT RECORD – fetch latest from server
+// ============================================================
+function refreshCurrentRecord() {
+  if (!activeReportId) {
+    toast('⚠️ No record is currently open.');
+    return;
+  }
+  toast('🔄 Refreshing record from server...');
+  // Re‑open the record, which will fetch the latest data including attachments
+  openRecord(activeReportId);
+}
 function backFromForm() {
   if (pendingReturnRfiId) {
     const record = savedReports.find(r => r.id === pendingReturnRfiId);
@@ -3981,17 +3993,16 @@ async function openTemplate(key, reportId = null, reportObj = null) {
     return;
 
   } catch (e) {
-    // 8. Offline fallback – use cached version (images may be missing)
-    toast('⚠️ Using cached version – images may not be shown');
-
-    // Permission check for cached version
-    if (!canUserSeeRecord(r, currentUser)) {
-      toast('⛔ Access denied');
-      return;
-    }
-
-    openTemplate(r.templateKey, r.id);
-  }
+  // 8. Offline fallback – use cached version (images may be missing)
+  toast('⚠️ Showing cached version. Images may not be shown. Click "Refresh" to retry.');
+  
+   // Permission check for cached version
+   if (!canUserSeeRecord(r, currentUser)) {
+     toast('⛔ Access denied');
+     return;
+   }
+   openTemplate(r.templateKey, r.id);
+ }
 }
 // ============================================================
 // 20. STATS & DASHBOARD
