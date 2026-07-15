@@ -34,7 +34,10 @@ function urlBase64ToUint8Array(base64String) {
   }
   return outputArray;
 }
-
+// Fetch all approved users of a specific role
+async function getUsersByRole(role) {
+  return await apiRequest(`/api/users/role/${role}`);
+}
 // Subscribe to push notifications
 async function subscribeToPush() {
   try {
@@ -1539,13 +1542,6 @@ document.querySelectorAll('.admin-only').forEach(el => {
 document.querySelectorAll('.manager-admin-only').forEach(el => {
   el.style.display = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? 'block' : 'none';
 });
-    // --- ADD THIS ---
-try {
-  allUsersCache = await apiRequest('/api/users/all');
-} catch (e) {
-  console.warn('Could not fetch users for cache:', e);
-  allUsersCache = users;
-}
 // --- END ADD ---
 
     renderCards();
@@ -3216,13 +3212,13 @@ async function approveForQA() {
   await updateReportOnServer(rec);
   updateWorkflowButtons(rec);
   toast('📋 RFI approved for QA review');
-   // --- ADD THIS LINE ---
+  
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
-  // --- END ADD ---
-const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-for (const qa of qaHeads) {
-  await sendNotification(qa.username || qa.u, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
-}
+  // --- REPLACE allUsersCache with getUsersByRole ---
+  const qaHeads = await getUsersByRole('qa_head');
+  for (const qa of qaHeads) {
+    await sendNotification(qa.username, `RFI #${docNo} approved for QA by ${currentUser.display}`, 'approved_for_qa', rec.id, docNo, currentUser.display);
+  }
 }
 
 async function raiseNCRFromRFI() {
@@ -3291,7 +3287,7 @@ async function submitRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Save first'); return; }
 
-  // === NCR SUBMIT ===
+    // === NCR SUBMIT ===
   if (isNcr()) {
     if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
     rec.status = 'Open';
@@ -3302,29 +3298,34 @@ async function submitRecord() {
     updateWorkflowButtons(rec);
     toast('📤 NCR sent to contractor');
 
-const agencyUsernames = Array.isArray(rec.meta?.agency) ? rec.meta.agency : (rec.meta?.agency ? [rec.meta.agency] : []);
-for (const username of agencyUsernames) {
-  if (username) {
-    await sendNotification(
-      username,
-      `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
-      'ncr_open',
-      rec.id,
-      rec.meta?.ncrNo || rec.id,
-      currentUser.display
-    );
-  }
-}
-   if (parentRfi && parentRfi.createdBy) {
-  await sendNotification(
-    parentRfi.createdBy,  // direct
-    `NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
-    'ncr_open',
-    rec.id,
-    rec.meta?.ncrNo || rec.id,
-    currentUser.display
-  );
-}
+    // --- FIX: define parentRfi ---
+    const linkedRfiId = rec.raisedFromRfi || rec.meta?.raisedFromRfi || '';
+    const parentRfi = linkedRfiId ? savedReports.find(r => r.templateKey === 'rfi' && (r.id === linkedRfiId || r.meta?.rfiNo === linkedRfiId)) : null;
+
+    const agencyUsernames = Array.isArray(rec.meta?.agency) ? rec.meta.agency : (rec.meta?.agency ? [rec.meta.agency] : []);
+    for (const username of agencyUsernames) {
+      if (username) {
+        await sendNotification(
+          username,
+          `📋 NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
+          'ncr_open',
+          rec.id,
+          rec.meta?.ncrNo || rec.id,
+          currentUser.display
+        );
+      }
+    }
+    // Notify the RFI creator only if they are not already in the agency list
+    if (parentRfi && parentRfi.createdBy && !agencyUsernames.includes(parentRfi.createdBy)) {
+      await sendNotification(
+        parentRfi.createdBy,
+        `NCR #${rec.meta?.ncrNo || rec.id} is assigned to you. Please review and respond.`,
+        'ncr_open',
+        rec.id,
+        rec.meta?.ncrNo || rec.id,
+        currentUser.display
+      );
+    }
     return;
   }
   // === AUDIT SUBMIT ===
@@ -3357,9 +3358,7 @@ else if (isAudit()) {
   }
   return;
 }
-
-
-  // === IMIR SUBMIT ===  (MOVED OUTSIDE NCR BLOCK)
+   // === IMIR SUBMIT ===  (MOVED OUTSIDE NCR BLOCK)
   else if (isImir()) {
     if (rec.status !== 'Draft') { toast('⚠️ IMIR is not in Draft state'); return; }
     rec.status = 'Submitted';
@@ -3370,12 +3369,14 @@ else if (isAudit()) {
     updateWorkflowButtons(rec);
     toast('📤 IMIR submitted for approval');
     
-    // Notify QA/Exec
-   // Get role-based recipients from dynamic cache
-const approvers = allUsersCache.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
-for (const approver of approvers) {
-  await sendNotification(approver.username || approver.u, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
-}
+    // --- REPLACE allUsersCache with getUsersByRole ---
+    const roles = ['qa_head', 'exec_engineer', 'manager', 'admin'];
+    for (const role of roles) {
+      const users = await getUsersByRole(role);
+      for (const user of users) {
+        await sendNotification(user.username, `📋 IMIR #${rec.meta?.imirNo || rec.id} submitted for approval`, 'ncr_submitted', rec.id, rec.meta?.imirNo || rec.id, currentUser.display);
+      }
+    }
     return;
   }
 
@@ -3385,33 +3386,33 @@ for (const approver of approvers) {
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
   rec.savedAt = new Date().toISOString();
-
+  // === RFI SUBMIT (inside submitRecord) ===
+  // ... existing code that updates status and saves ...
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
 
-  await updateReportOnServer(rec);
-
-  // --- START of your new code (paste here) ---
+  // --- REPLACE this block ---
   if (routing === 'Direct to QA Head') {
-    const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
+    const qaHeads = await getUsersByRole('qa_head');
     for (const qa of qaHeads) {
-      await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
+      await sendNotification(qa.username, `New RFI #${docNo} submitted directly to QA Head by ${currentUser.display}`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   } else if (routing === 'Execution Engineer → QA Head') {
-    const execs = allUsersCache.filter(u => u.role === 'exec_engineer');
+    const execs = await getUsersByRole('exec_engineer');
     for (const exec of execs) {
-      await sendNotification(exec.username || exec.u, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
+      await sendNotification(exec.username, `New RFI #${docNo} submitted by ${currentUser.display} – awaiting your review`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   } else if (routing === 'Both') {
-    const execs = allUsersCache.filter(u => u.role === 'exec_engineer');
-    const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
+    const execs = await getUsersByRole('exec_engineer');
+    const qaHeads = await getUsersByRole('qa_head');
     for (const exec of execs) {
-      await sendNotification(exec.username || exec.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
+      await sendNotification(exec.username, `New RFI #${docNo} submitted by ${currentUser.display} – you can review or approve for QA`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
     for (const qa of qaHeads) {
-      await sendNotification(qa.username || qa.u, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
+      await sendNotification(qa.username, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   }
+
   
   // --- END of your new code ---
 
@@ -3422,7 +3423,6 @@ for (const approver of approvers) {
 async function markUnderReview() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-
   // === NCR ===
  if (isNcr()) {
   // ★★★ Allow BOTH engineer AND exec_engineer to submit ★★★
@@ -3441,18 +3441,19 @@ async function markUnderReview() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📩 Response submitted for review');
-   const qaHeads = allUsersCache.filter(u => u.role === 'qa_head');
-const execUsers = allUsersCache.filter(u => u.role === 'exec_engineer');
-const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
-for (const qa of qaHeads) {
-  await sendNotification(qa.username || qa.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
-for (const exec of execUsers) {
-  await sendNotification(exec.username || exec.u, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
+    
+    // --- REPLACE allUsersCache with getUsersByRole ---
+    const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
+    const qaHeads = await getUsersByRole('qa_head');
+    const execUsers = await getUsersByRole('exec_engineer');
+    for (const qa of qaHeads) {
+      await sendNotification(qa.username, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+    }
+    for (const exec of execUsers) {
+      await sendNotification(exec.username, `NCR #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+    }
     return;
   }
-
   // === AUDIT CONTRACTOR RESPONSE ===
   else if (isAudit()) {
     if (currentUser?.role !== 'engineer') {
@@ -3470,13 +3471,19 @@ for (const exec of execUsers) {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('📩 Audit response submitted for review');
+    
+    // --- REPLACE allUsersCache with getUsersByRole ---
     const docNo = rec.meta?.reportNo || rec.id || 'Unknown';
-    const approvers = allUsersCache.filter(u => ['qa_head', 'exec_engineer', 'manager', 'admin'].includes(u.role));
-for (const approver of approvers) {
-  await sendNotification(approver.username || approver.u, `📋 Audit #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
-}
+    const roles = ['qa_head', 'exec_engineer', 'manager', 'admin'];
+    for (const role of roles) {
+      const users = await getUsersByRole(role);
+      for (const user of users) {
+        await sendNotification(user.username, `📋 Audit #${docNo} response submitted by Contractor for review`, 'ncr_submitted', rec.id, docNo, currentUser.display);
+      }
+    }
     return;
   }
+
 
   // === RFI ===
   rec.status = 'Under Review';
@@ -3746,7 +3753,7 @@ if (creator && !rec.meta?.agency?.includes(creator)) {
 async function closeRecord() {
   const rec = currentRecord();
   if (!rec) { toast('⚠️ Open record first'); return; }
-  if (isNcr()) {
+    if (isNcr()) {
     if (!(canApprove() || isExecEngineer())) { toast('⛔ Only Execution Engineer, QA Head or Admin can close NCR'); return; }
     rec.status = 'Closed';
     rec.comment = document.getElementById('wfComment').value.trim() || 'Closed manually';
@@ -3755,18 +3762,20 @@ async function closeRecord() {
     await updateReportOnServer(rec);
     updateWorkflowButtons(rec);
     toast('🔒 Closed');
-   // Notify creator and agencies
-const creator = rec.createdBy;
-if (creator) {
-  await sendNotification(creator, `Audit #${rec.meta?.reportNo || rec.id} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
-}
-if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
-  for (const username of rec.meta.agency) {
-    if (username !== creator) {
-      await sendNotification(username, `Audit #${rec.meta?.reportNo || rec.id} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, rec.meta?.reportNo || rec.id, currentUser.display);
+    
+    // --- FIX: Use NCR instead of Audit in notification messages ---
+    const creator = rec.createdBy;
+    const docNo = rec.meta?.ncrNo || rec.id || 'Unknown';
+    if (creator) {
+      await sendNotification(creator, `NCR #${docNo} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, docNo, currentUser.display);
     }
-  }
-}
+    if (rec.meta?.agency && Array.isArray(rec.meta.agency)) {
+      for (const username of rec.meta.agency) {
+        if (username !== creator) {
+          await sendNotification(username, `NCR #${docNo} has been closed by ${currentUser.display}`, 'closed_ncr', rec.id, docNo, currentUser.display);
+        }
+      }
+    }
     return;
   }
 
@@ -4905,13 +4914,7 @@ async function init() {
         return;
       }
       currentUser = user;
-      // Inside init(), after currentUser = user;
-try {
-  allUsersCache = await apiRequest('/api/users/all');
-} catch (e) {
-  console.warn('Could not fetch users for cache:', e);
-  allUsersCache = users; // fallback to static
-}
+
       document.querySelectorAll('.auth-only').forEach(el => el.classList.remove('hidden'));
       await loadFromServer();
       renderCards();
