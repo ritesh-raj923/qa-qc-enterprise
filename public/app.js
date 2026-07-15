@@ -2837,14 +2837,30 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-  if (!validateForm(meta)) return;
-    // --- AUDIT: ensure at least one agency is selected ---
+    // --- AUDIT: ensure at least one agency is selected AND sanitize the value ---
   if (activeTemplateKey === 'audit') {
-    const agencies = meta.agency || [];
-    if (!Array.isArray(agencies) || agencies.length === 0) {
-      toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
+    let agencies = meta.agency || [];
+    
+    // Ensure it's an array
+    if (!Array.isArray(agencies)) {
+      agencies = [agencies];
+    }
+    
+    // FILTER OUT: undefined, 'undefined', empty strings, and emails (just in case)
+    const validAgencies = agencies.filter(a => 
+      a && 
+      a !== 'undefined' && 
+      a.trim() !== '' &&
+      !a.includes('@') // prevents email addresses from slipping in
+    );
+    
+    if (validAgencies.length === 0) {
+      toast('⚠️ Please select at least one valid Agency (Contractor/Execution Engineer).');
       return;
     }
+    
+    // Overwrite meta.agency with the cleaned, valid array
+    meta.agency = validAgencies;
   }
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
