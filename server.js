@@ -208,13 +208,17 @@ async function getReportsForUser(user) {
   const siteCondition = `(site_name IN (${placeholders}) OR site_name = '*')`;
   const params = [...assigned];
 
-  // Add agency condition: check if username is in meta.agency array
-  // Use JSONB operator '?' to test if the array contains the username
+  // ★★★ ADD AGENCY CONDITION FOR BOTH AUDIT AND NCR ★★★
   const query = `
     SELECT * FROM reports
     WHERE (
       ${siteCondition}
-      OR (meta IS NOT NULL AND meta::jsonb->'agency' ? $${params.length + 1})
+      OR (
+        meta IS NOT NULL AND (
+          meta::jsonb->'agency' ? $${params.length + 1}
+          OR meta::jsonb->>'agency' = $${params.length + 1}
+        )
+      )
     )
     ORDER BY saved_at DESC
   `;
