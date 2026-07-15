@@ -2975,7 +2975,7 @@ async function saveReport(ev) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
- // --- Save to server ---
+// --- Save to server ---
 try {
   const isNew = !savedReports.find(r => r.id === id);
   await syncReportToServer(row, isNew);
@@ -2990,13 +2990,13 @@ try {
   setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
   toast('✅ Saved successfully');
 
-  // ★★★ FORCE REFRESH FROM SERVER TO GET THE LATEST DATA ★★★
-  await loadFromServer(); // reloads all reports with full attachments
+  // Force refresh from server to get the latest data
+  await loadFromServer();
   const refreshedRow = savedReports.find(r => r.id === row.id);
   if (refreshedRow) {
     renderSheet(t, refreshedRow);
   } else {
-    renderSheet(t, row); // fallback
+    renderSheet(t, row);
   }
   updateStats();
   renderHistory();
