@@ -2975,9 +2975,6 @@ async function saveReport(ev) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
-
-  // --- Save to server ---
-  try {
  // --- Save to server ---
 try {
   const isNew = !savedReports.find(r => r.id === id);
