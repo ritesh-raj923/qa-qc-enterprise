@@ -39,7 +39,7 @@ pool.on('error', (err) => {
 // =============================================
 async function initDatabase() {
   try {
-    // Users table
+    // Users table – ADD approved column
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -47,11 +47,18 @@ async function initDatabase() {
         password TEXT,
         role TEXT,
         assigned_sites TEXT,
-        full_name TEXT
+        full_name TEXT,
+        email TEXT UNIQUE,
+        approved BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    // ★★★ MIGRATION: Ensure new columns exist (for existing databases) ★★★
+await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE`);
+await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT FALSE`);
+await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`);
 
-    // Reports table
+    // Reports table (unchanged)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reports (
         id TEXT PRIMARY KEY,
@@ -78,7 +85,7 @@ async function initDatabase() {
       )
     `);
 
-    // Notifications table
+    // Notifications table (unchanged)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
@@ -93,27 +100,41 @@ async function initDatabase() {
       )
     `);
 
+    // ★★★ CREATE SITES TABLE ★★★
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sites (
+        name TEXT PRIMARY KEY
+      )
+    `);
+
+    // Seed default sites if table is empty
+    const siteResult = await pool.query("SELECT COUNT(*) as count FROM sites");
+    if (parseInt(siteResult.rows[0].count) === 0) {
+      await pool.query("INSERT INTO sites (name) VALUES ('Site-A'), ('Site-B'), ('Default')");
+      console.log('✅ Default sites created.');
+    }
+
     // Seed default users (only if empty)
-    const result = await pool.query("SELECT COUNT(*) as count FROM users");
-    if (parseInt(result.rows[0].count) === 0) {
+    const userResult = await pool.query("SELECT COUNT(*) as count FROM users");
+    if (parseInt(userResult.rows[0].count) === 0) {
       console.log('🌱 Seeding default users...');
       const defaultUsers = [
-        { username: 'admin', password: 'Admin123', role: 'admin', full_name: 'System Admin', sites: '["*"]' },
-        { username: 'exec_siteA', password: 'ExecA123', role: 'exec_engineer', full_name: 'Execution Engineer Site A', sites: '["Site-A"]' },
-        { username: 'qa_siteA', password: 'QaA123', role: 'qa_head', full_name: 'QA Head Site A', sites: '["Site-A"]' },
-        { username: 'contractor1_siteA', password: 'ContA123', role: 'engineer', full_name: 'Contractor 1 - Site A', sites: '["Site-A"]' },
-        { username: 'contractor2_siteA', password: 'ContA456', role: 'engineer', full_name: 'Contractor 2 - Site A', sites: '["Site-A"]' },
-        { username: 'exec_siteB', password: 'ExecB123', role: 'exec_engineer', full_name: 'Execution Engineer Site B', sites: '["Site-B"]' },
-        { username: 'qa_siteB', password: 'QaB123', role: 'qa_head', full_name: 'QA Head Site B', sites: '["Site-B"]' },
-        { username: 'contractor1_siteB', password: 'ContB123', role: 'engineer', full_name: 'Contractor 1 - Site B', sites: '["Site-B"]' },
-        { username: 'manager', password: 'Mgr123', role: 'manager', full_name: 'Project Manager', sites: '["*"]' },
-        { username: 'consultant', password: 'View123', role: 'consultant', full_name: 'Consultant', sites: '["*"]' }
+        { username: 'admin', password: 'Admin123', role: 'admin', full_name: 'System Admin', sites: '["*"]', approved: true },
+        { username: 'exec_siteA', password: 'ExecA123', role: 'exec_engineer', full_name: 'Execution Engineer Site A', sites: '["Site-A"]', approved: true },
+        { username: 'qa_siteA', password: 'QaA123', role: 'qa_head', full_name: 'QA Head Site A', sites: '["Site-A"]', approved: true },
+        { username: 'contractor1_siteA', password: 'ContA123', role: 'engineer', full_name: 'Contractor 1 - Site A', sites: '["Site-A"]', approved: true },
+        { username: 'contractor2_siteA', password: 'ContA456', role: 'engineer', full_name: 'Contractor 2 - Site A', sites: '["Site-A"]', approved: true },
+        { username: 'exec_siteB', password: 'ExecB123', role: 'exec_engineer', full_name: 'Execution Engineer Site B', sites: '["Site-B"]', approved: true },
+        { username: 'qa_siteB', password: 'QaB123', role: 'qa_head', full_name: 'QA Head Site B', sites: '["Site-B"]', approved: true },
+        { username: 'contractor1_siteB', password: 'ContB123', role: 'engineer', full_name: 'Contractor 1 - Site B', sites: '["Site-B"]', approved: true },
+        { username: 'manager', password: 'Mgr123', role: 'manager', full_name: 'Project Manager', sites: '["*"]', approved: true },
+        { username: 'consultant', password: 'View123', role: 'consultant', full_name: 'Consultant', sites: '["*"]', approved: true }
       ];
       for (const u of defaultUsers) {
         const hashed = bcrypt.hashSync(u.password, 10);
         await pool.query(
-          `INSERT INTO users (username, password, role, assigned_sites, full_name) VALUES ($1, $2, $3, $4, $5)`,
-          [u.username, hashed, u.role, u.sites, u.full_name]
+          `INSERT INTO users (username, password, role, assigned_sites, full_name, approved) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [u.username, hashed, u.role, u.sites, u.full_name, u.approved]
         );
       }
       console.log('✅ Default users created.');
@@ -162,6 +183,24 @@ function userHasSiteAccess(user, siteName) {
   // Global reports (site_name = '*') are accessible to everyone
   if (siteName === '*') return true;
   return assigned.includes(siteName);
+}
+// ★★★ NEW HELPER: Check if user can access a specific report ★★★
+function userCanAccessReport(user, reportRow) {
+  // First check site access
+  if (userHasSiteAccess(user, reportRow.site_name)) return true;
+  // Then check if user is listed in the agency field
+  let meta = {};
+  try { meta = JSON.parse(reportRow.meta || '{}'); } catch(e) { meta = {}; }
+  const agency = meta.agency;
+  if (!agency) return false;
+  // agency can be array (audit) or string (NCR)
+  if (Array.isArray(agency)) {
+    return agency.includes(user.username);
+  }
+  if (typeof agency === 'string') {
+    return agency === user.username;
+  }
+  return false;
 }
 
 function buildSiteFilter(user) {
@@ -322,15 +361,15 @@ app.post('/api/register', async (req, res) => {
     }
     const sitesJson = JSON.stringify(sites);
 
-    // 7. Insert user (username = email, password = hashed, created_at = NOW)
+    // ★★★ UPDATED INSERT – includes 'approved' column with FALSE ★★★
     const result = await pool.query(
-      `INSERT INTO users (username, email, password, role, assigned_sites, full_name, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO users (username, email, password, role, assigned_sites, full_name, created_at, approved)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), FALSE)
        RETURNING id`,
       [email, email, hashedPassword, role, sitesJson, full_name]
     );
 
-    // Note: new users start with approved = FALSE (default from database)
+    // New users start with approved = FALSE (explicitly set)
     res.status(201).json({
       message: 'User registered successfully. Please wait for admin approval.',
       userId: result.rows[0].id
@@ -511,9 +550,9 @@ app.get('/api/reports/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const result = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
-    const row = result.rows[0];
-    if (!userHasSiteAccess(req.user, row.site_name)) {
-      return res.status(403).json({ error: 'Access denied to this site' });
+      const row = result.rows[0];
+    if (!userCanAccessReport(req.user, row)) {
+      return res.status(403).json({ error: 'Access denied to this report' });
     }
     res.json(parseReportRow(row));
   } catch (err) {
@@ -544,9 +583,9 @@ app.get('/api/reports/:id/children', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const parentResult = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
     if (parentResult.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
-    const parentRow = parentResult.rows[0];
-    if (!userHasSiteAccess(req.user, parentRow.site_name)) {
-      return res.status(403).json({ error: 'Access denied to this site' });
+       const parentRow = parentResult.rows[0];
+    if (!userCanAccessReport(req.user, parentRow)) {
+      return res.status(403).json({ error: 'Access denied to this report' });
     }
 
     const allReports = await getReportsForUser(req.user);
@@ -623,11 +662,10 @@ app.put('/api/reports/:id', authenticateToken, async (req, res) => {
 
     const existing = await pool.query("SELECT * FROM reports WHERE id = $1", [id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Report not found' });
-    const row = existing.rows[0];
-    if (!userHasSiteAccess(req.user, row.site_name)) {
-      return res.status(403).json({ error: 'Access denied to this site' });
+        const row = existing.rows[0];
+    if (!userCanAccessReport(req.user, row)) {
+      return res.status(403).json({ error: 'Access denied to this report' });
     }
-
     const fields = {
       meta: meta !== undefined ? JSON.stringify(meta) : row.meta,
       sections: sections !== undefined ? JSON.stringify(sections) : row.sections,
