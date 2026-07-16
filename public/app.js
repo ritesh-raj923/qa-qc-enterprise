@@ -3386,6 +3386,7 @@ else if (isAudit()) {
   rec.comment = document.getElementById('wfComment').value.trim();
   rec.audit.push(getAuditNow('Submitted', rec.comment));
   rec.savedAt = new Date().toISOString();
+  await updateReportOnServer(rec);
   // === RFI SUBMIT (inside submitRecord) ===
   // ... existing code that updates status and saves ...
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
