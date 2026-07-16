@@ -1026,4 +1026,74 @@ header .sub { font-size: 13px; color: #555; }
     top: -2px !important;
     right: -2px !important;
   }
+  /* ============================================================
+   AUDIT – NCR BADGES & REMARKS CELL
+   ============================================================ */
+
+.audit-remarks-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.ncr-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ncr-badges .badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e6f2ff;
+  color: #123a66;
+  border: 1px solid #b8d4f0;
+  transition: all 0.15s;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ncr-badges .badge:hover {
+  background: #cce4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(18,58,102,0.15);
+}
+
+.ncr-badges .badge .remove-ncr {
+  color: #b33a3a;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 2px;
+  transition: color 0.15s;
+}
+
+.ncr-badges .badge .remove-ncr:hover {
+  color: #d64545;
+}
+
+.btn-sm {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+
+/* Mobile: Make remarks cell take more space */
+@media (max-width: 768px) {
+  .audit-remarks-cell {
+    min-width: 80px;
+  }
+  .ncr-badges .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+}
 }
