@@ -4416,8 +4416,7 @@ function updateStats() {
   document.getElementById('totalRfiRaised').innerText = rfis.length;
   document.getElementById('avgCompliance').innerText = approvalPct + '%';
   document.getElementById('pendingRfi').innerText = rfis.filter(r => ['Draft', 'Submitted', 'Under Review'].includes(r.status)).length;
-  document.getElementById('approvedRfi').innerText = approvedOnly;
-  document.getElementById('approvedCommentRfi').innerText = approvedWithComment;
+  document.getElementById('approvedRfi').innerText = allApproved;
   document.getElementById('rejectedRfi').innerText = rfis.filter(r => r.status === 'Rejected').length;
 
   // --- NCR stats ---
@@ -4425,6 +4424,8 @@ function updateStats() {
   const ncrClosed = ncrs.filter(r => r.status === 'Closed').length;
   const ncrOpen = ncrTotal - ncrClosed;
   const ncrClosedPct = ncrTotal ? Math.round((ncrClosed / ncrTotal) * 100) : 0;
+  const ncrOpenPct = ncrTotal ? Math.round((ncrOpen / ncrTotal) * 100) : 0;
+  document.getElementById('ncrOpenPct').innerText = ncrOpenPct + '%';
   document.getElementById('ncrTotal').innerText = ncrTotal;
   document.getElementById('ncrOpen').innerText = ncrOpen;
   document.getElementById('ncrClosed').innerText = ncrClosed;
@@ -4763,11 +4764,11 @@ function kpiLabel(type) {
     approval: 'Approved RFI',
     pending: 'Pending RFI',
     approved: 'Approved RFI',
-    approved_comment: 'RFI w/ Comment',
     rejected: 'Rejected RFI',
     ncr_total: 'All NCR',
     ncr_open: 'Open NCR',
     ncr_closed: 'Closed NCR',
+    ncr_open_pct: 'NCR Open %',
     ncr_closed_pct: 'NCR Closed %',
     // Add IMIR labels
     imir_total: 'All IMIR',
@@ -4796,8 +4797,7 @@ function filterKPI(type) {
   let sub = 'Showing all records.';
 
   // --- RFI filters ---
-  if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'approved_comment' || type === 'rejected') {
-    const rfis = sourceRows.filter(r => r.templateKey === 'rfi');
+  if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'rejected') {
     if (type === 'total') filtered = rfis;
     else if (type === 'approval') filtered = rfis.filter(r => ['Approved', 'Approved with Comment'].includes(r.status));
     else if (type === 'pending') filtered = rfis.filter(r => ['Draft', 'Submitted', 'Under Review'].includes(r.status));
@@ -4813,6 +4813,7 @@ function filterKPI(type) {
     if (type === 'ncr_total') filtered = ncrs;
     else if (type === 'ncr_open') filtered = ncrs.filter(r => r.status !== 'Closed');
     else if (type === 'ncr_closed' || type === 'ncr_closed_pct') filtered = ncrs.filter(r => r.status === 'Closed');
+    else if (type === 'ncr_open_pct') { filtered = ncrs.filter(r => r.status !== 'Closed');
     title = 'NCR List';
     sub = 'Showing NCR records.';
   }
