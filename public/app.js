@@ -80,6 +80,14 @@ let notifications = [];
 let notificationPollInterval = null;
 let agencyUsers = [];   // ← ADD THIS
 let allUsersCache = []; // Stores all users from server
+// Debounce helper – delays function execution until after user stops typing
+function debounce(func, delay = 300) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
+}
 // Toggle sidebar for mobile
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
@@ -4960,8 +4968,7 @@ function renderAuditKPIResults(data, type, customTitle, customSub) {
 }
 // ============================================================
 // RENDER AUDIT RECORDS WITH LINKED DOCUMENTS
-// ============================================================
-function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'auditRecordCountBadgeV2') {
+function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'auditRecordCountBadgeV2', showAll = false) {
   const tbody = document.getElementById(containerId);
   const badge = document.getElementById(badgeId);
   if (!tbody) return;
@@ -4982,15 +4989,20 @@ function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'audit
     return;
   }
 
+  // --- Pagination: show only 20 initially ---
+  const limit = showAll ? Infinity : 20;
+  const shownAudits = audits.slice(0, limit);
+  const hasMore = !showAll && audits.length > limit;
+
   if (badge) badge.textContent = audits.length + ' records';
 
   let html = '';
 
-  audits.forEach(audit => {
+  shownAudits.forEach(audit => {
     const auditId = audit.id;
     const auditNo = audit.meta?.reportNo || auditId;
 
-    // Find linked documents
+    // Find linked documents (now we limit the linked docs too)
     const linkedDocs = savedReports.filter(r => {
       if (r.templateKey === audit.templateKey) return false;
       const linkedAudit = r.meta?.linkedAudit || '';
@@ -5028,9 +5040,13 @@ function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'audit
       </tr>
     `;
 
-    // Child rows for linked documents
-    if (linkedDocs.length > 0) {
-      linkedDocs.forEach(doc => {
+    // Child rows for linked documents (limit to 5 to keep DOM small)
+    const linkedLimit = 5;
+    const shownLinked = linkedDocs.slice(0, linkedLimit);
+    const hasMoreLinked = linkedDocs.length > linkedLimit;
+
+    if (shownLinked.length > 0) {
+      shownLinked.forEach(doc => {
         const docStatus = badgeForStatus(doc.status || 'Draft');
         const docDate = fmtDateTime(doc.savedAt || doc.meta?.date || '');
         const docName = doc.templateName || doc.templateKey || 'Unknown';
@@ -5049,6 +5065,15 @@ function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'audit
           </tr>
         `;
       });
+      if (hasMoreLinked) {
+        html += `
+          <tr class="child-row" style="background:#f7fbfd;">
+            <td colspan="7" style="padding-left:28px; color:#888; font-style:italic;">
+              ... and ${linkedDocs.length - linkedLimit} more linked documents
+            </td>
+          </tr>
+        `;
+      }
     } else {
       html += `
         <tr class="child-row" style="background:#fafafa;">
@@ -5058,7 +5083,30 @@ function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'audit
     }
   });
 
+  // --- If there are more audits, add a "Load All" button ---
+  if (hasMore) {
+    html += `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:12px;">
+          <button class="btn btn-primary" onclick="loadAllAuditRecords()">
+            📂 Load All (${audits.length - limit} more audits)
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
   tbody.innerHTML = html;
+}
+  tbody.innerHTML = html;
+}
+
+function loadAllAuditRecords() {
+  renderAuditRecords('auditRecordsBodyV2', 'auditRecordCountBadgeV2', true);
+}
+
+function renderAuditHistory() {
+  updateAuditStats();
 }
 function renderAuditHistory() {
   // This is called by switchView – it uses the same KPI table above.
@@ -5271,10 +5319,31 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 document.addEventListener('change', e => {
-  if (e.target.matches('.status-select')) { stylizeStatus(e.target); updateProgress(); }
+  if (e.target.matches('.status-select')) {
+    stylizeStatus(e.target);
+    updateProgress();
+  }
+  // Immediate filter for select changes on history page
+  if (e.target.closest('.history-wrap') && e.target.matches('select')) {
+    applyFiltersAndRefresh();
+  }
 });
+
+// Debounced filter for history page inputs
+const debouncedFilter = debounce(() => {
+  applyFiltersAndRefresh();
+}, 300);
+
 document.addEventListener('input', e => {
-  if (e.target.matches('.table-textarea,.plain-textarea,.value-input,.table-input,.sig-input')) updateProgress();
+  // Update progress for form inputs
+  if (e.target.matches('.table-textarea,.plain-textarea,.value-input,.table-input,.sig-input')) {
+    updateProgress();
+  }
+  // Debounced filter for history page inputs
+  if (e.target.closest('.history-wrap') && 
+      (e.target.matches('input') || e.target.matches('select'))) {
+    debouncedFilter();
+  }
 });
 // ADD THIS ↓↓↓
 document.addEventListener('DOMContentLoaded', function() {
