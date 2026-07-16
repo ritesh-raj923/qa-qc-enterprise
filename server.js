@@ -27,7 +27,17 @@ app.use(cors({
   credentials: true
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
-app.use(express.static('public'));
+// Serve static files with caching headers
+app.use(express.static('public', {
+  maxAge: '1y',          // Cache for 1 year
+  immutable: true,       // File is immutable (versioned URLs)
+  setHeaders: (res, path, stat) => {
+    // For HTML files, don't cache (always fetch fresh)
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 app.use(compression());
 // --- Request logging ---
 app.use((req, res, next) => {
