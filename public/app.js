@@ -1584,23 +1584,35 @@ function loadDb() {
 async function syncReportToServer(row, isNew) {
   const siteName = getUserDefaultSite();
   const payload = toApiPayload(row, siteName);
-  // DEBUG: Log the payload being sent
-console.log('🔍 [DEBUG] Sending payload:', payload);
-if (row.templateKey === 'audit') {
-  console.log('🔍 [DEBUG] Audit payload agency:', payload.meta.agency);
-}
+  console.log('🔍 [DEBUG] Sending payload:', payload);
+  if (row.templateKey === 'audit') {
+    console.log('🔍 [DEBUG] Audit payload agency:', payload.meta.agency);
+  }
   if (isNew) {
     await apiRequest('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
   } else {
     await apiRequest(`/api/reports/${row.id}`, { method: 'PUT', body: JSON.stringify(payload) });
   }
-  
- // --- Store the full report in local cache (including attachments data) ---
-const idx = savedReports.findIndex(r => r.id === row.id);
-if (idx >= 0) savedReports[idx] = row;
-else savedReports.unshift(row);
- localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
 
+  // --- Store only metadata in localStorage, same as loadFromServer ---
+  // First, update the existing row in savedReports
+  const idx = savedReports.findIndex(r => r.id === row.id);
+  if (idx >= 0) {
+    // Keep the existing attachments (which are metadata-only) – but if the row has full attachments, strip data
+    const existingAttachments = savedReports[idx].attachments || [];
+    row.attachments = row.attachments.map(a => ({ name: a.name, type: a.type })); // strip base64
+    savedReports[idx] = row;
+  } else {
+    // New row – strip attachments
+    row.attachments = row.attachments.map(a => ({ name: a.name, type: a.type }));
+    savedReports.unshift(row);
+  }
+
+  // Keep only latest 50
+  savedReports.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+  savedReports = savedReports.slice(0, 50);
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
   updateStats(); renderHistory(); updateNotificationUI();
 }
 
@@ -1608,67 +1620,75 @@ else savedReports.unshift(row);
 async function loadFromServer() {
   try {
     const data = await apiRequest('/api/data');
-    // DEBUG: Log server response
-console.log('🔍 [DEBUG] Server data:', data);
-const auditReports = data.reports?.filter(r => r.template_key === 'audit') || [];
-console.log('🔍 [DEBUG] Audits from server:', auditReports.length);
-auditReports.forEach(a => {
-  console.log('  Report:', a.meta?.reportNo, 'Agency:', a.meta?.agency);
-});
-   savedReports = (data.reports || []).map(r => {
-  // Strip image data from attachments before storing in localStorag
-     let attachments = r.attachments || [];
+    console.log('🔍 [DEBUG] Server data:', data);
 
-  // --- Normalise agency for audit reports ---
-  let meta = r.meta || {};
-  if (r.template_key === 'audit' && meta.agency) {
-    if (typeof meta.agency === 'string') {
-      try {
-        const parsed = JSON.parse(meta.agency);
-        meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
-      } catch {
-        meta.agency = [meta.agency];
+    // --- Build reports WITHOUT attachment data (only metadata) ---
+    let reports = (data.reports || []).map(r => {
+      let meta = r.meta || {};
+      if (r.template_key === 'audit' && meta.agency) {
+        if (typeof meta.agency === 'string') {
+          try {
+            const parsed = JSON.parse(meta.agency);
+            meta.agency = Array.isArray(parsed) ? parsed : [meta.agency];
+          } catch {
+            meta.agency = [meta.agency];
+          }
+        } else if (!Array.isArray(meta.agency)) {
+          meta.agency = [meta.agency];
+        }
       }
-    } else if (!Array.isArray(meta.agency)) {
-      meta.agency = [meta.agency];
-    }
-  }
 
-  return {
-    id: r.id,
-    templateKey: r.template_key,
-    templateName: r.template_name,
-    formatNo: r.format_no,
-    meta: meta,   // ← use the normalised meta
-    sections: r.sections || [],
-    score: r.score || 0,
-    defectsCount: r.defects_count || 0,
-    titleLoc: r.title_loc || '',
-    preparedBy: r.prepared_by || '',
-    status: r.status || 'Draft',
-    comment: r.comment || '',
-    attachments: attachments,
-    createdBy: r.created_by || '',
-    createdByDisplay: r.created_by_display || '',
-    decisionBy: r.decision_by || '',
-    decisionByDisplay: r.decision_by_display || '',
-    savedAt: r.saved_at || '',
-    audit: r.audit || [],
-    raisedFromRfi: r.raised_from_rfi || '',
-    siteName: r.site_name || ''
-  };
-}); 
+      return {
+        id: r.id,
+        templateKey: r.template_key,
+        templateName: r.template_name,
+        formatNo: r.format_no,
+        meta: meta,
+        sections: r.sections || [],
+        score: r.score || 0,
+        defectsCount: r.defects_count || 0,
+        titleLoc: r.title_loc || '',
+        preparedBy: r.prepared_by || '',
+        status: r.status || 'Draft',
+        comment: r.comment || '',
+        // ⚠️ Store ONLY name and type, NOT data (to save space)
+        attachments: (r.attachments || []).map(a => ({
+          name: a.name,
+          type: a.type
+          // data: a.data   // ← intentionally omitted
+        })),
+        createdBy: r.created_by || '',
+        createdByDisplay: r.created_by_display || '',
+        decisionBy: r.decision_by || '',
+        decisionByDisplay: r.decision_by_display || '',
+        savedAt: r.saved_at || '',
+        audit: r.audit || [],
+        raisedFromRfi: r.raised_from_rfi || '',
+        siteName: r.site_name || ''
+      };
+    });
+
+    // --- Keep only the latest 50 reports (by savedAt) ---
+    reports.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+    savedReports = reports.slice(0, 50);
+
     notifications = data.notifications || [];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
     localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
     renderHistory(); updateStats(); updateNotificationUI();
     toast('✅ Synced with server');
   } catch (e) {
-    if (e.message && e.message.includes('401')) throw e;
-    console.warn('Server offline, using cached data', e);
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      toast('⚠️ Local storage is full. Please clear cache or delete old reports.');
+      console.warn('QuotaExceededError:', e);
+    } else if (e.message && e.message.includes('401')) {
+      throw e;
+    } else {
+      console.warn('Server offline, using cached data', e);
+      toast('⚠️ Using cached data (server unavailable)');
+    }
     loadDb();
     renderHistory(); updateStats(); updateNotificationUI();
-    toast('⚠️ Using cached data (server unavailable)');
   }
 }
 
@@ -5164,7 +5184,13 @@ function syncWithCloud() {
   toast('☁️ Sync: Use Refresh button to load latest from server');
   document.getElementById('syncStatus').innerText = '💾 ' + (savedReports.length) + ' records';
 }
-
+function clearLocalCache() {
+  if (!confirm('This will clear all locally cached data (reports, notifications). Your server data is safe. Continue?')) return;
+  localStorage.removeItem('qaqc_suite_data_v2');
+  localStorage.removeItem('qaqc_suite_notifications_v2');
+  toast('🗑️ Cache cleared. Refreshing...');
+  setTimeout(() => location.reload(), 500);
+}
 // ============================================================
 // 25. INITIALIZATION
 // ============================================================
