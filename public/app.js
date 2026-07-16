@@ -614,7 +614,211 @@ function renderNCRExact(report) {
       <tr><td><b>Name:</b> <input class="exact-input" data-disposal-name value="${ev(dispSig.name)}"></td><td><b>Signature:</b> <input class="exact-input" data-disposal-sign value="${ev(dispSig.sign)}"></td><td><b>Date:</b> <input type="date" class="exact-input" data-disposal-date value="${ev(dispSig.date)}"></td></tr>
       <tr><td colspan="3" class="exact-small">Format No. ADANI/Q/F-09 Rev 0</td></tr>
     </table>
+     <!-- === SUPPORTING DOCUMENTS SECTION (ADDED) === -->
+    ${report?.status !== 'Closed' ? `
+    <div style="margin-top:16px; border-top:2px solid var(--line); padding-top:12px;">
+      <div style="font-weight:700; font-size:15px; color:var(--blue); margin-bottom:8px;">📎 Supporting Documents</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <button type="button" class="btn btn-secondary" onclick="attachNewRfiToNcr()">📄 Create & Link RFI</button>
+        <button type="button" class="btn btn-secondary" onclick="attachExistingChecklistToNcr()">📋 Link Existing Checklist</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('ncrAttachmentInput').click()">📎 Upload File</button>
+        <input type="file" id="ncrAttachmentInput" multiple style="display:none;" onchange="uploadNcrAttachment(event)">
+      </div>
+      <div id="ncrSupportingDocsList" style="margin-top:8px;">
+        ${renderNcrSupportingDocs(report)}
+      </div>
+    </div>
+    ` : ''}
   </div>`;
+}
+// Render supporting documents for NCR
+function renderNcrSupportingDocs(report) {
+  const docs = report?.meta?.supportingDocs || [];
+  if (!docs.length) {
+    return '<div class="small" style="color:#888;">No supporting documents attached yet.</div>';
+  }
+  let html = '<table class="exact-table" style="font-size:12px;"><thead><tr><th>Type</th><th>Name / Reference</th><th>Added By</th><th>Date</th><th>Action</th></tr></thead><tbody>';
+  docs.forEach((doc, idx) => {
+    const docType = doc.type === 'rfi' ? '📄 RFI' :
+                    doc.type === 'checklist' ? '📋 Checklist' :
+                    doc.type === 'file' ? '📎 File' : '📌 Other';
+    const name = doc.rfiNo || doc.checklistName || doc.fileName || 'Unnamed';
+    const isRfi = doc.type === 'rfi';
+    const isChecklist = doc.type === 'checklist';
+    const isFile = doc.type === 'file';
+    const canDelete = currentUser && (
+      currentUser.role === 'admin' ||
+      currentUser.role === 'qa_head' ||
+      doc.addedBy === currentUser.username
+    );
+    html += `<tr>
+      <td>${docType}</td>
+      <td>${isRfi ? `<a href="#" onclick="openRecord('${doc.rfiId}')">${esc(name)}</a>` :
+          isChecklist ? `<a href="#" onclick="openRecord('${doc.checklistId}')">${esc(name)}</a>` :
+          isFile ? `<a href="${doc.fileData}" download="${esc(doc.fileName)}">${esc(doc.fileName)}</a>` :
+          esc(name)}</td>
+      <td>${esc(doc.addedBy || 'Unknown')}</td>
+      <td>${fmtDate(doc.addedAt)}</td>
+      <td>${canDelete ? `<button class="btn btn-danger" style="padding:2px 8px;font-size:10px;" onclick="removeNcrSupportingDoc(${idx})">✕</button>` : '-'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+// Attach a new RFI to NCR
+async function attachNewRfiToNcr() {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'ncr') { toast('⚠️ Open an NCR first'); return; }
+  if (rec.status === 'Closed') { toast('⚠️ Cannot add documents to a closed NCR'); return; }
+
+  try { await saveReport({ preventDefault() {} }); } catch (e) { toast('❌ Failed to save NCR: ' + e.message); return; }
+
+  pendingReturnRfiId = rec.id;
+  pendingLinkedRfiNo = null;
+  sessionStorage.setItem('ncrPendingDoc', JSON.stringify({ action: 'create_rfi', ncrId: rec.id, ncrNo: rec.meta?.ncrNo || rec.id }));
+  openTemplate('rfi');
+}
+
+// Attach an existing checklist to NCR
+async function attachExistingChecklistToNcr() {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'ncr') { toast('⚠️ Open an NCR first'); return; }
+  if (rec.status === 'Closed') { toast('⚠️ Cannot add documents to a closed NCR'); return; }
+
+  try { await saveReport({ preventDefault() {} }); } catch (e) { toast('❌ Failed to save NCR: ' + e.message); return; }
+
+  const checklists = savedReports.filter(r =>
+    r.templateKey !== 'rfi' && r.templateKey !== 'ncr' && r.templateKey !== 'imir' &&
+    r.templateKey !== 'audit' && !r.templateKey.startsWith('activity_')
+  );
+  if (!checklists.length) { toast('ℹ️ No checklists available to link. Create one first.'); return; }
+
+  let optionsHtml = checklists.map((chk, i) =>
+    `<option value="${i}">${esc(chk.templateName)} - ${esc(chk.meta?.linkedRfi || 'No RFI')} (${chk.status || 'Draft'})</option>`
+  ).join('');
+
+  const modalHtml = `
+    <div style="padding:16px; max-width:400px; min-width:280px;">
+      <h3 style="color:var(--blue); margin-bottom:8px;">Select Checklist to Link</h3>
+      <select id="ncrChecklistSelect" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--line);">${optionsHtml}</select>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn btn-primary" onclick="linkSelectedChecklistToNcr()">Link</button>
+        <button class="btn btn-secondary" onclick="closeNcrDocModal()">Cancel</button>
+      </div>
+    </div>
+  `;
+  const modal = createModal(modalHtml);
+  modal.id = 'ncrDocModal';
+  document.body.appendChild(modal);
+  modal.style.display = 'block';
+}
+
+function linkSelectedChecklistToNcr() {
+  const select = document.getElementById('ncrChecklistSelect');
+  if (!select) return;
+  const idx = parseInt(select.value);
+  const checklists = savedReports.filter(r =>
+    r.templateKey !== 'rfi' && r.templateKey !== 'ncr' && r.templateKey !== 'imir' &&
+    r.templateKey !== 'audit' && !r.templateKey.startsWith('activity_')
+  );
+  const chk = checklists[idx];
+  if (!chk) { toast('⚠️ Checklist not found'); return; }
+  const rec = currentRecord();
+  if (!rec) { toast('⚠️ No NCR open'); return; }
+
+  const docs = rec.meta?.supportingDocs || [];
+  docs.push({
+    type: 'checklist',
+    checklistId: chk.id,
+    checklistName: chk.templateName || 'Checklist',
+    addedBy: currentUser.display || currentUser.username,
+    addedAt: new Date().toISOString()
+  });
+  rec.meta.supportingDocs = docs;
+  saveReport({ preventDefault() {} }).then(() => {
+    toast('✅ Checklist linked to NCR');
+    closeNcrDocModal();
+  });
+}
+
+// Upload a file attachment to NCR
+async function uploadNcrAttachment(event) {
+  const files = event.target.files;
+  if (!files || !files.length) return;
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'ncr') { toast('⚠️ Open an NCR first'); return; }
+  if (rec.status === 'Closed') { toast('⚠️ Cannot add files to a closed NCR'); return; }
+
+  for (const file of files) {
+    let blobToEncode = file;
+    if (file.type && file.type.startsWith('image/') && file.size > 1024 * 1024) {
+      try { blobToEncode = await compressImage(file, 800, 0.7); } catch (e) { console.warn('Compression failed', e); }
+    }
+    const data = await readFileAsBase64(blobToEncode);
+    const docs = rec.meta?.supportingDocs || [];
+    docs.push({
+      type: 'file',
+      fileName: file.name,
+      fileData: data,
+      fileType: file.type,
+      addedBy: currentUser.display || currentUser.username,
+      addedAt: new Date().toISOString()
+    });
+    rec.meta.supportingDocs = docs;
+  }
+  await saveReport({ preventDefault() {} });
+  toast(`✅ ${files.length} file(s) attached to NCR`);
+  event.target.value = '';
+}
+
+// Remove a supporting document
+async function removeNcrSupportingDoc(idx) {
+  const rec = currentRecord();
+  if (!rec) { toast('⚠️ No NCR open'); return; }
+  const docs = rec.meta?.supportingDocs || [];
+  if (idx < 0 || idx >= docs.length) return;
+  docs.splice(idx, 1);
+  rec.meta.supportingDocs = docs;
+  await saveReport({ preventDefault() {} });
+  toast('🗑️ Document removed');
+}
+
+// Close the modal
+function closeNcrDocModal() {
+  const modal = document.getElementById('ncrDocModal');
+  if (modal) modal.remove();
+}
+
+// Create a modal overlay
+function createModal(contentHtml) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+    z-index:99999; backdrop-filter: blur(4px);
+  `;
+  const box = document.createElement('div');
+  box.style.cssText = `
+    background: #fff; border-radius:16px; max-width:90%; max-height:90%; overflow:auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding:20px;
+  `;
+  box.innerHTML = contentHtml;
+  overlay.appendChild(box);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  return overlay;
+}
+
+// Scroll to the doc panel (for the button)
+function showNcrDocPanel() {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'ncr') { toast('⚠️ Open an NCR first'); return; }
+  const section = document.querySelector('#ncrSupportingDocsList');
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    section.style.background = 'rgba(255,215,0,0.15)';
+    setTimeout(() => section.style.background = 'transparent', 2000);
+  }
 }
 function renderIMIRExact(report) {
   const m = report?.meta || {};
@@ -3014,11 +3218,39 @@ try {
   const isNew = !savedReports.find(r => r.id === id);
   await syncReportToServer(row, isNew);
   activeReportId = id;
-  if (activeTemplateKey === 'rfi') {
+   if (activeTemplateKey === 'rfi') {
     pendingReturnRfiId = id;
     pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
     pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
     renderLinkedNCRs();
+
+    // --- After saving RFI, check if it was created from NCR ---
+    const ncrDocData = sessionStorage.getItem('ncrPendingDoc');
+    if (ncrDocData) {
+      try {
+        const data = JSON.parse(ncrDocData);
+        if (data.action === 'create_rfi') {
+          const ncr = savedReports.find(r => r.id === data.ncrId);
+          if (ncr && ncr.templateKey === 'ncr') {
+            const docs = ncr.meta?.supportingDocs || [];
+            docs.push({
+              type: 'rfi',
+              rfiId: row.id,
+              rfiNo: row.meta?.rfiNo || row.id,
+              addedBy: currentUser.display || currentUser.username,
+              addedAt: new Date().toISOString()
+            });
+            ncr.meta.supportingDocs = docs;
+            await syncReportToServer(ncr, false);
+            const idx = savedReports.findIndex(r => r.id === ncr.id);
+            if (idx >= 0) savedReports[idx] = ncr;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+            toast('✅ RFI linked to NCR');
+          }
+        }
+        sessionStorage.removeItem('ncrPendingDoc');
+      } catch (e) { console.warn('Error linking RFI to NCR:', e); }
+    }
   }
   updateWorkflowButtons(row);
   setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
@@ -3104,6 +3336,15 @@ function updateWorkflowButtons(rec) {
     document.getElementById('btnApproveComment').classList.toggle('hidden', true);
     document.getElementById('btnApproveQA').classList.toggle('hidden', true);
     document.getElementById('btnRaiseNCR').classList.toggle('hidden', true);
+        // Show "Add Supporting Documents" button when NCR is not Closed
+    const showAddDocs = rec?.status !== 'Closed' && 
+      (currentUser?.role === 'engineer' || 
+       currentUser?.role === 'exec_engineer' || 
+       currentUser?.role === 'qa_head' || 
+       currentUser?.role === 'manager' || 
+       currentUser?.role === 'admin');
+    
+    document.getElementById('btnAddDocs').classList.toggle('hidden', !showAddDocs);
     return;
   }
    // ★★★★★ PASTE THE AUDIT BLOCK HERE ★★★★★
