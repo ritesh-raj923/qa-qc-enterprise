@@ -3382,17 +3382,38 @@ else if (isAudit()) {
 
   // === RFI SUBMIT ===
   if (rec.status === 'Submitted') { toast('⚠️ Already submitted'); return; }
-  rec.status = 'Submitted';
-  rec.comment = document.getElementById('wfComment').value.trim();
-  rec.audit.push(getAuditNow('Submitted', rec.comment));
-  rec.savedAt = new Date().toISOString();
-  await updateReportOnServer(rec);
-  // === RFI SUBMIT (inside submitRecord) ===
-  // ... existing code that updates status and saves ...
+
+  // Set status locally only after we confirm server save
+  const newStatus = 'Submitted';
+  const newComment = document.getElementById('wfComment').value.trim();
+
+  try {
+    // Update the record object
+    rec.status = newStatus;
+    rec.comment = newComment;
+    rec.audit.push(getAuditNow('Submitted', rec.comment));
+    rec.savedAt = new Date().toISOString();
+
+    // Save to server – wait for confirmation
+    await updateReportOnServer(rec);
+    console.log('✅ RFI successfully saved as Submitted');
+
+    // Reload the record from server to ensure we have the latest data
+    const fresh = savedReports.find(r => r.id === rec.id);
+    if (fresh) Object.assign(rec, fresh);
+
+  } catch (saveError) {
+    console.error('❌ Failed to submit RFI:', saveError);
+    toast('❌ Submission failed. Please try again.');
+    // Revert local status to Draft to keep consistency
+    rec.status = 'Draft';
+    return;
+  }
+
+  // --- Send notifications (only if save succeeded) ---
   const routing = rec.meta.routing || 'Execution Engineer → QA Head';
   const docNo = rec.meta?.rfiNo || rec.id || 'Unknown';
 
-  // --- REPLACE this block ---
   if (routing === 'Direct to QA Head') {
     const qaHeads = await getUsersByRole('qa_head');
     for (const qa of qaHeads) {
@@ -3413,9 +3434,6 @@ else if (isAudit()) {
       await sendNotification(qa.username, `New RFI #${docNo} submitted by ${currentUser.display} – you can approve directly or wait for Execution Engineer`, 'new_rfi', rec.id, docNo, currentUser.display);
     }
   }
-
-  
-  // --- END of your new code ---
 
   updateWorkflowButtons(rec);
   setChecklistButtonsState(rec);
