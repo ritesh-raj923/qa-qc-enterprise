@@ -4798,22 +4798,21 @@ function filterKPI(type) {
 
   // --- RFI filters ---
   if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'rejected') {
+    const rfis = sourceRows.filter(r => r.templateKey === 'rfi');
     if (type === 'total') filtered = rfis;
     else if (type === 'approval') filtered = rfis.filter(r => ['Approved', 'Approved with Comment'].includes(r.status));
     else if (type === 'pending') filtered = rfis.filter(r => ['Draft', 'Submitted', 'Under Review'].includes(r.status));
     else if (type === 'approved') filtered = rfis.filter(r => r.status === 'Approved' || r.status === 'Closed');
-    else if (type === 'approved_comment') filtered = rfis.filter(r => r.status === 'Approved with Comment');
     else if (type === 'rejected') filtered = rfis.filter(r => r.status === 'Rejected');
     title = 'RFI List';
     sub = 'Showing RFI records.';
   }
   // --- NCR filters ---
-  else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct') {
+  else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct' || type === 'ncr_open_pct') {
     const ncrs = sourceRows.filter(r => r.templateKey === 'ncr');
     if (type === 'ncr_total') filtered = ncrs;
-    else if (type === 'ncr_open') filtered = ncrs.filter(r => r.status !== 'Closed');
+    else if (type === 'ncr_open' || type === 'ncr_open_pct') filtered = ncrs.filter(r => r.status !== 'Closed');
     else if (type === 'ncr_closed' || type === 'ncr_closed_pct') filtered = ncrs.filter(r => r.status === 'Closed');
-    else if (type === 'ncr_open_pct') { filtered = ncrs.filter(r => r.status !== 'Closed');
     title = 'NCR List';
     sub = 'Showing NCR records.';
   }
@@ -4831,15 +4830,12 @@ function filterKPI(type) {
   currentKpiFilter = type;
   currentKpiRows = filtered.slice();
   renderKPIResults(filtered, type, title, sub);
-    // Update chart based on KPI type
+
+  // Update chart based on KPI type
   let chartType = 'rfi';
-  if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'approved_comment' || type === 'rejected') {
-    chartType = 'rfi';
-  } else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct') {
-    chartType = 'ncr';
-  } else if (type === 'imir_total' || type === 'imir_approved' || type === 'imir_rejected' || type === 'imir_pending') {
-    chartType = 'imir';
-  }
+  if (type === 'total' || type === 'approval' || type === 'pending' || type === 'approved' || type === 'rejected') chartType = 'rfi';
+  else if (type === 'ncr_total' || type === 'ncr_open' || type === 'ncr_closed' || type === 'ncr_closed_pct' || type === 'ncr_open_pct') chartType = 'ncr';
+  else if (type === 'imir_total' || type === 'imir_approved' || type === 'imir_rejected' || type === 'imir_pending') chartType = 'imir';
   renderRfiChart(chartType);
   setActiveKpiCard(type);
 }
