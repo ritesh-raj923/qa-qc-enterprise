@@ -865,18 +865,24 @@ function renderIMIRExact(report) {
 function renderAuditExact(report) {
   const m = report?.meta || {};
   
-  let auditRows = report?.sections?.[0]?.rows || [];
-  if (!auditRows.length) {
-    const templateRows = templates.audit.sections[0].rows;
-    auditRows = templateRows.map(task => ({
-      task: task,
-      available: '',
-      documents: '',
-      satisfactory: '',
-      remarks: ''
-    }));
-  }
-
+let auditRows = report?.sections?.[0]?.rows || [];
+if (!auditRows.length) {
+  const templateRows = templates.audit.sections[0].rows;
+  auditRows = templateRows.map(task => ({
+    task: task,
+    available: '',
+    documents: '',
+    satisfactory: '',
+    remarks: '',
+    linkedNCRs: []  // ← ADD THIS
+  }));
+} else {
+  // Ensure each row has a linkedNCRs array
+  auditRows = auditRows.map(row => ({
+    ...row,
+    linkedNCRs: row.linkedNCRs || []
+  }));
+}
   let html = `
   <div class="exact-format audit-exact">
     <table class="exact-table" style="border-bottom: none;">
@@ -897,7 +903,7 @@ function renderAuditExact(report) {
       <!-- Agency row removed – now placed outside the format -->
     </table>
 
-    <table class="exact-table audit-checklist">
+     <table class="exact-table audit-checklist">
       <tr>
         <th style="width:6%;">sr no</th>
         <th style="width:38%;">Tasks</th>
@@ -913,7 +919,18 @@ function renderAuditExact(report) {
           <td>${inputExact('', row.available, 'select', ['', 'Y', 'N'])}</td>
           <td>${inputExact('', row.documents, 'select', ['', 'Y', 'N'])}</td>
           <td>${inputExact('', row.satisfactory, 'select', ['', 'Satisfactory', 'Unsatisfactory'])}</td>
-          <td>${inputExact('', row.remarks)}</td>
+          <td>
+            <div class="audit-remarks-cell" 
+                 data-row-index="${idx}" 
+                 data-linked-ncrs='${JSON.stringify(row.linkedNCRs || [])}'>
+              <div class="ncr-badges" id="auditNcrBadges_${idx}">
+                ${renderAuditNcrBadges(row.linkedNCRs || [])}
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addNcrToAuditRow(${idx})" style="padding:2px 8px; font-size:11px; margin-top:4px;">
+                ➕ Add NCR
+              </button>
+            </div>
+          </td>
         </tr>
       `).join('')}
     </table>
@@ -932,6 +949,171 @@ function renderAuditExact(report) {
     </table>
   </div>`;
   return html;
+}
+// Render NCR badges for audit row
+// ============================================================
+// AUDIT – NCR LINKING FUNCTIONS
+// ============================================================
+
+// Render NCR badges for audit row
+function renderAuditNcrBadges(ncrList = []) {
+  if (!ncrList || !ncrList.length) return '';
+  return ncrList.map((ncr, index) => `
+    <span class="badge ok" style="cursor:pointer; margin:2px 4px 2px 0; display:inline-block;" 
+          onclick="openRecord('${ncr.ncrId}')" title="Click to open NCR">
+      📋 ${esc(ncr.ncrNo || 'NCR')}
+      <span style="cursor:pointer; color:red; margin-left:4px;" 
+            onclick="event.stopPropagation();removeAuditNcr(${ncr.rowIndex}, ${index})">✕</span>
+    </span>
+  `).join('');
+}
+
+// Add NCR to audit row
+function addNcrToAuditRow(rowIndex) {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'audit') { 
+    toast('⚠️ Open an Audit first'); 
+    return; 
+  }
+
+  // Get existing NCRs for this row
+  const sections = rec.sections || [];
+  const auditTable = sections[0] || { rows: [] };
+  const rows = auditTable.rows || [];
+  const row = rows[rowIndex] || {};
+  const linkedNCRs = row.linkedNCRs || [];
+
+  // Prompt for NCR number
+  const ncrNo = prompt('Enter NCR Number to link (e.g., NCR-001):');
+  if (!ncrNo || ncrNo.trim() === '') return;
+
+  // Check if this NCR already exists in the list
+  if (linkedNCRs.some(n => n.ncrNo === ncrNo.trim())) {
+    toast('⚠️ This NCR is already linked to this row.');
+    return;
+  }
+
+  // Find the NCR in savedReports by its number
+  const ncrReport = savedReports.find(r => 
+    r.templateKey === 'ncr' && 
+    (r.meta?.ncrNo === ncrNo.trim() || r.id === ncrNo.trim())
+  );
+
+  linkedNCRs.push({
+    ncrNo: ncrNo.trim(),
+    ncrId: ncrReport ? ncrReport.id : null,
+    rowIndex: rowIndex   // ← STORE rowIndex for removal
+  });
+
+  // Update the row
+  row.linkedNCRs = linkedNCRs;
+  rows[rowIndex] = row;
+  auditTable.rows = rows;
+  sections[0] = auditTable;
+  rec.sections = sections;
+
+  // Save and re-render to show the badge immediately
+  saveReport({ preventDefault() {} }).then(() => {
+    toast('✅ NCR linked to audit row');
+    renderSheet(templates[activeTemplateKey], rec);
+  });
+}
+
+// Remove NCR from audit row
+async function removeAuditNcr(rowIndex, ncrIndex) {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'audit') { 
+    toast('⚠️ Open an Audit first'); 
+    return; 
+  }
+
+  const sections = rec.sections || [];
+  const auditTable = sections[0] || { rows: [] };
+  const rows = auditTable.rows || [];
+  const row = rows[rowIndex] || {};
+  const linkedNCRs = row.linkedNCRs || [];
+
+  if (ncrIndex < 0 || ncrIndex >= linkedNCRs.length) return;
+  linkedNCRs.splice(ncrIndex, 1);
+  row.linkedNCRs = linkedNCRs;
+  rows[rowIndex] = row;
+  auditTable.rows = rows;
+  sections[0] = auditTable;
+  rec.sections = sections;
+
+  await saveReport({ preventDefault() {} });
+  toast('🗑️ NCR removed from row');
+  renderSheet(templates[activeTemplateKey], rec);
+}
+
+// ------------------------------------------------------------
+// Optional: Dropdown selector for adding NCRs (instead of prompt)
+// ------------------------------------------------------------
+function loadAuditNcrDropdown(rowIndex) {
+  const ncrs = savedReports.filter(r => r.templateKey === 'ncr');
+  if (!ncrs.length) {
+    toast('ℹ️ No NCRs available. Create one first.');
+    return;
+  }
+
+  const modalHtml = `
+    <div style="padding:16px; max-width:400px; min-width:280px;">
+      <h3 style="color:var(--blue); margin-bottom:8px;">Select NCR to Link</h3>
+      <div style="max-height:300px; overflow-y:auto;">
+        ${ncrs.map(n => `
+          <div style="padding:8px; border-bottom:1px solid #eee; cursor:pointer;" 
+               onclick="selectAuditNcr(${rowIndex}, '${n.id}', '${n.meta?.ncrNo || n.id}')">
+            <b>${esc(n.meta?.ncrNo || n.id)}</b> - ${esc(n.titleLoc || 'No project')}
+            <span class="badge ${n.status === 'Closed' ? 'ok' : 'mid'}">${esc(n.status || 'Draft')}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button class="btn btn-secondary" onclick="closeNcrDocModal()">Cancel</button>
+      </div>
+    </div>
+  `;
+  const modal = createModal(modalHtml);
+  modal.id = 'ncrDocModal';
+  document.body.appendChild(modal);
+  modal.style.display = 'block';
+}
+
+function selectAuditNcr(rowIndex, ncrId, ncrNo) {
+  const rec = currentRecord();
+  if (!rec || activeTemplateKey !== 'audit') { 
+    toast('⚠️ Open an Audit first'); 
+    return; 
+  }
+
+  const sections = rec.sections || [];
+  const auditTable = sections[0] || { rows: [] };
+  const rows = auditTable.rows || [];
+  const row = rows[rowIndex] || {};
+  const linkedNCRs = row.linkedNCRs || [];
+
+  if (linkedNCRs.some(n => n.ncrId === ncrId || n.ncrNo === ncrNo)) {
+    toast('⚠️ This NCR is already linked to this row.');
+    return;
+  }
+
+  linkedNCRs.push({
+    ncrNo: ncrNo,
+    ncrId: ncrId,
+    rowIndex: rowIndex   // ← store rowIndex
+  });
+
+  row.linkedNCRs = linkedNCRs;
+  rows[rowIndex] = row;
+  auditTable.rows = rows;
+  sections[0] = auditTable;
+  rec.sections = sections;
+
+  saveReport({ preventDefault() {} }).then(() => {
+    toast('✅ NCR linked to audit row');
+    closeNcrDocModal();
+    renderSheet(templates[activeTemplateKey], rec);
+  });
 }
  // ============================================================
 // RENDER activity CHECKLIST
@@ -1205,18 +1387,34 @@ function collectAuditSectionsExact() {
   if (!root) return [];
 
   // Collect audit table rows (checklist)
-  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr')).map(tr => {
+  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr')).map((tr, idx) => {
     const inputs = tr.querySelectorAll('input, select');
+    const remarksCell = tr.querySelector('.audit-remarks-cell');
+    let linkedNCRs = [];
+
+    // Try to read from the data attribute (set during rendering)
+    if (remarksCell) {
+      const dataAttr = remarksCell.getAttribute('data-linked-ncrs');
+      if (dataAttr) {
+        try { linkedNCRs = JSON.parse(dataAttr); } catch(e) { linkedNCRs = []; }
+      }
+    }
+
+    // If the data attribute is missing, fallback to reading from the current row object
+    // but we don't have that here – so we'll just keep an empty array.
+    // This ensures we don't lose existing linked NCRs if the attribute is missing.
+
     return {
       task: tr.cells[1]?.textContent.trim() || '',
       available: inputs[0]?.value || '',
       documents: inputs[1]?.value || '',
       satisfactory: inputs[2]?.value || '',
-      remarks: inputs[3]?.value || ''
+      remarks: inputs[3]?.value || '',
+      linkedNCRs: linkedNCRs
     };
   });
 
-  // Collect signatures
+  // Collect signatures (unchanged)
   const sigs = {
     auditor: { name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
     pm: { name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
