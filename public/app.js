@@ -2294,7 +2294,23 @@ function switchView(view) {
       badge.innerText = roleMap[currentUser.role] || 'System Active';
     } else { badge.innerText = '🔒 Not Logged In'; }
   }
- if (view === 'dashboard') { updateStats(); renderCards(); if (currentKpiFilter) filterKPI(currentKpiFilter); renderRfiChart('rfi'); }
+ if (view === 'dashboard') {
+  // --- Lazy load Chart.js only when dashboard is viewed ---
+  if (typeof Chart === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.async = true;
+    script.onload = function() {
+      renderRfiChart('rfi');
+    };
+    document.head.appendChild(script);
+  } else {
+    renderRfiChart('rfi');
+  }
+  updateStats();
+  renderCards();
+  if (currentKpiFilter) filterKPI(currentKpiFilter);
+}
   if (view === 'history') { renderHistory(); }
   if (view === 'settings') { populateConfigForm(); updateAdminToolsVisibility(); }
   if (view === 'masters') { populateMastersForm(); }
@@ -4599,23 +4615,25 @@ function visibleReports() {
   return rows;
 }
 function getHistoryFilteredRows() { return visibleReports(); }
-
-// ============================================================
-// 21. RENDER HISTORY – shows NCRs as child rows
-// ============================================================
-function renderHistory() {
+function renderHistory(showAll = false) {
   const body = document.getElementById('historyBody');
   body.innerHTML = '';
-  const rows = getHistoryFilteredRows();
-  if (!rows.length) {
+  const allRows = getHistoryFilteredRows();
+  if (!allRows.length) {
     body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#666;">No records found.</td></tr>';
     return;
   }
 
+  const limit = showAll ? Infinity : 50;
+  const rows = allRows.slice(0, limit);
+  const hasMore = !showAll && allRows.length > limit;
+
   const rfiRows = rows.filter(r => r.templateKey === 'rfi');
   const otherRows = rows.filter(r => r.templateKey !== 'rfi');
+
   const checklistMap = new Map();
   const ncrMap = new Map();
+
   otherRows.forEach(chk => {
     if (chk.templateKey === 'ncr') {
       const key = chk.raisedFromRfi || chk.meta?.raisedFromRfi || '__standalone__';
@@ -4711,8 +4729,23 @@ function renderHistory() {
       body.appendChild(child);
     });
   });
-}
 
+  // --- If there are more records, add a "Load All" button ---
+  if (hasMore) {
+    const loadMoreRow = document.createElement('tr');
+    loadMoreRow.innerHTML = `
+      <td colspan="8" style="text-align:center; padding:12px;">
+        <button class="btn btn-primary" onclick="loadAllHistory()">
+          📂 Load All (${allRows.length - limit} more records)
+        </button>
+      </td>
+    `;
+    body.appendChild(loadMoreRow);
+  }
+}
+function loadAllHistory() {
+  renderHistory(true);
+}
 // ============================================================
 // 22. KPI FILTERING
 // ============================================================
