@@ -3531,6 +3531,14 @@ async function submitRecord() {
     // === NCR SUBMIT ===
   if (isNcr()) {
     if (rec.status !== 'Draft') { toast('⚠️ NCR is not in Draft state'); return; }
+        // --- Collect current form data before submission ---
+    const t = templates[activeTemplateKey];
+    if (t) {
+      const collectedMeta = collectMeta(t);
+      // Merge collected meta into the record, preserving any existing fields
+      rec.meta = { ...rec.meta, ...collectedMeta };
+      console.log('🔍 [submitRecord] Collected NCR meta:', rec.meta);
+    }
     rec.status = 'Open';
     rec.comment = document.getElementById('wfComment').value.trim() || 'NCR raised and sent to contractor';
     rec.savedAt = new Date().toISOString();
