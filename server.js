@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
@@ -27,7 +28,7 @@ app.use(cors({
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
-
+app.use(compression());
 // --- Request logging ---
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
