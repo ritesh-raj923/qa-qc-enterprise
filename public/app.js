@@ -4089,7 +4089,13 @@ async function launchChecklistFromRfi(templateKey) {
     toast('❌ Failed to save RFI: ' + e.message);
     return;
   }
-  
+  // --- ADD THIS VERIFICATION ---
+  const savedRfi = currentRecord();
+  if (!savedRfi || !savedRfi.meta?.rfiNo || savedRfi.meta.rfiNo.trim() === '') {
+    toast('⚠️ Please enter a valid RFI No. and save the RFI before adding a checklist.');
+    return;
+  }
+  // -------------------------
   const parent = currentRecord();
   if (!parent || activeTemplateKey !== 'rfi') {
     toast('⚠️ Please save RFI first');
