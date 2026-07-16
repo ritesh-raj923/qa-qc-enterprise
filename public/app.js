@@ -967,8 +967,7 @@ function renderAuditNcrBadges(ncrList = []) {
     </span>
   `).join('');
 }
-
-// Add NCR to audit row
+// Add NCR to audit row – opens a new NCR form
 function addNcrToAuditRow(rowIndex) {
   const rec = currentRecord();
   if (!rec || activeTemplateKey !== 'audit') { 
@@ -976,48 +975,22 @@ function addNcrToAuditRow(rowIndex) {
     return; 
   }
 
-  // Get existing NCRs for this row
-  const sections = rec.sections || [];
-  const auditTable = sections[0] || { rows: [] };
-  const rows = auditTable.rows || [];
-  const row = rows[rowIndex] || {};
-  const linkedNCRs = row.linkedNCRs || [];
-
-  // Prompt for NCR number
-  const ncrNo = prompt('Enter NCR Number to link (e.g., NCR-001):');
-  if (!ncrNo || ncrNo.trim() === '') return;
-
-  // Check if this NCR already exists in the list
-  if (linkedNCRs.some(n => n.ncrNo === ncrNo.trim())) {
-    toast('⚠️ This NCR is already linked to this row.');
-    return;
-  }
-
-  // Find the NCR in savedReports by its number
-  const ncrReport = savedReports.find(r => 
-    r.templateKey === 'ncr' && 
-    (r.meta?.ncrNo === ncrNo.trim() || r.id === ncrNo.trim())
-  );
-
-  linkedNCRs.push({
-    ncrNo: ncrNo.trim(),
-    ncrId: ncrReport ? ncrReport.id : null,
-    rowIndex: rowIndex   // ← STORE rowIndex for removal
-  });
-
-  // Update the row
-  row.linkedNCRs = linkedNCRs;
-  rows[rowIndex] = row;
-  auditTable.rows = rows;
-  sections[0] = auditTable;
-  rec.sections = sections;
-
-  // Save and re-render to show the badge immediately
+  // Save the audit first to ensure we have the latest data
   saveReport({ preventDefault() {} }).then(() => {
-    toast('✅ NCR linked to audit row');
-    renderSheet(templates[activeTemplateKey], rec);
+    // Store context so that when NCR is saved, we know which audit row to link it to
+    sessionStorage.setItem('auditNcrLinkContext', JSON.stringify({
+      auditId: rec.id,
+      rowIndex: rowIndex,
+      auditNo: rec.meta?.reportNo || rec.id
+    }));
+    
+    // Open a new NCR template
+    openTemplate('ncr');
+  }).catch(e => {
+    toast('❌ Failed to save audit: ' + e.message);
   });
 }
+
 
 // Remove NCR from audit row
 async function removeAuditNcr(rowIndex, ncrIndex) {
@@ -3460,7 +3433,9 @@ try {
   const isNew = !savedReports.find(r => r.id === id);
   await syncReportToServer(row, isNew);
   activeReportId = id;
-   if (activeTemplateKey === 'rfi') {
+
+  // --- RFI specific logic ---
+  if (activeTemplateKey === 'rfi') {
     pendingReturnRfiId = id;
     pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
     pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
@@ -3494,6 +3469,76 @@ try {
       } catch (e) { console.warn('Error linking RFI to NCR:', e); }
     }
   }
+
+  // --- NEW: After saving NCR, check if it was created from an Audit ---
+  if (activeTemplateKey === 'ncr') {
+    const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
+    if (auditLinkData) {
+      try {
+        const data = JSON.parse(auditLinkData);
+        const audit = savedReports.find(r => r.id === data.auditId);
+        if (audit && audit.templateKey === 'audit') {
+          const sections = audit.sections || [];
+          const auditTable = sections[0] || { rows: [] };
+          const rows = auditTable.rows || [];
+          const rowIndex = data.rowIndex;
+          const rowData = rows[rowIndex] || {};
+          const linkedNCRs = rowData.linkedNCRs || [];
+          linkedNCRs.push({
+            ncrNo: row.meta?.ncrNo || row.id,
+            ncrId: row.id,
+            rowIndex: rowIndex
+          });
+          rowData.linkedNCRs = linkedNCRs;
+          rows[rowIndex] = rowData;
+          auditTable.rows = rows;
+          sections[0] = auditTable;
+          audit.sections = sections;
+          await syncReportToServer(audit, false);
+          const idx = savedReports.findIndex(r => r.id === audit.id);
+          if (idx >= 0) savedReports[idx] = audit;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+          toast('✅ NCR linked to audit row');
+        }
+        sessionStorage.removeItem('auditNcrLinkContext');
+      } catch (e) { console.warn('Error linking NCR to audit:', e); }
+    }
+  }
+    // --- After saving NCR, check if it was created from an Audit ---
+  if (activeTemplateKey === 'ncr') {
+    const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
+    if (auditLinkData) {
+      try {
+        const data = JSON.parse(auditLinkData);
+        const audit = savedReports.find(r => r.id === data.auditId);
+        if (audit && audit.templateKey === 'audit') {
+          const sections = audit.sections || [];
+          const auditTable = sections[0] || { rows: [] };
+          const rows = auditTable.rows || [];
+          const rowIndex = data.rowIndex;
+          const rowData = rows[rowIndex] || {};
+          const linkedNCRs = rowData.linkedNCRs || [];
+          linkedNCRs.push({
+            ncrNo: row.meta?.ncrNo || row.id,
+            ncrId: row.id,
+            rowIndex: rowIndex
+          });
+          rowData.linkedNCRs = linkedNCRs;
+          rows[rowIndex] = rowData;
+          auditTable.rows = rows;
+          sections[0] = auditTable;
+          audit.sections = sections;
+          await syncReportToServer(audit, false);
+          const idx = savedReports.findIndex(r => r.id === audit.id);
+          if (idx >= 0) savedReports[idx] = audit;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+          toast('✅ NCR linked to audit row');
+        }
+        sessionStorage.removeItem('auditNcrLinkContext');
+      } catch (e) { console.warn('Error linking NCR to audit:', e); }
+    }
+  }
+  // --- Workflow & UI updates ---
   updateWorkflowButtons(row);
   setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
   toast('✅ Saved successfully');
@@ -3509,10 +3554,10 @@ try {
   updateStats();
   renderHistory();
   updateNotificationUI();
- } catch(e) {
-   toast('❌ Save failed: ' + e.message);
- }
+} catch(e) {
+  toast('❌ Save failed: ' + e.message);
 }
+
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
