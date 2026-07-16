@@ -5098,20 +5098,12 @@ function renderAuditRecords(containerId = 'auditRecordsBodyV2', badgeId = 'audit
 
   tbody.innerHTML = html;
 }
-  tbody.innerHTML = html;
-}
 
 function loadAllAuditRecords() {
   renderAuditRecords('auditRecordsBodyV2', 'auditRecordCountBadgeV2', true);
 }
 
 function renderAuditHistory() {
-  updateAuditStats();
-}
-function renderAuditHistory() {
-  // This is called by switchView – it uses the same KPI table above.
-  // No separate table needed – the KPI table is the main table.
-  // Just refresh the stats and KPI results.
   updateAuditStats();
 }
 // ============================================================
