@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const webpush = require('web-push');   // <-- ADD THIS
-
+const nodemailer = require('nodemailer');
 // --- ADD THIS BLOCK ---
 webpush.setVapidDetails(
   `mailto:${process.env.VAPID_EMAIL}`,
@@ -54,7 +54,26 @@ const pool = new Pool({
 pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
 });
+// =============================================
+// EMAIL TRANSPORTER (for notifications)
+// =============================================
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
+emailTransporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ Email transporter error:', error);
+  } else {
+    console.log('✅ Email transporter ready');
+  }
+});
 // =============================================
 // 1. DATABASE INITIALIZATION
 // =============================================
@@ -793,7 +812,40 @@ app.post('/api/notifications', authenticateToken, async (req, res) => {
         }
       }
     }
-    
+        // --- SEND EMAIL ---
+    const userResult = await pool.query('SELECT email FROM users WHERE username = $1', [recipient_username]);
+    const recipientEmail = userResult.rows[0]?.email;
+    if (recipientEmail) {
+      try {
+        const subject = `📋 ${type ? type.toUpperCase() : 'Notification'} from QA/QC Suite`;
+        const htmlContent = `
+          <div style="font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+              <h2 style="color: #123a66; margin-top: 0;">📋 QA/QC Suite</h2>
+              <p style="font-size: 16px;">${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              <p style="color: #555; font-size: 14px;">From: <strong>${sender}</strong></p>
+              ${rfi_no ? `<p style="color: #555; font-size: 14px;">Reference: <strong>${rfi_no}</strong></p>` : ''}
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+              <p style="font-size: 12px; color: #888;">This is an automated notification from QA/QC Suite. Please do not reply.</p>
+              <p style="font-size: 12px; color: #888;">To view this in the app, <a href="${process.env.APP_URL || 'https://qa-qc-enterprise.onrender.com'}" style="color: #123a66;">click here</a>.</p>
+            </div>
+          </div>
+        `;
+
+        await emailTransporter.sendMail({
+          from: process.env.SMTP_FROM || `"QA/QC Suite" <${process.env.SMTP_USER}>`,
+          to: recipientEmail,
+          subject: subject,
+          html: htmlContent,
+          text: `QA/QC Suite Notification: ${message} (from ${sender})`,
+        });
+        console.log(`📧 Email sent to ${recipientEmail}`);
+      } catch (emailErr) {
+        console.error('❌ Email send failed:', emailErr.message);
+      }
+    } else {
+      console.warn(`No email found for user ${recipient_username}, skipping email`);
+    }
     res.status(201).json({ message: 'Notification sent', id });
   } catch (err) {
     res.status(500).json({ error: err.message });
