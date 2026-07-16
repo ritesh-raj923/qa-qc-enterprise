@@ -974,3 +974,56 @@ header .sub { font-size: 13px; color: #555; }
   }
   .sheet-shell { border: none !important; padding: 0 !important; }
 }
+/* ============================================================
+   FIX NOTIFICATION VIEW ON MOBILE
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Fix notification dropdown */
+  .notif-container {
+    position: relative !important;
+  }
+
+  .notif-dropdown {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: auto !important;
+    max-height: 70vh !important;
+    min-width: unset !important;
+    border-radius: 12px !important;
+    z-index: 99999 !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3) !important;
+  }
+
+  .notif-dropdown-header {
+    font-size: 14px !important;
+    padding: 12px 14px !important;
+  }
+
+  .notif-item {
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+  }
+
+  .notif-item .notif-body {
+    font-size: 13px !important;
+  }
+
+  .notif-item .notif-body .notif-time {
+    font-size: 11px !important;
+  }
+
+  .notif-bell {
+    font-size: 22px !important;
+    padding: 2px 4px !important;
+  }
+
+  .notif-badge {
+    font-size: 10px !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    top: -2px !important;
+    right: -2px !important;
+  }
+}
