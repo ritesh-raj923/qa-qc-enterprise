@@ -292,6 +292,7 @@
           <div class="field"><label>&nbsp;</label><button class="btn btn-primary" type="button" onclick="printFilteredHistory()">🖨️ Print</button></div>
         </div>
         <div class="data-actions">
+          <button class="btn btn-primary" onclick="refreshHistory()">🔄 Refresh Records</button>
           <button class="btn btn-secondary" onclick="exportData()">📤 Export Data</button>
           <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
           <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
