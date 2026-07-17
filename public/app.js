@@ -2,7 +2,16 @@
 // 1. API & AUTH HELPERS – SERVER INTEGRATION
 // ============================================================
 const API_BASE = 'https://qa-qc-enterprise.onrender.com';
-
+// ⬇️ PASTE THE STUBS RIGHT HERE ⬇️
+function renderRfiChart(type) {
+  console.log('RFI chart placeholder');
+}
+function renderHistory() {
+  console.log('History placeholder');
+}
+function updateStats() {
+  console.log('Stats placeholder');
+}
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
@@ -5504,17 +5513,7 @@ function clearLocalCache() {
   toast('🗑️ Cache cleared. Refreshing...');
   setTimeout(() => location.reload(), 500);
 }
-// QUICK STUBS FOR MISSING FUNCTIONS
-// ============================================================
-function renderRfiChart() {
-  console.log('RFI chart placeholder');
-}
-function renderHistory() {
-  renderAuditHistory();
-}
-function updateStats() {
-  updateAuditStats();
-}
+
 // ============================================================
 // 25. INITIALIZATION
 // ============================================================
@@ -5648,4 +5647,4 @@ if (darkModeToggle) {
     darkModeToggle.textContent = isDark ? '☀️' : '🌙';
   });
 }
-}
+
