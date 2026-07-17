@@ -3596,14 +3596,8 @@ async function saveReport(ev) {
     setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
     toast('✅ Saved successfully');
 
-    // Force refresh from server to get the latest data
-    await loadFromServer();
-    const refreshedRow = savedReports.find(r => r.id === row.id);
-    if (refreshedRow) {
-      renderSheet(t, refreshedRow);
-    } else {
-      renderSheet(t, row);
-    }
+   // Render from the current row (which has full attachment data)
+renderSheet(t, row);
     updateStats();
     renderHistory();
     updateNotificationUI();
