@@ -1382,42 +1382,68 @@ function collectAuditSectionsExact() {
   const root = document.querySelector('.audit-exact');
   if (!root) return [];
 
-  // Get the current rows from the DOM – we will read them directly
-  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr'));
-  // Map each DOM row to our row object, preserving linkedNCRs
-  const rows = tableRows.map((tr, idx) => {
-    const inputs = tr.querySelectorAll('input, select');
-    const remarksCell = tr.querySelector('.audit-remarks-cell');
-    let linkedNCRs = [];
+  // 1. Get the existing audit rows from the saved report (if any)
+  //    We'll use the existing rows to preserve linkedNCRs and row count.
+  const rec = currentRecord();
+  const existingRows = rec?.sections?.[0]?.rows || [];
+  const templateRows = templates.audit.sections[0].rows;
 
-    // First, try to read linkedNCRs from the data attribute (set during rendering)
-    if (remarksCell) {
-      const dataAttr = remarksCell.getAttribute('data-linked-ncrs');
-      if (dataAttr) {
-        try { linkedNCRs = JSON.parse(dataAttr); } catch(e) { linkedNCRs = []; }
+  // 2. We will start with the existing rows if available, otherwise template rows
+  let rows = [];
+  if (existingRows.length) {
+    // Copy existing rows (to preserve linkedNCRs and row count)
+    rows = existingRows.map(row => ({ ...row }));
+  } else {
+    // Create rows from template with empty values and empty linkedNCRs
+    rows = templateRows.map(task => ({
+      task: task,
+      available: '',
+      documents: '',
+      satisfactory: '',
+      remarks: '',
+      linkedNCRs: []
+    }));
+  }
+
+  // 3. Read values from the DOM and update each row
+  //    Get all TR elements inside the audit table, but skip the header row
+  const table = root.querySelector('.audit-checklist');
+  if (table) {
+    // Get all rows, filter out the header row (the one with th elements)
+    const allTRs = table.querySelectorAll('tr');
+    const dataTRs = [];
+    allTRs.forEach(tr => {
+      // If the row contains a <th>, it's the header, skip it
+      if (!tr.querySelector('th')) {
+        dataTRs.push(tr);
       }
-    }
+    });
 
-    // Fallback: if we don't have it, keep whatever was in the existing row object
-    // (but we will overwrite with the DOM values for the other fields)
-    return {
-      task: tr.cells[1]?.textContent.trim() || '',
-      available: inputs[0]?.value || '',
-      documents: inputs[1]?.value || '',
-      satisfactory: inputs[2]?.value || '',
-      remarks: inputs[3]?.value || '',
-      linkedNCRs: linkedNCRs  // preserve linked NCRs
-    };
-  });
+    // Now update each row with values from the DOM
+    dataTRs.forEach((tr, idx) => {
+      if (idx < rows.length) {
+        const inputs = tr.querySelectorAll('input, select');
+        // The DOM order: task text is in cell[1] (0-based)
+        // But we won't overwrite task name, we only update the select values
+        if (inputs.length >= 3) {
+          rows[idx].available = inputs[0]?.value || '';
+          rows[idx].documents = inputs[1]?.value || '';
+          rows[idx].satisfactory = inputs[2]?.value || '';
+          rows[idx].remarks = inputs[3]?.value || '';
+        }
+        // linkedNCRs are already preserved because we started from existing rows
+        // and we don't overwrite them
+      }
+    });
+  }
 
-  // Collect signatures (unchanged)
+  // 4. Collect signatures (unchanged)
   const sigs = {
     auditor: { name: root.querySelector('[data-sign-name-auditor]')?.value || '', sign: root.querySelector('[data-sign-sign-auditor]')?.value || '', date: root.querySelector('[data-sign-date-auditor]')?.value || '' },
     pm: { name: root.querySelector('[data-sign-name-pm]')?.value || '', sign: root.querySelector('[data-sign-sign-pm]')?.value || '', date: root.querySelector('[data-sign-date-pm]')?.value || '' },
     qa: { name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
   };
-
-  // Return sections – rows are exactly as many as in the DOM
+ console.log('📊 collectAuditSectionsExact – rows length:', rows.length, 'rows:', rows);
   return [
     { type: 'audit_table', rows: rows },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_description"]')?.value || '' },
