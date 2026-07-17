@@ -5504,7 +5504,17 @@ function clearLocalCache() {
   toast('🗑️ Cache cleared. Refreshing...');
   setTimeout(() => location.reload(), 500);
 }
-
+// QUICK STUBS FOR MISSING FUNCTIONS
+// ============================================================
+function renderRfiChart() {
+  console.log('RFI chart placeholder');
+}
+function renderHistory() {
+  renderAuditHistory();
+}
+function updateStats() {
+  updateAuditStats();
+}
 // ============================================================
 // 25. INITIALIZATION
 // ============================================================
@@ -5638,4 +5648,4 @@ if (darkModeToggle) {
     darkModeToggle.textContent = isDark ? '☀️' : '🌙';
   });
 }
-
+}
