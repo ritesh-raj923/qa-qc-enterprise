@@ -5616,19 +5616,8 @@ document.addEventListener('click', function(e) {
     sidebar.classList.remove('open');
   }
 });
-// User mapping for notification routing (matches backend seeds)
-const users = [
-  { u: 'admin', role: 'admin', name: 'System Admin', assigned_sites: ['*'] },
-  { u: 'exec_siteA', role: 'exec_engineer', name: 'Execution Engineer Site A', assigned_sites: ['Site-A'] },
-  { u: 'exec_siteB', role: 'exec_engineer', name: 'Execution Engineer Site B', assigned_sites: ['Site-B'] },
-  { u: 'qa_siteA', role: 'qa_head', name: 'QA Head Site A', assigned_sites: ['Site-A'] },
-  { u: 'qa_siteB', role: 'qa_head', name: 'QA Head Site B', assigned_sites: ['Site-B'] },
-  { u: 'contractor1_siteA', role: 'engineer', name: 'Contractor 1 - Site A', assigned_sites: ['Site-A'] },
-  { u: 'contractor2_siteA', role: 'engineer', name: 'Contractor 2 - Site A', assigned_sites: ['Site-A'] },
-  { u: 'contractor1_siteB', role: 'engineer', name: 'Contractor 1 - Site B', assigned_sites: ['Site-B'] },
-  { u: 'manager', role: 'manager', name: 'Project Manager', assigned_sites: ['*'] },
-  { u: 'consultant', role: 'consultant', name: 'Consultant', assigned_sites: ['*'] }
-];
+// User mapping is loaded dynamically from the server
+const users = [];
 // DARK MODE TOGGLE
 const darkModeToggle = document.getElementById('darkModeToggle');
 const DARK_MODE_KEY = 'qaqc_dark_mode';
