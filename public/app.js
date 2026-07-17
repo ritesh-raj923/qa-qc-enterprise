@@ -2082,15 +2082,16 @@ async function loadSites() {
 // LOAD AGENCY USERS (for Audit/NCR selection) – with filtering & enrichment
 // ============================================================
 async function loadAgencyUsers() {
+  let users = [];  // ← declared here, outside try
   try {
-    const users = await apiRequest('/api/users/agency');
+    users = await apiRequest('/api/users/agency');
     // users is array of objects – guess field names
     let filtered = users.filter(u => {
       const role = u.role || u.role_name || '';
       return role === 'engineer' || role === 'exec_engineer';
     });
 
-    // Apply site-based filtering
+    // Apply site‑based filtering
     if (currentUser && (currentUser.role === 'exec_engineer' || currentUser.role === 'qa_head')) {
       const userSites = currentUser.assigned_sites || [];
       if (userSites.length > 0) {
@@ -2102,26 +2103,31 @@ async function loadAgencyUsers() {
     }
 
     // Normalise each user – try multiple field names
-   agencyUsers = filtered.map(u => ({
-  id: u.id,
-  // ★★★ The server returns the username as 'u' ★★★
-  username: u.u || u.username || u.user || u.email || u.id,
-  displayName: u.name || u.full_name || u.display_name || u.fullname || u.username || u.user || 'Unknown',
-  role: u.role || u.role_name || '',
-  sites: u.assigned_sites || u.sites || []
-}));
+    agencyUsers = filtered.map(u => ({
+      id: u.id,
+      // ★★★ The server returns the username as 'u' ★★★
+      username: u.u || u.username || u.user || u.email || u.id,
+      displayName: u.name || u.full_name || u.display_name || u.fullname || u.username || u.user || 'Unknown',
+      role: u.role || u.role_name || '',
+      sites: u.assigned_sites || u.sites || []
+    }));
 
     console.log('✅ Agency users loaded (filtered):', agencyUsers.length);
   } catch (e) {
     console.warn('Failed to load agency users:', e);
-    // Fallback to static users (make sure they have name and u)
-    agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
-      id: u.id,
-      username: u.u || u.username || u.id,
-      displayName: u.name || u.full_name || u.u,
-      role: u.role,
-      sites: u.assigned_sites || []
-    }));
+    // Fallback to static users – now users is accessible
+    if (users.length) {
+      agencyUsers = users.filter(u => u.role === 'engineer' || u.role === 'exec_engineer').map(u => ({
+        id: u.id,
+        username: u.u || u.username || u.id,
+        displayName: u.name || u.full_name || u.u,
+        role: u.role,
+        sites: u.assigned_sites || []
+      }));
+    } else {
+      // If even users is empty, keep an empty array
+      agencyUsers = [];
+    }
   }
 }
 // ============================================================
@@ -3357,9 +3363,6 @@ async function saveReport(ev) {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(appConfig));
   }
 
-  // ★★★ DELETE THE OLD VALIDATION BLOCK – the one that filtered 'validAgencies' ★★★
-  // (It used to be here – we've removed it entirely)
-
   // 3. Collect sections and build the row object
   const sections = collectSections(t);
   const existing = activeReportId ? savedReports.find(r => r.id === activeReportId) : null;
@@ -3440,136 +3443,120 @@ async function saveReport(ev) {
     toast('⚠️ Please select Linked RFI No before saving checklist');
     return;
   }
-// --- Save to server ---
-try {
-  const isNew = !savedReports.find(r => r.id === id);
-  await syncReportToServer(row, isNew);
-  activeReportId = id;
 
-  // --- RFI specific logic ---
-  if (activeTemplateKey === 'rfi') {
-    pendingReturnRfiId = id;
-    pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
-    pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
-    renderLinkedNCRs();
+  // --- Save to server ---
+  try {
+    const isNew = !savedReports.find(r => r.id === id);
+    await syncReportToServer(row, isNew);
+    activeReportId = id;
 
-    // --- After saving RFI, check if it was created from NCR ---
-    const ncrDocData = sessionStorage.getItem('ncrPendingDoc');
-    if (ncrDocData) {
-      try {
-        const data = JSON.parse(ncrDocData);
-        if (data.action === 'create_rfi') {
-          const ncr = savedReports.find(r => r.id === data.ncrId);
-          if (ncr && ncr.templateKey === 'ncr') {
-            const docs = ncr.meta?.supportingDocs || [];
-            docs.push({
-              type: 'rfi',
-              rfiId: row.id,
-              rfiNo: row.meta?.rfiNo || row.id,
-              addedBy: currentUser.display || currentUser.username,
-              addedAt: new Date().toISOString()
-            });
-            ncr.meta.supportingDocs = docs;
-            await syncReportToServer(ncr, false);
-            const idx = savedReports.findIndex(r => r.id === ncr.id);
-            if (idx >= 0) savedReports[idx] = ncr;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-            toast('✅ RFI linked to NCR');
+    // --- RFI specific logic ---
+    if (activeTemplateKey === 'rfi') {
+      pendingReturnRfiId = id;
+      pendingLinkedRfiNo = row.meta?.rfiNo || pendingLinkedRfiNo;
+      pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
+      renderLinkedNCRs();
+
+      // --- After saving RFI, check if it was created from NCR ---
+      const ncrDocData = sessionStorage.getItem('ncrPendingDoc');
+      if (ncrDocData) {
+        try {
+          const data = JSON.parse(ncrDocData);
+          if (data.action === 'create_rfi') {
+            const ncr = savedReports.find(r => r.id === data.ncrId);
+            if (ncr && ncr.templateKey === 'ncr') {
+              const docs = ncr.meta?.supportingDocs || [];
+              docs.push({
+                type: 'rfi',
+                rfiId: row.id,
+                rfiNo: row.meta?.rfiNo || row.id,
+                addedBy: currentUser.display || currentUser.username,
+                addedAt: new Date().toISOString()
+              });
+              ncr.meta.supportingDocs = docs;
+              await syncReportToServer(ncr, false);
+              const idx = savedReports.findIndex(r => r.id === ncr.id);
+              if (idx >= 0) savedReports[idx] = ncr;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+              toast('✅ RFI linked to NCR');
+            }
           }
-        }
-        sessionStorage.removeItem('ncrPendingDoc');
-      } catch (e) { console.warn('Error linking RFI to NCR:', e); }
+          sessionStorage.removeItem('ncrPendingDoc');
+        } catch (e) { console.warn('Error linking RFI to NCR:', e); }
+      }
     }
-  }
 
-  // --- NEW: After saving NCR, check if it was created from an Audit ---
-  if (activeTemplateKey === 'ncr') {
-    const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
-    if (auditLinkData) {
-      try {
-        const data = JSON.parse(auditLinkData);
-        const audit = savedReports.find(r => r.id === data.auditId);
-        if (audit && audit.templateKey === 'audit') {
-          const sections = audit.sections || [];
-          const auditTable = sections[0] || { rows: [] };
-          const rows = auditTable.rows || [];
-          const rowIndex = data.rowIndex;
-          const rowData = rows[rowIndex] || {};
-          const linkedNCRs = rowData.linkedNCRs || [];
-          linkedNCRs.push({
-            ncrNo: row.meta?.ncrNo || row.id,
-            ncrId: row.id,
-            rowIndex: rowIndex
+    // ★★★ NEW: After saving NCR, check if it was created from an Audit (with debug logs) ★★★
+    if (activeTemplateKey === 'ncr') {
+      const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
+      if (auditLinkData) {
+        console.log('📦 Found audit link context:', auditLinkData);
+        try {
+          const data = JSON.parse(auditLinkData);
+          const audit = savedReports.find(r => r.id === data.auditId);
+          console.log('🔗 Linking NCR to audit row', { 
+            auditId: data.auditId, 
+            rowIndex: data.rowIndex, 
+            ncrId: row.id 
           });
-          rowData.linkedNCRs = linkedNCRs;
-          rows[rowIndex] = rowData;
-          auditTable.rows = rows;
-          sections[0] = auditTable;
-          audit.sections = sections;
-          await syncReportToServer(audit, false);
-          const idx = savedReports.findIndex(r => r.id === audit.id);
-          if (idx >= 0) savedReports[idx] = audit;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-          toast('✅ NCR linked to audit row');
-        }
-        sessionStorage.removeItem('auditNcrLinkContext');
-      } catch (e) { console.warn('Error linking NCR to audit:', e); }
-    }
-  }
-    // --- After saving NCR, check if it was created from an Audit ---
-  if (activeTemplateKey === 'ncr') {
-    const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
-    if (auditLinkData) {
-      try {
-        const data = JSON.parse(auditLinkData);
-        const audit = savedReports.find(r => r.id === data.auditId);
-        if (audit && audit.templateKey === 'audit') {
-          const sections = audit.sections || [];
-          const auditTable = sections[0] || { rows: [] };
-          const rows = auditTable.rows || [];
-          const rowIndex = data.rowIndex;
-          const rowData = rows[rowIndex] || {};
-          const linkedNCRs = rowData.linkedNCRs || [];
-          linkedNCRs.push({
-            ncrNo: row.meta?.ncrNo || row.id,
-            ncrId: row.id,
-            rowIndex: rowIndex
-          });
-          rowData.linkedNCRs = linkedNCRs;
-          rows[rowIndex] = rowData;
-          auditTable.rows = rows;
-          sections[0] = auditTable;
-          audit.sections = sections;
-          await syncReportToServer(audit, false);
-          const idx = savedReports.findIndex(r => r.id === audit.id);
-          if (idx >= 0) savedReports[idx] = audit;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
-          toast('✅ NCR linked to audit row');
-        }
-        sessionStorage.removeItem('auditNcrLinkContext');
-      } catch (e) { console.warn('Error linking NCR to audit:', e); }
-    }
-  }
-  // --- Workflow & UI updates ---
-  updateWorkflowButtons(row);
-  setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
-  toast('✅ Saved successfully');
 
-  // Force refresh from server to get the latest data
-  await loadFromServer();
-  const refreshedRow = savedReports.find(r => r.id === row.id);
-  if (refreshedRow) {
-    renderSheet(t, refreshedRow);
-  } else {
-    renderSheet(t, row);
+          if (audit && audit.templateKey === 'audit') {
+            const sections = audit.sections || [];
+            const auditTable = sections[0] || { rows: [] };
+            const rows = auditTable.rows || [];
+            const rowIndex = data.rowIndex;
+            const rowData = rows[rowIndex] || {};
+            const linkedNCRs = rowData.linkedNCRs || [];
+
+            console.log('Audit rows BEFORE update:', JSON.stringify(rows));
+
+            linkedNCRs.push({
+              ncrNo: row.meta?.ncrNo || row.id,
+              ncrId: row.id,
+              rowIndex: rowIndex
+            });
+            rowData.linkedNCRs = linkedNCRs;
+            rows[rowIndex] = rowData;
+            auditTable.rows = rows;
+            sections[0] = auditTable;
+            audit.sections = sections;
+
+            console.log('Audit rows AFTER update:', JSON.stringify(rows));
+
+            await syncReportToServer(audit, false);
+            const idx = savedReports.findIndex(r => r.id === audit.id);
+            if (idx >= 0) savedReports[idx] = audit;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
+            toast('✅ NCR linked to audit row');
+          }
+          sessionStorage.removeItem('auditNcrLinkContext');
+        } catch (e) {
+          console.warn('Error linking NCR to audit:', e);
+        }
+      }
+    }
+
+    // --- Workflow & UI updates ---
+    updateWorkflowButtons(row);
+    setChecklistButtonsState(activeTemplateKey === 'rfi' ? row : null);
+    toast('✅ Saved successfully');
+
+    // Force refresh from server to get the latest data
+    await loadFromServer();
+    const refreshedRow = savedReports.find(r => r.id === row.id);
+    if (refreshedRow) {
+      renderSheet(t, refreshedRow);
+    } else {
+      renderSheet(t, row);
+    }
+    updateStats();
+    renderHistory();
+    updateNotificationUI();
+  } catch(e) {
+    toast('❌ Save failed: ' + e.message);
   }
-  updateStats();
-  renderHistory();
-  updateNotificationUI();
-} catch(e) {
-  toast('❌ Save failed: ' + e.message);
-}
-}
+}   // <-- THIS CLOSING BRACE IS CRUCIAL – make sure it's here!
+
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
