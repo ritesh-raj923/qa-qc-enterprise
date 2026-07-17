@@ -3569,7 +3569,7 @@ try {
 } catch(e) {
   toast('❌ Save failed: ' + e.message);
 }
-
+}
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
@@ -5640,5 +5640,4 @@ if (darkModeToggle) {
         localStorage.setItem(DARK_MODE_KEY, isDark);
         darkModeToggle.textContent = isDark ? '☀️' : '🌙';
     });
-}
 }
