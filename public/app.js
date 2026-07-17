@@ -5504,6 +5504,7 @@ function clearLocalCache() {
   toast('🗑️ Cache cleared. Refreshing...');
   setTimeout(() => location.reload(), 500);
 }
+
 // ============================================================
 // 25. INITIALIZATION
 // ============================================================
@@ -5637,4 +5638,4 @@ if (darkModeToggle) {
     darkModeToggle.textContent = isDark ? '☀️' : '🌙';
   });
 }
-}
+
