@@ -5641,3 +5641,4 @@ if (darkModeToggle) {
         darkModeToggle.textContent = isDark ? '☀️' : '🌙';
     });
 }
+}
