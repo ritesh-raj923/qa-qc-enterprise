@@ -5598,27 +5598,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 // ↑↑↑ ADD THIS
-// ---- NOTIFICATION DROPDOWN CLOSE ----
+// User mapping for notification routing – now loaded dynamically from the server
+const users = [];   // ← Empty array – fallback only, server data will override
+
+// --- NOTIFICATION DROPDOWN CLOSE ---
 document.addEventListener('click', function(e) {
-  const container = document.getElementById('notifContainer');
-  if (container && !container.contains(e.target)) {
-    document.getElementById('notifDropdown').classList.remove('open');
-  }
+    const container = document.getElementById('notificationContainer');
+    if (container && !container.contains(e.target)) {
+        document.getElementById('notificationDropdown').classList.remove('open');
+    }
 });
 
-// ===== CLOSE SIDEBAR WHEN CLICKING OUTSIDE =====
+// --- CLOSE SIDEBAR WHEN CLICKING OUTSIDE ---
 document.addEventListener('click', function(e) {
-  const sidebar = document.querySelector('.sidebar');
-  const hamburger = document.getElementById('hamburgerBtn');
-  if (sidebar && sidebar.classList.contains('open') && 
-      !sidebar.contains(e.target) && 
-      !hamburger.contains(e.target)) {
-    sidebar.classList.remove('open');
-  }
+    const sidebar = document.querySelector('.sidebar');
+    const hamburger = document.getElementById('hamburgerBtn');
+    if (sidebar && sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) &&
+        !hamburger.contains(e.target)) {
+        sidebar.classList.remove('open');
+    }
 });
-// User mapping is loaded dynamically from the server
-const users = [];
+
+// ============================================================
 // DARK MODE TOGGLE
+// ============================================================
 const darkModeToggle = document.getElementById('darkModeToggle');
 const DARK_MODE_KEY = 'qaqc_dark_mode';
 
@@ -5636,5 +5640,4 @@ if (darkModeToggle) {
         localStorage.setItem(DARK_MODE_KEY, isDark);
         darkModeToggle.textContent = isDark ? '☀️' : '🌙';
     });
-}
 }
