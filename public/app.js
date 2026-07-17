@@ -1382,13 +1382,15 @@ function collectAuditSectionsExact() {
   const root = document.querySelector('.audit-exact');
   if (!root) return [];
 
-  // Collect audit table rows (checklist)
-  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr')).map((tr, idx) => {
+  // Get the current rows from the DOM – we will read them directly
+  const tableRows = Array.from(root.querySelectorAll('.audit-checklist tbody tr'));
+  // Map each DOM row to our row object, preserving linkedNCRs
+  const rows = tableRows.map((tr, idx) => {
     const inputs = tr.querySelectorAll('input, select');
     const remarksCell = tr.querySelector('.audit-remarks-cell');
     let linkedNCRs = [];
 
-    // Try to read from the data attribute (set during rendering)
+    // First, try to read linkedNCRs from the data attribute (set during rendering)
     if (remarksCell) {
       const dataAttr = remarksCell.getAttribute('data-linked-ncrs');
       if (dataAttr) {
@@ -1396,17 +1398,15 @@ function collectAuditSectionsExact() {
       }
     }
 
-    // If the data attribute is missing, fallback to reading from the current row object
-    // but we don't have that here – so we'll just keep an empty array.
-    // This ensures we don't lose existing linked NCRs if the attribute is missing.
-
+    // Fallback: if we don't have it, keep whatever was in the existing row object
+    // (but we will overwrite with the DOM values for the other fields)
     return {
       task: tr.cells[1]?.textContent.trim() || '',
       available: inputs[0]?.value || '',
       documents: inputs[1]?.value || '',
       satisfactory: inputs[2]?.value || '',
       remarks: inputs[3]?.value || '',
-      linkedNCRs: linkedNCRs
+      linkedNCRs: linkedNCRs  // preserve linked NCRs
     };
   });
 
@@ -1417,8 +1417,9 @@ function collectAuditSectionsExact() {
     qa: { name: root.querySelector('[data-sign-name-qa]')?.value || '', sign: root.querySelector('[data-sign-sign-qa]')?.value || '', date: root.querySelector('[data-sign-date-qa]')?.value || '' }
   };
 
+  // Return sections – rows are exactly as many as in the DOM
   return [
-    { type: 'audit_table', rows: tableRows },
+    { type: 'audit_table', rows: rows },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_description"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_appreciation"]')?.value || '' },
     { type: 'textarea', value: root.querySelector('[data-exact-text="audit_compliance"]')?.value || '' },
@@ -4520,7 +4521,6 @@ function applyPendingChecklistPrefill() {
     if (el && m[k] && !el.value) el.value = m[k];
   });
 }
-
 // ============================================================
 // 19. OPEN TEMPLATE / RECORD
 // ============================================================
@@ -4528,15 +4528,16 @@ async function openTemplate(key, reportId = null, reportObj = null) {
   activeTemplateKey = key;
   activeReportId = reportId;
   const t = templates[key];
-   // ← ADD THIS ↓↓↓
+
   // Load agency users for Audit or NCR
   if (key === 'audit' || key === 'ncr') {
-    await loadAgencyUsers();   // <-- ADDED 'await' HERE
+    await loadAgencyUsers();
   }
-  // ← ADD THIS ↑↑↑
+
   // Use reportObj if provided, otherwise look up in savedReports
-  const report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
-   // Auto-populate linked RFI for checklists
+  let report = reportObj || (reportId ? savedReports.find(r => r.id === reportId) : null);
+
+  // Auto-populate linked RFI for checklists
   if (pendingLinkedRfiNo && activeTemplateKey !== 'rfi') {
     const sel = document.getElementById('meta_linkedRfi');
     if (sel) {
@@ -4550,7 +4551,8 @@ async function openTemplate(key, reportId = null, reportObj = null) {
       sel.value = pendingLinkedRfiNo;
     }
   }
-    // ★ NEW: For activity checklists, auto-populate the Linked Audit dropdown
+
+  // Auto-populate Linked Audit for activity checklists
   if (pendingLinkedAuditNo && activeTemplateKey !== 'audit') {
     const sel = document.getElementById('meta_linkedAudit');
     if (sel) {
@@ -4564,39 +4566,47 @@ async function openTemplate(key, reportId = null, reportObj = null) {
       sel.value = pendingLinkedAuditNo;
     }
   }
+
+  // ★ NEW: If we are creating a new NCR and there is a pending audit context, prefill meta
+  if (!report && activeTemplateKey === 'ncr') {
+    const context = sessionStorage.getItem('auditNcrLinkContext');
+    if (context) {
+      try {
+        const data = JSON.parse(context);
+        if (data.agency) {
+          report = {
+            id: null,
+            templateKey: 'ncr',
+            meta: {
+              project: data.project || '',
+              package: data.package || '',
+              location: data.location || '',
+              agency: Array.isArray(data.agency) ? data.agency : [],
+            },
+            sections: [],
+            status: 'Draft'
+          };
+          console.log('📋 Pre‑filled NCR meta from audit context:', report.meta);
+        }
+      } catch (e) {
+        console.warn('Error reading audit context for NCR prefill', e);
+      }
+    }
+  }
+
+  // ★ DEBUG LOGS – check the report object and agency after pre‑fill attempt
+  console.log('📋 Final report object passed to renderSheet:', report);
+  console.log('👉 meta.agency =', report?.meta?.agency);
+
+  // Set header information
   document.getElementById('sheetOrg').innerText = appConfig.companyName || 'QA/QC Suite';
   document.getElementById('sheetDept').innerText = t.dept || 'QA / QC RECORDS';
   document.getElementById('fmtNo').innerText = 'Format No. - ' + (t.formatNo || buildFormatNo('01'));
   document.getElementById('sheetTitle').innerText = t.title;
-
   document.getElementById('appTitle').innerText = t.menuTitle;
   document.getElementById('appSub').innerText = t.formatNo || '';
-  // ★ NEW: If we are creating a new NCR and there is a pending audit context, prefill meta
-if (!report && activeTemplateKey === 'ncr') {
-  const context = sessionStorage.getItem('auditNcrLinkContext');
-  if (context) {
-    try {
-      const data = JSON.parse(context);
-      // If the context has agency and project, use them
-      if (data.agency) {
-        report = {
-          id: null, // will be generated on save
-          templateKey: 'ncr',
-          meta: {
-            project: data.project || '',
-            package: data.package || '',
-            location: data.location || '',
-            agency: Array.isArray(data.agency) ? data.agency : [],
-            // other fields will be empty
-          },
-          sections: [],
-          status: 'Draft'
-        };
-        console.log('📋 Pre‑filled NCR meta from audit context:', report.meta);
-      }
-    } catch (e) { console.warn('Error reading audit context for NCR prefill', e); }
-  }
-}
+
+  // Render the sheet with the report (pre‑filled or existing)
   renderSheet(t, report);
   applyPendingChecklistPrefill();
   updateWorkflowButtons(report);
