@@ -964,6 +964,7 @@ if (!auditRows.length) {
 }
 // Render NCR badges for audit row
 // ============================================================
+// ============================================================
 // AUDIT – NCR LINKING FUNCTIONS
 // ============================================================
 
@@ -979,8 +980,9 @@ function renderAuditNcrBadges(ncrList = []) {
     </span>
   `).join('');
 }
-// Add NCR to audit row – opens a new NCR form
-function addNcrToAuditRow(rowIndex) {
+
+// --- UPDATED: Add NCR to audit row – now stores full context (agency, project, etc.) for pre‑fill ---
+async function addNcrToAuditRow(rowIndex) {
   const rec = currentRecord();
   if (!rec || activeTemplateKey !== 'audit') { 
     toast('⚠️ Open an Audit first'); 
@@ -988,21 +990,30 @@ function addNcrToAuditRow(rowIndex) {
   }
 
   // Save the audit first to ensure we have the latest data
-  saveReport({ preventDefault() {} }).then(() => {
-    // Store context so that when NCR is saved, we know which audit row to link it to
-    sessionStorage.setItem('auditNcrLinkContext', JSON.stringify({
-      auditId: rec.id,
-      rowIndex: rowIndex,
-      auditNo: rec.meta?.reportNo || rec.id
-    }));
-    
-    // Open a new NCR template
-    openTemplate('ncr');
-  }).catch(e => {
+  try {
+    await saveReport({ preventDefault() {} });
+  } catch (e) {
     toast('❌ Failed to save audit: ' + e.message);
-  });
-}
+    return;
+  }
 
+  // Store full context – including agency, project, package, location
+  sessionStorage.setItem('auditNcrLinkContext', JSON.stringify({
+    auditId: rec.id,
+    rowIndex: rowIndex,
+    auditNo: rec.meta?.reportNo || rec.id,
+    // ★ Pass agency, project, etc. to pre‑fill the NCR
+    agency: rec.meta?.agency || [],
+    project: rec.meta?.project || '',
+    package: rec.meta?.package || '',
+    location: rec.meta?.location || ''
+  }));
+
+  console.log('🔖 Set audit link context with agency:', sessionStorage.getItem('auditNcrLinkContext'));
+  
+  // Open a new NCR template
+  openTemplate('ncr');
+}
 
 // Remove NCR from audit row
 async function removeAuditNcr(rowIndex, ncrIndex) {
@@ -3522,12 +3533,19 @@ async function saveReport(ev) {
             audit.sections = sections;
 
             console.log('Audit rows AFTER update:', JSON.stringify(rows));
-
+            // ★ SAFETY CHECK: ensure row count hasn't changed unexpectedly
+            if (rows.length !== auditTable.rows.length) {
+             console.warn('⚠️ Row count mismatch! Expected', auditTable.rows.length, 'got', rows.length);
+           // If you want to revert to the original rows to prevent corruption:
+            // auditTable.rows = originalRows; // but we don't have a backup here
+           // This warning helps debug if rows are being added incorrectly.
+              }
             await syncReportToServer(audit, false);
             const idx = savedReports.findIndex(r => r.id === audit.id);
             if (idx >= 0) savedReports[idx] = audit;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
             toast('✅ NCR linked to audit row');
+            openTemplate('audit', audit.id);
           }
           sessionStorage.removeItem('auditNcrLinkContext');
         } catch (e) {
@@ -4553,7 +4571,32 @@ async function openTemplate(key, reportId = null, reportObj = null) {
 
   document.getElementById('appTitle').innerText = t.menuTitle;
   document.getElementById('appSub').innerText = t.formatNo || '';
-
+  // ★ NEW: If we are creating a new NCR and there is a pending audit context, prefill meta
+if (!report && activeTemplateKey === 'ncr') {
+  const context = sessionStorage.getItem('auditNcrLinkContext');
+  if (context) {
+    try {
+      const data = JSON.parse(context);
+      // If the context has agency and project, use them
+      if (data.agency) {
+        report = {
+          id: null, // will be generated on save
+          templateKey: 'ncr',
+          meta: {
+            project: data.project || '',
+            package: data.package || '',
+            location: data.location || '',
+            agency: Array.isArray(data.agency) ? data.agency : [],
+            // other fields will be empty
+          },
+          sections: [],
+          status: 'Draft'
+        };
+        console.log('📋 Pre‑filled NCR meta from audit context:', report.meta);
+      }
+    } catch (e) { console.warn('Error reading audit context for NCR prefill', e); }
+  }
+}
   renderSheet(t, report);
   applyPendingChecklistPrefill();
   updateWorkflowButtons(report);
