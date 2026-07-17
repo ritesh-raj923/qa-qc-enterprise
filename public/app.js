@@ -12,6 +12,9 @@ function renderHistory() {
 function updateStats() {
   console.log('Stats placeholder');
 }
+function filterKPI(type) {
+    console.log('filterKPI placeholder');
+}
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Not authenticated');
