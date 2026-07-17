@@ -877,24 +877,32 @@ function renderIMIRExact(report) {
 function renderAuditExact(report) {
   const m = report?.meta || {};
   
-let auditRows = report?.sections?.[0]?.rows || [];
-if (!auditRows.length) {
-  const templateRows = templates.audit.sections[0].rows;
-  auditRows = templateRows.map(task => ({
-    task: task,
-    available: '',
-    documents: '',
-    satisfactory: '',
-    remarks: '',
-    linkedNCRs: []  // ← ADD THIS
-  }));
-} else {
-  // Ensure each row has a linkedNCRs array
-  auditRows = auditRows.map(row => ({
-    ...row,
-    linkedNCRs: row.linkedNCRs || []
-  }));
-}
+  let auditRows = report?.sections?.[0]?.rows || [];
+  if (!auditRows.length) {
+    const templateRows = templates.audit.sections[0].rows;
+    auditRows = templateRows.map(task => ({
+      task: task,
+      available: '',
+      documents: '',
+      satisfactory: '',
+      remarks: '',
+      linkedNCRs: []
+    }));
+  } else {
+    // Ensure each row has a linkedNCRs array
+    auditRows = auditRows.map(row => ({
+      ...row,
+      linkedNCRs: row.linkedNCRs || []
+    }));
+  }
+
+  // ★ DEBUG: Log the rows to see if linkedNCRs are present
+  console.log('🔍 renderAuditExact – auditRows with linkedNCRs:', auditRows.map((r, i) => ({ 
+    rowIndex: i, 
+    task: r.task, 
+    linkedNCRs: r.linkedNCRs 
+  })));
+
   let html = `
   <div class="exact-format audit-exact">
     <table class="exact-table" style="border-bottom: none;">
@@ -912,10 +920,9 @@ if (!auditRows.length) {
       <tr><td class="exact-label">Project Value:</td><td colspan="2">${inputExact('meta_projectValue', m.projectValue)}</td><td class="exact-label">Assessment dates:</td><td colspan="2">${inputExact('meta_assessmentDates', m.assessmentDates)}</td></tr>
       <tr><td class="exact-label">Client address:</td><td colspan="2">${inputExact('meta_clientAddress', m.clientAddress)}</td><td class="exact-label">Reporting dates:</td><td colspan="2">${inputExact('meta_reportingDates', m.reportingDates)}</td></tr>
       <tr><td class="exact-label">Assessment team:</td><td colspan="2">${inputExact('meta_assessmentTeam', m.assessmentTeam)}</td><td class="exact-label">Assessment criteria:</td><td colspan="2">${inputExact('meta_assessmentCriteria', m.assessmentCriteria)}</td></tr>
-      <!-- Agency row removed – now placed outside the format -->
     </table>
 
-     <table class="exact-table audit-checklist">
+    <table class="exact-table audit-checklist">
       <tr>
         <th style="width:6%;">sr no</th>
         <th style="width:38%;">Tasks</th>
@@ -924,7 +931,11 @@ if (!auditRows.length) {
         <th style="width:16%;">satisfactory/ Unsatisfactory</th>
         <th style="width:16%;">Remarks</th>
       </tr>
-      ${auditRows.map((row, idx) => `
+      ${auditRows.map((row, idx) => {
+        // Ensure linkedNCRs is an array
+        const linkedNCRs = row.linkedNCRs || [];
+        const linkedNCRsJson = JSON.stringify(linkedNCRs);
+        return `
         <tr>
           <td style="text-align:center;">${idx+1}</td>
           <td>${esc(row.task || '')}</td>
@@ -934,9 +945,9 @@ if (!auditRows.length) {
           <td>
             <div class="audit-remarks-cell" 
                  data-row-index="${idx}" 
-                 data-linked-ncrs='${JSON.stringify(row.linkedNCRs || [])}'>
+                 data-linked-ncrs='${linkedNCRsJson}'>
               <div class="ncr-badges" id="auditNcrBadges_${idx}">
-                ${renderAuditNcrBadges(row.linkedNCRs || [])}
+                ${renderAuditNcrBadges(linkedNCRs)}
               </div>
               <button type="button" class="btn btn-secondary btn-sm" onclick="addNcrToAuditRow(${idx})" style="padding:2px 8px; font-size:11px; margin-top:4px;">
                 ➕ Add NCR
@@ -944,7 +955,8 @@ if (!auditRows.length) {
             </div>
           </td>
         </tr>
-      `).join('')}
+        `;
+      }).join('')}
     </table>
 
     <table class="exact-table"><tr><th style="text-align:left; padding:6px 8px;">Project Description</th></tr><tr><td>${textExact('audit_description', secVal(report, 1))}</td></tr></table>
@@ -3363,14 +3375,12 @@ async function saveReport(ev) {
     meta.agency = agencies;
     console.log('🔍 [saveReport] Agencies captured:', meta.agency);
 
-    // ★★★ MANDATORY VALIDATION – blocks save if none selected ★★★
     if (meta.agency.length === 0) {
       toast('⚠️ Please select at least one Agency (Contractor/Execution Engineer) before saving.');
       return;
     }
   }
 
-  // DEBUG: Log the collected meta
   console.log('🔍 [DEBUG] Collected meta:', meta);
 
   // --- NCR edit check ---
@@ -3495,7 +3505,6 @@ async function saveReport(ev) {
       pendingParentMeta = { project: meta.project, package: meta.package, contractor: meta.contractor, projectCode: meta.projectCode, date: meta.date };
       renderLinkedNCRs();
 
-      // --- After saving RFI, check if it was created from NCR ---
       const ncrDocData = sessionStorage.getItem('ncrPendingDoc');
       if (ncrDocData) {
         try {
@@ -3524,7 +3533,7 @@ async function saveReport(ev) {
       }
     }
 
-    // ★★★ NEW: After saving NCR, check if it was created from an Audit (with debug logs) ★★★
+    // ★★★ NCR linking to Audit ★★★
     if (activeTemplateKey === 'ncr') {
       const auditLinkData = sessionStorage.getItem('auditNcrLinkContext');
       if (auditLinkData) {
@@ -3560,19 +3569,20 @@ async function saveReport(ev) {
             audit.sections = sections;
 
             console.log('Audit rows AFTER update:', JSON.stringify(rows));
-            // ★ SAFETY CHECK: ensure row count hasn't changed unexpectedly
+
+            // Safety check
             if (rows.length !== auditTable.rows.length) {
-             console.warn('⚠️ Row count mismatch! Expected', auditTable.rows.length, 'got', rows.length);
-           // If you want to revert to the original rows to prevent corruption:
-            // auditTable.rows = originalRows; // but we don't have a backup here
-           // This warning helps debug if rows are being added incorrectly.
-              }
+              console.warn('⚠️ Row count mismatch! Expected', auditTable.rows.length, 'got', rows.length);
+            }
+
             await syncReportToServer(audit, false);
             const idx = savedReports.findIndex(r => r.id === audit.id);
             if (idx >= 0) savedReports[idx] = audit;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(savedReports));
             toast('✅ NCR linked to audit row');
-            openTemplate('audit', audit.id);
+
+            // ★ OPTIONAL: Auto‑reopen the audit to show the badge immediately
+            // openTemplate('audit', audit.id); // uncomment if you want this
           }
           sessionStorage.removeItem('auditNcrLinkContext');
         } catch (e) {
@@ -3600,8 +3610,7 @@ async function saveReport(ev) {
   } catch(e) {
     toast('❌ Save failed: ' + e.message);
   }
-}   // <-- THIS CLOSING BRACE IS CRUCIAL – make sure it's here!
-
+}   // <-- This closing brace is now correctly placed.
 async function deleteReport(id) {
   const r = savedReports.find(x => x.id === id);
   if (!r) return;
