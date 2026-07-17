@@ -5626,25 +5626,22 @@ const users = [
   { u: 'manager', role: 'manager', name: 'Project Manager', assigned_sites: ['*'] },
   { u: 'consultant', role: 'consultant', name: 'Consultant', assigned_sites: ['*'] }
 ];
-  // ============================================================
-// DARK MODE TOGGLE  ← PASTE THIS BLOCK HERE
-// ============================================================
+// DARK MODE TOGGLE
 const darkModeToggle = document.getElementById('darkModeToggle');
 const DARK_MODE_KEY = 'qaqc_dark_mode';
 
 // Load saved preference
 if (localStorage.getItem(DARK_MODE_KEY) === 'true') {
-  document.body.classList.add('dark-mode');
-  if (darkModeToggle) darkModeToggle.textContent = '☀️';
+    document.body.classList.add('dark-mode');
+    if (darkModeToggle) darkModeToggle.textContent = '☀️';
 }
 
 // Toggle on click
 if (darkModeToggle) {
-  darkModeToggle.addEventListener('click', function() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem(DARK_MODE_KEY, isDark);
-    darkModeToggle.textContent = isDark ? '☀️' : '🌙';
-  });
+    darkModeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem(DARK_MODE_KEY, isDark);
+        darkModeToggle.textContent = isDark ? '☀️' : '🌙';
+    });
 }
-
